@@ -1,13 +1,14 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Home, PlusCircle, User, ScanBarcode } from "lucide-react";
+import { Home, PlusCircle, User, ScanBarcode, Sparkles } from "lucide-react";
 
 interface BottomNavProps {
   onAddClick: () => void;
   onScanClick?: () => void;
+  onAiClick?: () => void;
 }
 
-export function BottomNav({ onAddClick, onScanClick }: BottomNavProps) {
+export function BottomNav({ onAddClick, onScanClick, onAiClick }: BottomNavProps) {
   const location = useLocation();
   const path = location.pathname;
 
