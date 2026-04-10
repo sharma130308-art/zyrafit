@@ -14,6 +14,7 @@ import {
   type FoodSource,
 } from "@/lib/food-store";
 import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
+import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
 import { CalorieRing } from "@/components/CalorieRing";
 import { MacroBar } from "@/components/MacroBar";
 import { MealSection } from "@/components/MealSection";
@@ -21,6 +22,8 @@ import { AddFoodDialog } from "@/components/AddFoodDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodPreview } from "@/components/FoodPreview";
+import { PhotoCapture } from "@/components/PhotoCapture";
+import { AIFoodPreview } from "@/components/AIFoodPreview";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -44,6 +47,13 @@ function Dashboard() {
   const [scannedFood, setScannedFood] = useState<ScannedFood | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  // AI photo state
+  const [photoCaptureOpen, setPhotoCaptureOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
+  const [aiImageUrl, setAiImageUrl] = useState<string>("");
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const [fetchedEntries, fetchedGoal] = await Promise.all([
@@ -118,6 +128,44 @@ function Dashboard() {
     setScannedFood(null);
   };
 
+  const handlePhotoCapture = async (file: File) => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const base64 = await captureImageAsBase64(file);
+      setAiImageUrl(base64);
+      const result = await analyzePhoto(base64);
+      setAiLoading(false);
+      if (!result.is_food || result.items.length === 0) {
+        setAiError("No food detected in this photo. Try again with a clearer shot.");
+        setTimeout(() => setAiError(null), 3000);
+      } else {
+        setAiItems(result.items);
+      }
+    } catch (err) {
+      setAiLoading(false);
+      setAiError(err instanceof Error ? err.message : "AI analysis failed");
+      setTimeout(() => setAiError(null), 3000);
+    }
+  };
+
+  const handleAddFromAi = async (foods: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    quantity: number;
+    mealType: MealType;
+    source: "ai";
+  }[]) => {
+    for (const food of foods) {
+      await handleAdd(food);
+    }
+    setAiItems(null);
+    setAiImageUrl("");
+  };
+
   const totals = getDailyTotals(entries);
   const byMeal = getEntriesByMeal(entries);
   const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -189,6 +237,7 @@ function Dashboard() {
       <BottomNav
         onAddClick={() => setDialogOpen(true)}
         onScanClick={() => setScannerOpen(true)}
+        onAiClick={() => setPhotoCaptureOpen(true)}
       />
 
       <AddFoodDialog
@@ -219,9 +268,30 @@ function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* Scan loading overlay */}
+      {/* AI Photo Capture */}
       <AnimatePresence>
-        {scanLoading && (
+        <PhotoCapture
+          open={photoCaptureOpen}
+          onClose={() => setPhotoCaptureOpen(false)}
+          onCapture={handlePhotoCapture}
+        />
+      </AnimatePresence>
+
+      {/* AI Food Preview */}
+      <AnimatePresence>
+        {aiItems && (
+          <AIFoodPreview
+            items={aiItems}
+            imageUrl={aiImageUrl}
+            onAdd={handleAddFromAi}
+            onBack={() => { setAiItems(null); setAiImageUrl(""); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Scan/AI loading overlay */}
+      <AnimatePresence>
+        {(scanLoading || aiLoading) && (
           <motion.div
             className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
             initial={{ opacity: 0 }}
@@ -233,22 +303,24 @@ function Dashboard() {
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
-            <p className="text-foreground font-medium">Looking up food...</p>
+            <p className="text-foreground font-medium">
+              {aiLoading ? "Analyzing your meal..." : "Looking up food..."}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Scan error toast */}
+      {/* Error toast */}
       <AnimatePresence>
-        {scanError && (
+        {(scanError || aiError) && (
           <motion.div
             className="fixed top-16 inset-x-6 z-50 bg-destructive text-destructive-foreground rounded-2xl p-4 text-center shadow-lg"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <p className="font-medium text-sm">{scanError}</p>
-            <p className="text-xs mt-1 opacity-80">Opening manual entry...</p>
+            <p className="font-medium text-sm">{scanError || aiError}</p>
+            {scanError && <p className="text-xs mt-1 opacity-80">Opening manual entry...</p>}
           </motion.div>
         )}
       </AnimatePresence>
