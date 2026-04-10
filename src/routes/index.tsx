@@ -48,6 +48,13 @@ function Dashboard() {
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
+  // AI photo state
+  const [photoCaptureOpen, setPhotoCaptureOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
+  const [aiImageUrl, setAiImageUrl] = useState<string>("");
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const refresh = useCallback(async () => {
     const [fetchedEntries, fetchedGoal] = await Promise.all([
       getEntries(today),
