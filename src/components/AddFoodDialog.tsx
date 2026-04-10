@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Search, Clock, ChevronRight, ScanBarcode } from "lucide-react";
+import { X, Plus, Search, Clock, ChevronRight, ScanBarcode, Sparkles } from "lucide-react";
 import type { MealType, FoodTemplate } from "@/lib/food-store";
 import { MEAL_LABELS, searchFoodHistory } from "@/lib/food-store";
 
@@ -17,11 +17,12 @@ interface AddFoodDialogProps {
     mealType: MealType;
   }) => void;
   onScanClick?: () => void;
+  onAiClick?: () => void;
 }
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
-export function AddFoodDialog({ open, onClose, onAdd, onScanClick }: AddFoodDialogProps) {
+export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick }: AddFoodDialogProps) {
   const [mode, setMode] = useState<"history" | "manual">("history");
   const [name, setName] = useState("");
   const [calories, setCalories] = useState("");
