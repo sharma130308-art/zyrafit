@@ -30,13 +30,18 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const today = getTodayDate();
-  const [entries, setEntries] = useState<FoodEntry[]>(() => getEntries(today));
+  const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const goal = getCalorieGoal();
+  const [goal, setGoal] = useState(2000);
 
   const refresh = useCallback(() => {
     setEntries(getEntries(today));
+    setGoal(getCalorieGoal());
   }, [today]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const handleAdd = (food: {
     name: string;
