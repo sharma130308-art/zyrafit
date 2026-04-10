@@ -162,13 +162,14 @@ function LoginPage() {
               />
             ) : (
               <>
-                {mode === "login" ? "Sign In" : "Sign Up"}
+                {mode === "login" ? "Sign In" : mode === "signup" ? "Sign Up" : "Send Reset Link"}
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </motion.button>
         </form>
 
+        {mode !== "forgot" && (
         <div className="flex items-center gap-3 my-6">
           <div className="flex-1 h-px bg-border" />
           <span className="text-xs text-muted-foreground">or continue with</span>
