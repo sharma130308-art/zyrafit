@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getCalorieGoal, setCalorieGoal } from "@/lib/food-store";
 import { User, Target } from "lucide-react";
 
