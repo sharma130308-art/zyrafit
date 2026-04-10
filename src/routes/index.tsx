@@ -225,6 +225,11 @@ function Dashboard() {
         </div>
       </motion.div>
 
+      {/* Weekly Chart */}
+      <div className="px-6 mb-6">
+        <WeeklyChart data={weeklyData} goal={goal} />
+      </div>
+
       {/* Meal Sections */}
       <div className="px-6 space-y-3">
         {mealTypes.map((type, i) => (
