@@ -18,11 +18,12 @@ interface AddFoodDialogProps {
   }) => void;
   onScanClick?: () => void;
   onAiClick?: () => void;
+  initialMealType?: MealType;
 }
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
-export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick }: AddFoodDialogProps) {
+export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, initialMealType }: AddFoodDialogProps) {
   const [mode, setMode] = useState<"history" | "manual">("history");
   const [name, setName] = useState("");
   const [calories, setCalories] = useState("");
