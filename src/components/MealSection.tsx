@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import type { FoodEntry, MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 
@@ -7,9 +7,10 @@ interface MealSectionProps {
   mealType: MealType;
   entries: FoodEntry[];
   onDelete: (id: string) => void;
+  onAdd?: (mealType: MealType) => void;
 }
 
-export function MealSection({ mealType, entries, onDelete }: MealSectionProps) {
+export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionProps) {
   const totalCalories = entries.reduce((sum, e) => sum + e.calories * e.quantity, 0);
 
   return (
@@ -23,20 +24,36 @@ export function MealSection({ mealType, entries, onDelete }: MealSectionProps) {
           <span className="text-xl">{MEAL_ICONS[mealType]}</span>
           <h3 className="font-semibold text-[15px] text-card-foreground">{MEAL_LABELS[mealType]}</h3>
         </div>
-        {totalCalories > 0 && (
-          <motion.span
-            className="text-sm font-semibold text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            {Math.round(totalCalories)} cal
-          </motion.span>
-        )}
+        <div className="flex items-center gap-2">
+          {totalCalories > 0 && (
+            <motion.span
+              className="text-sm font-semibold text-muted-foreground"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {Math.round(totalCalories)} cal
+            </motion.span>
+          )}
+          {onAdd && (
+            <motion.button
+              whileTap={{ scale: 0.85 }}
+              onClick={() => onAdd(mealType)}
+              className="p-1.5 rounded-xl bg-primary/10 text-primary"
+            >
+              <Plus className="w-4 h-4" />
+            </motion.button>
+          )}
+        </div>
       </div>
 
       <AnimatePresence mode="popLayout">
         {entries.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground/60 py-1">Tap + to add food</p>
+          <button
+            onClick={() => onAdd?.(mealType)}
+            className="text-[13px] text-muted-foreground/60 py-1 hover:text-primary transition-colors"
+          >
+            Tap + to add food
+          </button>
         ) : (
           <div className="space-y-0.5">
             {entries.map((entry) => (

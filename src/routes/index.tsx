@@ -39,6 +39,7 @@ function Dashboard() {
   const today = getTodayDate();
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMealType, setDialogMealType] = useState<MealType>("breakfast");
   const [goal, setGoal] = useState(2000);
   const [loading, setLoading] = useState(true);
 
@@ -229,6 +230,10 @@ function Dashboard() {
               mealType={type}
               entries={byMeal[type]}
               onDelete={handleDelete}
+              onAdd={(meal) => {
+                setDialogMealType(meal);
+                setDialogOpen(true);
+              }}
             />
           </motion.div>
         ))}
@@ -242,6 +247,7 @@ function Dashboard() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onAdd={handleAdd}
+        initialMealType={dialogMealType}
         onScanClick={() => {
           setDialogOpen(false);
           setScannerOpen(true);
