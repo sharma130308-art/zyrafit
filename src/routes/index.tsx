@@ -24,6 +24,7 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodPreview } from "@/components/FoodPreview";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import { AIFoodPreview } from "@/components/AIFoodPreview";
+import { QuickAddPicker } from "@/components/QuickAddPicker";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -40,6 +41,7 @@ function Dashboard() {
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMealType, setDialogMealType] = useState<MealType>("breakfast");
+  const [quickAddMeal, setQuickAddMeal] = useState<MealType | null>(null);
   const [goal, setGoal] = useState(2000);
   const [loading, setLoading] = useState(true);
 
@@ -230,16 +232,37 @@ function Dashboard() {
               mealType={type}
               entries={byMeal[type]}
               onDelete={handleDelete}
-              onAdd={(meal) => {
-                setDialogMealType(meal);
-                setDialogOpen(true);
-              }}
+              onAdd={(meal) => setQuickAddMeal(meal)}
             />
           </motion.div>
         ))}
       </div>
 
-      <BottomNav onAddClick={() => setDialogOpen(true)} />
+      <BottomNav onAddClick={() => setQuickAddMeal("breakfast")} />
+
+      {/* Quick Add Picker */}
+      <QuickAddPicker
+        mealType={quickAddMeal}
+        onClose={() => setQuickAddMeal(null)}
+        onAiPhoto={() => {
+          const meal = quickAddMeal;
+          setQuickAddMeal(null);
+          if (meal) setDialogMealType(meal);
+          setPhotoCaptureOpen(true);
+        }}
+        onBarcodeScan={() => {
+          const meal = quickAddMeal;
+          setQuickAddMeal(null);
+          if (meal) setDialogMealType(meal);
+          setScannerOpen(true);
+        }}
+        onManual={() => {
+          const meal = quickAddMeal;
+          setQuickAddMeal(null);
+          if (meal) setDialogMealType(meal);
+          setDialogOpen(true);
+        }}
+      />
 
       <AddFoodDialog
         open={dialogOpen}
