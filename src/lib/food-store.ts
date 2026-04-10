@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
 export interface FoodEntry {
@@ -15,39 +17,181 @@ export interface FoodEntry {
 const STORAGE_KEY = "caltrack_entries";
 const GOAL_KEY = "caltrack_goal";
 
+// ── Local helpers ──────────────────────────────────────────────
+
+function getLocalEntries(): FoodEntry[] {
+  if (typeof window === "undefined") return [];
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored ? JSON.parse(stored) : [];
+}
+
+function setLocalEntries(entries: FoodEntry[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
 export function getCalorieGoal(): number {
   if (typeof window === "undefined") return 2000;
   const stored = localStorage.getItem(GOAL_KEY);
   return stored ? parseInt(stored, 10) : 2000;
 }
 
-export function setCalorieGoal(goal: number) {
+export function setCalorieGoalLocal(goal: number) {
   localStorage.setItem(GOAL_KEY, String(goal));
 }
 
-export function getEntries(date: string): FoodEntry[] {
-  if (typeof window === "undefined") return [];
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return [];
-  const all: FoodEntry[] = JSON.parse(stored);
-  return all.filter((e) => e.date === date);
+// ── Auth helper ────────────────────────────────────────────────
+
+async function getCurrentUserId(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
-export function addEntry(entry: Omit<FoodEntry, "id">): FoodEntry {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const all: FoodEntry[] = stored ? JSON.parse(stored) : [];
-  const newEntry: FoodEntry = { ...entry, id: crypto.randomUUID() };
+// ── CRUD (offline-first, syncs when logged in) ────────────────
+
+export async function getEntries(date: string): Promise<FoodEntry[]> {
+  const userId = await getCurrentUserId();
+
+  if (userId) {
+    const { data, error } = await supabase
+      .from("food_entries")
+      .select("*")
+      .eq("date", date)
+      .order("created_at", { ascending: true });
+
+    if (!error && data) {
+      const entries: FoodEntry[] = data.map((row) => ({
+        id: row.id,
+        name: row.name,
+        calories: Number(row.calories),
+        protein: Number(row.protein),
+        carbs: Number(row.carbs),
+        fat: Number(row.fat),
+        quantity: row.quantity,
+        mealType: row.meal_type as MealType,
+        date: row.date,
+      }));
+      // Cache locally
+      const all = getLocalEntries().filter((e) => e.date !== date);
+      setLocalEntries([...all, ...entries]);
+      return entries;
+    }
+  }
+
+  // Fallback to local
+  return getLocalEntries().filter((e) => e.date === date);
+}
+
+export async function addEntry(
+  entry: Omit<FoodEntry, "id">
+): Promise<FoodEntry> {
+  const userId = await getCurrentUserId();
+  const localId = crypto.randomUUID();
+
+  if (userId) {
+    const { data, error } = await supabase
+      .from("food_entries")
+      .insert({
+        user_id: userId,
+        name: entry.name,
+        calories: entry.calories,
+        protein: entry.protein,
+        carbs: entry.carbs,
+        fat: entry.fat,
+        quantity: entry.quantity,
+        meal_type: entry.mealType,
+        date: entry.date,
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      const newEntry: FoodEntry = {
+        id: data.id,
+        name: data.name,
+        calories: Number(data.calories),
+        protein: Number(data.protein),
+        carbs: Number(data.carbs),
+        fat: Number(data.fat),
+        quantity: data.quantity,
+        mealType: data.meal_type as MealType,
+        date: data.date,
+      };
+      // Update local cache
+      const all = getLocalEntries();
+      all.push(newEntry);
+      setLocalEntries(all);
+      return newEntry;
+    }
+  }
+
+  // Offline fallback
+  const newEntry: FoodEntry = { ...entry, id: localId };
+  const all = getLocalEntries();
   all.push(newEntry);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  setLocalEntries(all);
   return newEntry;
 }
 
-export function deleteEntry(id: string) {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return;
-  const all: FoodEntry[] = JSON.parse(stored);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(all.filter((e) => e.id !== id)));
+export async function deleteEntry(id: string) {
+  const userId = await getCurrentUserId();
+
+  if (userId) {
+    await supabase.from("food_entries").delete().eq("id", id);
+  }
+
+  const all = getLocalEntries().filter((e) => e.id !== id);
+  setLocalEntries(all);
 }
+
+// ── Settings (goal) ───────────────────────────────────────────
+
+export async function loadCalorieGoal(): Promise<number> {
+  const userId = await getCurrentUserId();
+
+  if (userId) {
+    const { data } = await supabase
+      .from("user_settings")
+      .select("daily_calorie_goal")
+      .single();
+
+    if (data) {
+      const goal = data.daily_calorie_goal;
+      setCalorieGoalLocal(goal);
+      return goal;
+    }
+  }
+
+  return getCalorieGoal();
+}
+
+export async function saveCalorieGoal(goal: number) {
+  setCalorieGoalLocal(goal);
+  const userId = await getCurrentUserId();
+
+  if (userId) {
+    const { data: existing } = await supabase
+      .from("user_settings")
+      .select("id")
+      .single();
+
+    if (existing) {
+      await supabase
+        .from("user_settings")
+        .update({ daily_calorie_goal: goal })
+        .eq("user_id", userId);
+    } else {
+      await supabase
+        .from("user_settings")
+        .insert({ user_id: userId, daily_calorie_goal: goal });
+    }
+  }
+}
+
+// ── Computed helpers ──────────────────────────────────────────
 
 export function getTodayDate(): string {
   return new Date().toISOString().split("T")[0];
