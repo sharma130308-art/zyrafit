@@ -21,7 +21,7 @@ interface AddFoodDialogProps {
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
-export function AddFoodDialog({ open, onClose, onAdd }: AddFoodDialogProps) {
+export function AddFoodDialog({ open, onClose, onAdd, onScanClick }: AddFoodDialogProps) {
   const [mode, setMode] = useState<"history" | "manual">("history");
   const [name, setName] = useState("");
   const [calories, setCalories] = useState("");
