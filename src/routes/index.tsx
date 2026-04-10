@@ -239,9 +239,7 @@ function Dashboard() {
         ))}
       </div>
 
-      <BottomNav
-        onAddClick={() => setDialogOpen(true)}
-      />
+      <BottomNav />
 
       <AddFoodDialog
         open={dialogOpen}
