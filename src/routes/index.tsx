@@ -236,8 +236,6 @@ function Dashboard() {
 
       <BottomNav
         onAddClick={() => setDialogOpen(true)}
-        onScanClick={() => setScannerOpen(true)}
-        onAiClick={() => setPhotoCaptureOpen(true)}
       />
 
       <AddFoodDialog
@@ -247,6 +245,10 @@ function Dashboard() {
         onScanClick={() => {
           setDialogOpen(false);
           setScannerOpen(true);
+        }}
+        onAiClick={() => {
+          setDialogOpen(false);
+          setPhotoCaptureOpen(true);
         }}
       />
 
