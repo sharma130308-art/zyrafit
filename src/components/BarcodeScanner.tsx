@@ -59,25 +59,6 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
           fps: 15,
           qrbox: { width: 280, height: 160 },
           aspectRatio: 1.0,
-          formatsToSupport: [
-            0, // QR_CODE
-            1, // AZTEC
-            2, // CODABAR
-            3, // CODE_39
-            4, // CODE_93
-            5, // CODE_128
-            6, // DATA_MATRIX
-            7, // MAXICODE
-            8, // ITF
-            9, // EAN_13
-            10, // EAN_8
-            11, // PDF_417
-            12, // RSS_14
-            13, // RSS_EXPANDED
-            14, // UPC_A
-            15, // UPC_E
-            16, // UPC_EAN_EXTENSION
-          ] as any,
         },
         (decodedText: string) => {
           if (hasScannedRef.current) return;
