@@ -8,7 +8,7 @@ import {
   getTodayDate,
   getDailyTotals,
   getEntriesByMeal,
-  getCalorieGoal,
+  loadCalorieGoal,
   type FoodEntry,
   type MealType,
 } from "@/lib/food-store";
@@ -33,17 +33,23 @@ function Dashboard() {
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [goal, setGoal] = useState(2000);
+  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(() => {
-    setEntries(getEntries(today));
-    setGoal(getCalorieGoal());
+  const refresh = useCallback(async () => {
+    const [fetchedEntries, fetchedGoal] = await Promise.all([
+      getEntries(today),
+      loadCalorieGoal(),
+    ]);
+    setEntries(fetchedEntries);
+    setGoal(fetchedGoal);
+    setLoading(false);
   }, [today]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  const handleAdd = (food: {
+  const handleAdd = async (food: {
     name: string;
     calories: number;
     protein: number;
@@ -52,19 +58,30 @@ function Dashboard() {
     quantity: number;
     mealType: MealType;
   }) => {
-    addEntry({ ...food, date: today });
+    await addEntry({ ...food, date: today });
     refresh();
   };
 
-  const handleDelete = (id: string) => {
-    deleteEntry(id);
+  const handleDelete = async (id: string) => {
+    await deleteEntry(id);
     refresh();
   };
 
   const totals = getDailyTotals(entries);
   const byMeal = getEntriesByMeal(entries);
-
   const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-28">
