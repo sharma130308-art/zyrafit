@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type FoodSource = "manual" | "barcode" | "ai";
 
 export interface FoodEntry {
   id: string;
@@ -12,6 +13,8 @@ export interface FoodEntry {
   quantity: number;
   mealType: MealType;
   date: string; // YYYY-MM-DD
+  barcode?: string | null;
+  source: FoodSource;
 }
 
 const STORAGE_KEY = "caltrack_entries";
@@ -73,6 +76,8 @@ export async function getEntries(date: string): Promise<FoodEntry[]> {
         quantity: row.quantity,
         mealType: row.meal_type as MealType,
         date: row.date,
+        barcode: row.barcode,
+        source: (row.source as FoodSource) || "manual",
       }));
       // Cache locally
       const all = getLocalEntries().filter((e) => e.date !== date);
@@ -104,6 +109,8 @@ export async function addEntry(
         quantity: entry.quantity,
         meal_type: entry.mealType,
         date: entry.date,
+        barcode: entry.barcode || null,
+        source: entry.source || "manual",
       })
       .select()
       .single();
@@ -119,6 +126,8 @@ export async function addEntry(
         quantity: data.quantity,
         mealType: data.meal_type as MealType,
         date: data.date,
+        barcode: data.barcode,
+        source: (data.source as FoodSource) || "manual",
       };
       // Update local cache
       const all = getLocalEntries();

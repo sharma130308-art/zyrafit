@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       food_entries: {
         Row: {
+          barcode: string | null
           calories: number
           carbs: number
           created_at: string
@@ -26,9 +27,11 @@ export type Database = {
           name: string
           protein: number
           quantity: number
+          source: Database["public"]["Enums"]["food_source"]
           user_id: string
         }
         Insert: {
+          barcode?: string | null
           calories?: number
           carbs?: number
           created_at?: string
@@ -39,9 +42,11 @@ export type Database = {
           name: string
           protein?: number
           quantity?: number
+          source?: Database["public"]["Enums"]["food_source"]
           user_id: string
         }
         Update: {
+          barcode?: string | null
           calories?: number
           carbs?: number
           created_at?: string
@@ -52,6 +57,7 @@ export type Database = {
           name?: string
           protein?: number
           quantity?: number
+          source?: Database["public"]["Enums"]["food_source"]
           user_id?: string
         }
         Relationships: []
@@ -88,6 +94,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      food_source: "manual" | "barcode" | "ai"
       meal_type: "breakfast" | "lunch" | "dinner" | "snack"
     }
     CompositeTypes: {
@@ -216,6 +223,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      food_source: ["manual", "barcode", "ai"],
       meal_type: ["breakfast", "lunch", "dinner", "snack"],
     },
   },
