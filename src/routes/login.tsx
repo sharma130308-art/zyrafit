@@ -31,6 +31,19 @@ function LoginPage() {
     setError(null);
     setSuccess(null);
 
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setLoading(false);
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess("Check your email for a password reset link.");
+      }
+      return;
+    }
+
     if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
         email,
