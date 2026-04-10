@@ -41,6 +41,7 @@ function Dashboard() {
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMealType, setDialogMealType] = useState<MealType>("breakfast");
+  const [quickAddMeal, setQuickAddMeal] = useState<MealType | null>(null);
   const [goal, setGoal] = useState(2000);
   const [loading, setLoading] = useState(true);
 
