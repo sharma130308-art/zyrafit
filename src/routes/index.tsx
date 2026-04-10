@@ -128,6 +128,44 @@ function Dashboard() {
     setScannedFood(null);
   };
 
+  const handlePhotoCapture = async (file: File) => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const base64 = await captureImageAsBase64(file);
+      setAiImageUrl(base64);
+      const result = await analyzePhoto(base64);
+      setAiLoading(false);
+      if (!result.is_food || result.items.length === 0) {
+        setAiError("No food detected in this photo. Try again with a clearer shot.");
+        setTimeout(() => setAiError(null), 3000);
+      } else {
+        setAiItems(result.items);
+      }
+    } catch (err) {
+      setAiLoading(false);
+      setAiError(err instanceof Error ? err.message : "AI analysis failed");
+      setTimeout(() => setAiError(null), 3000);
+    }
+  };
+
+  const handleAddFromAi = async (foods: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    quantity: number;
+    mealType: MealType;
+    source: "ai";
+  }[]) => {
+    for (const food of foods) {
+      await handleAdd(food);
+    }
+    setAiItems(null);
+    setAiImageUrl("");
+  };
+
   const totals = getDailyTotals(entries);
   const byMeal = getEntriesByMeal(entries);
   const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
