@@ -14,6 +14,7 @@ import {
   type FoodSource,
 } from "@/lib/food-store";
 import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
+import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
 import { CalorieRing } from "@/components/CalorieRing";
 import { MacroBar } from "@/components/MacroBar";
 import { MealSection } from "@/components/MealSection";
@@ -21,6 +22,8 @@ import { AddFoodDialog } from "@/components/AddFoodDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodPreview } from "@/components/FoodPreview";
+import { PhotoCapture } from "@/components/PhotoCapture";
+import { AIFoodPreview } from "@/components/AIFoodPreview";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
