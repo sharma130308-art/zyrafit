@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getCalorieGoal, setCalorieGoal } from "@/lib/food-store";
 import { User, Target } from "lucide-react";
 
@@ -8,9 +8,15 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const [goal, setGoal] = useState(() => getCalorieGoal());
+  const [goal, setGoal] = useState(2000);
   const [editing, setEditing] = useState(false);
-  const [tempGoal, setTempGoal] = useState(String(goal));
+  const [tempGoal, setTempGoal] = useState("2000");
+
+  useEffect(() => {
+    const stored = getCalorieGoal();
+    setGoal(stored);
+    setTempGoal(String(stored));
+  }, []);
 
   const handleSave = () => {
     const newGoal = parseInt(tempGoal, 10);
