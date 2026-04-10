@@ -1,12 +1,13 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Home, PlusCircle, User } from "lucide-react";
+import { Home, PlusCircle, User, ScanBarcode } from "lucide-react";
 
 interface BottomNavProps {
   onAddClick: () => void;
+  onScanClick?: () => void;
 }
 
-export function BottomNav({ onAddClick }: BottomNavProps) {
+export function BottomNav({ onAddClick, onScanClick }: BottomNavProps) {
   const location = useLocation();
   const path = location.pathname;
 
@@ -15,13 +16,24 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
       <div className="flex items-center justify-around py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <Link
           to="/"
-          className={`flex flex-col items-center gap-0.5 px-5 py-1.5 transition-colors ${
+          className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-colors ${
             path === "/" ? "text-nav-active" : "text-nav-foreground"
           }`}
         >
           <Home className="w-6 h-6" strokeWidth={path === "/" ? 2.5 : 1.5} />
           <span className="text-[10px] font-semibold">Home</span>
         </Link>
+
+        {onScanClick && (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={onScanClick}
+            className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-nav-foreground"
+          >
+            <ScanBarcode className="w-6 h-6" strokeWidth={1.5} />
+            <span className="text-[10px] font-semibold">Scan</span>
+          </motion.button>
+        )}
 
         <motion.button
           whileTap={{ scale: 0.9 }}
@@ -35,7 +47,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
 
         <Link
           to="/profile"
-          className={`flex flex-col items-center gap-0.5 px-5 py-1.5 transition-colors ${
+          className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-colors ${
             path === "/profile" ? "text-nav-active" : "text-nav-foreground"
           }`}
         >
