@@ -232,16 +232,37 @@ function Dashboard() {
               mealType={type}
               entries={byMeal[type]}
               onDelete={handleDelete}
-              onAdd={(meal) => {
-                setDialogMealType(meal);
-                setDialogOpen(true);
-              }}
+              onAdd={(meal) => setQuickAddMeal(meal)}
             />
           </motion.div>
         ))}
       </div>
 
-      <BottomNav onAddClick={() => setDialogOpen(true)} />
+      <BottomNav onAddClick={() => setQuickAddMeal("breakfast")} />
+
+      {/* Quick Add Picker */}
+      <QuickAddPicker
+        mealType={quickAddMeal}
+        onClose={() => setQuickAddMeal(null)}
+        onAiPhoto={() => {
+          const meal = quickAddMeal;
+          setQuickAddMeal(null);
+          if (meal) setDialogMealType(meal);
+          setPhotoCaptureOpen(true);
+        }}
+        onBarcodeScan={() => {
+          const meal = quickAddMeal;
+          setQuickAddMeal(null);
+          if (meal) setDialogMealType(meal);
+          setScannerOpen(true);
+        }}
+        onManual={() => {
+          const meal = quickAddMeal;
+          setQuickAddMeal(null);
+          if (meal) setDialogMealType(meal);
+          setDialogOpen(true);
+        }}
+      />
 
       <AddFoodDialog
         open={dialogOpen}
