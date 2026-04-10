@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type FoodSource = "manual" | "barcode" | "ai";
 
 export interface FoodEntry {
   id: string;
@@ -12,6 +13,8 @@ export interface FoodEntry {
   quantity: number;
   mealType: MealType;
   date: string; // YYYY-MM-DD
+  barcode?: string | null;
+  source: FoodSource;
 }
 
 const STORAGE_KEY = "caltrack_entries";
