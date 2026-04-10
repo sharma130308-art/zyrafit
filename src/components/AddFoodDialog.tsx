@@ -123,6 +123,15 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick }: 
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-card-foreground">Add Food</h2>
                 <div className="flex items-center gap-2">
+                  {onAiClick && (
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => { resetForm(); onClose(); onAiClick(); }}
+                      className="p-2 rounded-full bg-primary/10 text-primary"
+                    >
+                      <Sparkles className="w-5 h-5" />
+                    </motion.button>
+                  )}
                   {onScanClick && (
                     <motion.button
                       whileTap={{ scale: 0.9 }}
