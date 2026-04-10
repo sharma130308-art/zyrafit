@@ -237,6 +237,7 @@ function Dashboard() {
       <BottomNav
         onAddClick={() => setDialogOpen(true)}
         onScanClick={() => setScannerOpen(true)}
+        onAiClick={() => setPhotoCaptureOpen(true)}
       />
 
       <AddFoodDialog
@@ -267,9 +268,30 @@ function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* Scan loading overlay */}
+      {/* AI Photo Capture */}
       <AnimatePresence>
-        {scanLoading && (
+        <PhotoCapture
+          open={photoCaptureOpen}
+          onClose={() => setPhotoCaptureOpen(false)}
+          onCapture={handlePhotoCapture}
+        />
+      </AnimatePresence>
+
+      {/* AI Food Preview */}
+      <AnimatePresence>
+        {aiItems && (
+          <AIFoodPreview
+            items={aiItems}
+            imageUrl={aiImageUrl}
+            onAdd={handleAddFromAi}
+            onBack={() => { setAiItems(null); setAiImageUrl(""); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Scan/AI loading overlay */}
+      <AnimatePresence>
+        {(scanLoading || aiLoading) && (
           <motion.div
             className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
             initial={{ opacity: 0 }}
@@ -281,22 +303,24 @@ function Dashboard() {
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
-            <p className="text-foreground font-medium">Looking up food...</p>
+            <p className="text-foreground font-medium">
+              {aiLoading ? "Analyzing your meal..." : "Looking up food..."}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Scan error toast */}
+      {/* Error toast */}
       <AnimatePresence>
-        {scanError && (
+        {(scanError || aiError) && (
           <motion.div
             className="fixed top-16 inset-x-6 z-50 bg-destructive text-destructive-foreground rounded-2xl p-4 text-center shadow-lg"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <p className="font-medium text-sm">{scanError}</p>
-            <p className="text-xs mt-1 opacity-80">Opening manual entry...</p>
+            <p className="font-medium text-sm">{scanError || aiError}</p>
+            {scanError && <p className="text-xs mt-1 opacity-80">Opening manual entry...</p>}
           </motion.div>
         )}
       </AnimatePresence>
