@@ -34,6 +34,13 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [saving, setSaving] = useState(false);
 
+  // Sync initial meal type when dialog opens
+  useEffect(() => {
+    if (open && initialMealType) {
+      setMealType(initialMealType);
+    }
+  }, [open, initialMealType]);
+
   // History search
   const [searchQuery, setSearchQuery] = useState("");
   const [history, setHistory] = useState<FoodTemplate[]>([]);
