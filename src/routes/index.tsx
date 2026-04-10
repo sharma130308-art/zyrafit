@@ -9,9 +9,11 @@ import {
   getDailyTotals,
   getEntriesByMeal,
   loadCalorieGoal,
+  getWeeklyHistory,
   type FoodEntry,
   type MealType,
   type FoodSource,
+  type DaySummary,
 } from "@/lib/food-store";
 import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
 import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
@@ -25,6 +27,7 @@ import { FoodPreview } from "@/components/FoodPreview";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import { AIFoodPreview } from "@/components/AIFoodPreview";
 import { QuickAddPicker } from "@/components/QuickAddPicker";
+import { WeeklyChart } from "@/components/WeeklyChart";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
