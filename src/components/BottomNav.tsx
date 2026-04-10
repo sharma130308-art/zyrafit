@@ -36,6 +36,17 @@ export function BottomNav({ onAddClick, onScanClick, onAiClick }: BottomNavProps
           </motion.button>
         )}
 
+        {onAiClick && (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={onAiClick}
+            className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-nav-foreground"
+          >
+            <Sparkles className="w-6 h-6" strokeWidth={1.5} />
+            <span className="text-[10px] font-semibold">AI Scan</span>
+          </motion.button>
+        )
+
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={onAddClick}
