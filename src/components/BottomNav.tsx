@@ -45,7 +45,7 @@ export function BottomNav({ onAddClick, onScanClick, onAiClick }: BottomNavProps
             <Sparkles className="w-6 h-6" strokeWidth={1.5} />
             <span className="text-[10px] font-semibold">AI Scan</span>
           </motion.button>
-        )
+        )}
 
         <motion.button
           whileTap={{ scale: 0.9 }}
