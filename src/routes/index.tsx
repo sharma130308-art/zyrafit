@@ -24,6 +24,7 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodPreview } from "@/components/FoodPreview";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import { AIFoodPreview } from "@/components/AIFoodPreview";
+import { QuickAddPicker } from "@/components/QuickAddPicker";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
