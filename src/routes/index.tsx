@@ -9,9 +9,11 @@ import {
   getDailyTotals,
   getEntriesByMeal,
   loadCalorieGoal,
+  getWeeklyHistory,
   type FoodEntry,
   type MealType,
   type FoodSource,
+  type DaySummary,
 } from "@/lib/food-store";
 import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
 import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
@@ -25,6 +27,7 @@ import { FoodPreview } from "@/components/FoodPreview";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import { AIFoodPreview } from "@/components/AIFoodPreview";
 import { QuickAddPicker } from "@/components/QuickAddPicker";
+import { WeeklyChart } from "@/components/WeeklyChart";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -57,14 +60,17 @@ function Dashboard() {
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
+  const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
 
   const refresh = useCallback(async () => {
-    const [fetchedEntries, fetchedGoal] = await Promise.all([
+    const [fetchedEntries, fetchedGoal, fetchedWeekly] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
+      getWeeklyHistory(),
     ]);
     setEntries(fetchedEntries);
     setGoal(fetchedGoal);
+    setWeeklyData(fetchedWeekly);
     setLoading(false);
   }, [today]);
 
@@ -218,6 +224,11 @@ function Dashboard() {
           <MacroBar label="Fat" current={totals.fat} color="var(--color-fat)" />
         </div>
       </motion.div>
+
+      {/* Weekly Chart */}
+      <div className="px-6 mb-6">
+        <WeeklyChart data={weeklyData} goal={goal} />
+      </div>
 
       {/* Meal Sections */}
       <div className="px-6 space-y-3">

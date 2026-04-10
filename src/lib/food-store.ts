@@ -262,6 +262,37 @@ export async function searchFoodHistory(query: string): Promise<FoodTemplate[]> 
   return Array.from(seen.values()).slice(0, 20);
 }
 
+// ── Weekly history ─────────────────────────────────────────────
+
+export interface DaySummary {
+  date: string; // YYYY-MM-DD
+  label: string; // e.g. "Mon"
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export async function getWeeklyHistory(): Promise<DaySummary[]> {
+  const days: DaySummary[] = [];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    const entries = await getEntries(dateStr);
+    const totals = getDailyTotals(entries);
+    days.push({
+      date: dateStr,
+      label: dayNames[d.getDay()],
+      ...totals,
+    });
+  }
+
+  return days;
+}
+
 // ── Computed helpers ──────────────────────────────────────────
 
 export function getTodayDate(): string {
