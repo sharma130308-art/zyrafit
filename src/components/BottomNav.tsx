@@ -1,14 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Home, PlusCircle, User, ScanBarcode, Sparkles } from "lucide-react";
+import { Home, PlusCircle, User } from "lucide-react";
 
 interface BottomNavProps {
   onAddClick: () => void;
-  onScanClick?: () => void;
-  onAiClick?: () => void;
 }
 
-export function BottomNav({ onAddClick, onScanClick, onAiClick }: BottomNavProps) {
+export function BottomNav({ onAddClick }: BottomNavProps) {
   const location = useLocation();
   const path = location.pathname;
 
@@ -24,28 +22,6 @@ export function BottomNav({ onAddClick, onScanClick, onAiClick }: BottomNavProps
           <Home className="w-6 h-6" strokeWidth={path === "/" ? 2.5 : 1.5} />
           <span className="text-[10px] font-semibold">Home</span>
         </Link>
-
-        {onScanClick && (
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onScanClick}
-            className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-nav-foreground"
-          >
-            <ScanBarcode className="w-6 h-6" strokeWidth={1.5} />
-            <span className="text-[10px] font-semibold">Scan</span>
-          </motion.button>
-        )}
-
-        {onAiClick && (
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onAiClick}
-            className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-nav-foreground"
-          >
-            <Sparkles className="w-6 h-6" strokeWidth={1.5} />
-            <span className="text-[10px] font-semibold">AI Scan</span>
-          </motion.button>
-        )}
 
         <motion.button
           whileTap={{ scale: 0.9 }}
