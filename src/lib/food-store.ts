@@ -191,6 +191,68 @@ export async function saveCalorieGoal(goal: number) {
   }
 }
 
+// ── Food history / search ─────────────────────────────────────
+
+export interface FoodTemplate {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export async function searchFoodHistory(query: string): Promise<FoodTemplate[]> {
+  const userId = await getCurrentUserId();
+  const seen = new Map<string, FoodTemplate>();
+
+  if (userId) {
+    // Search DB — get unique foods by name, most recent first
+    let dbQuery = supabase
+      .from("food_entries")
+      .select("name, calories, protein, carbs, fat")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (query.trim()) {
+      dbQuery = dbQuery.ilike("name", `%${query.trim()}%`);
+    }
+
+    const { data } = await dbQuery;
+    if (data) {
+      for (const row of data) {
+        const key = row.name.toLowerCase();
+        if (!seen.has(key)) {
+          seen.set(key, {
+            name: row.name,
+            calories: Number(row.calories),
+            protein: Number(row.protein),
+            carbs: Number(row.carbs),
+            fat: Number(row.fat),
+          });
+        }
+      }
+    }
+  }
+
+  // Also search local entries
+  const local = getLocalEntries();
+  const lowerQuery = query.toLowerCase();
+  for (const entry of local.reverse()) {
+    const key = entry.name.toLowerCase();
+    if (!seen.has(key) && (!query.trim() || key.includes(lowerQuery))) {
+      seen.set(key, {
+        name: entry.name,
+        calories: entry.calories,
+        protein: entry.protein,
+        carbs: entry.carbs,
+        fat: entry.fat,
+      });
+    }
+  }
+
+  return Array.from(seen.values()).slice(0, 20);
+}
+
 // ── Computed helpers ──────────────────────────────────────────
 
 export function getTodayDate(): string {
