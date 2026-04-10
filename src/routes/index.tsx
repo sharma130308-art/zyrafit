@@ -60,14 +60,17 @@ function Dashboard() {
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
+  const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
 
   const refresh = useCallback(async () => {
-    const [fetchedEntries, fetchedGoal] = await Promise.all([
+    const [fetchedEntries, fetchedGoal, fetchedWeekly] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
+      getWeeklyHistory(),
     ]);
     setEntries(fetchedEntries);
     setGoal(fetchedGoal);
+    setWeeklyData(fetchedWeekly);
     setLoading(false);
   }, [today]);
 
