@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Camera, Image, X } from "lucide-react";
 
@@ -19,6 +19,17 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
     if (file) {
       onCapture(file);
       onClose();
+    }
+    // Reset value so the same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleCameraClick = () => {
+    // Try camera input first; if it doesn't trigger a picker
+    // (e.g. in iframes without camera permission), the user
+    // can always use the Gallery button as fallback.
+    if (cameraRef.current) {
+      cameraRef.current.click();
     }
   };
 
@@ -60,7 +71,7 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
         <div className="flex gap-3">
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={() => cameraRef.current?.click()}
+            onClick={handleCameraClick}
             className="flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25"
           >
             <Camera className="w-7 h-7" />
@@ -77,6 +88,7 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
           </motion.button>
         </div>
 
+        {/* Camera input — uses capture on mobile, falls back to file picker on desktop */}
         <input
           ref={cameraRef}
           type="file"
@@ -85,6 +97,7 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
           onChange={handleFile}
           className="hidden"
         />
+        {/* Gallery input — always opens file picker */}
         <input
           ref={galleryRef}
           type="file"
