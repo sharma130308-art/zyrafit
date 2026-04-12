@@ -397,6 +397,8 @@ function ProfilePage() {
                   <ProfileRow icon={<Dumbbell className="w-4 h-4" />} label="Workouts" value={profile?.workout_days_per_week != null ? `${profile.workout_days_per_week} days/week` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Goal" value={goalLabel} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Weight" value={profile?.target_weight_kg ? `${profile.target_weight_kg} kg` : "—"} />
+                  <ProfileRow icon={<Target className="w-4 h-4" />} label="Target BMI" value={profile?.target_bmi ? `${profile.target_bmi}` : "—"} />
+                  <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Body Fat" value={profile?.target_body_fat_percent ? `${profile.target_body_fat_percent}%` : "—"} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -518,6 +520,35 @@ function ProfilePage() {
                     />
                   </div>
 
+                  {/* Target BMI */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Target BMI</label>
+                    <input
+                      type="number"
+                      value={editTargetBmi}
+                      onChange={(e) => setEditTargetBmi(e.target.value)}
+                      placeholder="e.g. 22"
+                      step="0.1"
+                      className="w-full px-4 py-3 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40"
+                      min="10"
+                      max="50"
+                    />
+                  </div>
+
+                  {/* Target Body Fat % */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Target Body Fat %</label>
+                    <input
+                      type="number"
+                      value={editTargetBodyFat}
+                      onChange={(e) => setEditTargetBodyFat(e.target.value)}
+                      placeholder="e.g. 15"
+                      step="0.1"
+                      className="w-full px-4 py-3 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40"
+                      min="3"
+                      max="60"
+                    />
+                  </div>
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving || !editAge || !editWeight || !editGoal}
