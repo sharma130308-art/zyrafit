@@ -143,7 +143,8 @@ function ProfilePage() {
       }
       setProfileLoading(false);
     });
-  }, [user]);
+    fetchWeightLogs();
+  }, [user, fetchWeightLogs]);
 
   const startEditing = () => {
     setEditingProfile(true);
