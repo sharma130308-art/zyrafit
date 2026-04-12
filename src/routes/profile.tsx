@@ -588,16 +588,13 @@ function ProfilePage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.14 }}
-            className="rounded-2xl bg-card p-5 shadow-sm border border-border/50"
+            className="rounded-2xl bg-card shadow-sm border border-border/50 overflow-hidden"
           >
-            <div className="flex items-center justify-between mb-4">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  {profile?.target_weight_kg && profile?.weight_kg && Number(profile.weight_kg) > Number(profile.target_weight_kg) ? (
-                    <TrendingDown className="w-5 h-5 text-primary" />
-                  ) : (
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                  )}
+                  <Weight className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-card-foreground">Body Stats</h3>
@@ -607,15 +604,194 @@ function ProfilePage() {
               <button
                 onClick={handleScanPhoto}
                 disabled={scanning}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary font-medium text-xs disabled:opacity-40"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-xs disabled:opacity-40 shadow-sm"
               >
                 {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-                {scanning ? "Scanning…" : "Scan Receipt"}
+                {scanning ? "Scanning…" : "📷 Scan"}
               </button>
             </div>
 
-            {/* Add weight log - compact row + expandable */}
-            <div className="space-y-2 mb-4">
+            {/* Latest stats summary */}
+            {weightLogs.length > 0 && (() => {
+              const latest = weightLogs[weightLogs.length - 1];
+              const prev = weightLogs.length > 1 ? weightLogs[weightLogs.length - 2] : null;
+              const weightDiff = prev ? latest.weight_kg - prev.weight_kg : null;
+              const bmiCategory = latest.bmi != null
+                ? latest.bmi < 18.5 ? "Underweight" : latest.bmi < 25 ? "Normal" : latest.bmi < 30 ? "Overweight" : "Obese"
+                : null;
+              const bmiColor = latest.bmi != null
+                ? latest.bmi < 18.5 ? "text-blue-500" : latest.bmi < 25 ? "text-primary" : latest.bmi < 30 ? "text-amber-500" : "text-destructive"
+                : "";
+
+              return (
+                <div className="px-5 pb-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-xl bg-muted/50 p-3 text-center">
+                      <p className="text-lg font-bold text-foreground">{latest.weight_kg}</p>
+                      <p className="text-[10px] text-muted-foreground">Weight (kg)</p>
+                      {weightDiff != null && (
+                        <p className={`text-[10px] font-medium mt-0.5 ${weightDiff < 0 ? "text-primary" : weightDiff > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                          {weightDiff > 0 ? "+" : ""}{weightDiff.toFixed(1)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="rounded-xl bg-muted/50 p-3 text-center">
+                      <p className="text-lg font-bold text-foreground">{latest.bmi ?? "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">BMI</p>
+                      {bmiCategory && <p className={`text-[10px] font-medium mt-0.5 ${bmiColor}`}>{bmiCategory}</p>}
+                    </div>
+                    <div className="rounded-xl bg-muted/50 p-3 text-center">
+                      <p className="text-lg font-bold text-foreground">{latest.body_fat_percent != null ? `${latest.body_fat_percent}` : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">Body Fat %</p>
+                      {latest.body_fat_mass_kg != null && <p className="text-[10px] text-muted-foreground mt-0.5">{latest.body_fat_mass_kg} kg</p>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Chart tabs */}
+            {weightLogs.length >= 2 && (
+              <div className="px-5">
+                <div className="flex gap-1 mb-2 bg-muted/50 rounded-xl p-1">
+                  {(["weight", "bmi", "bodyfat"] as const).map((tab) => {
+                    const colors = {
+                      weight: "bg-primary/15 text-primary",
+                      bmi: "bg-blue-500/15 text-blue-600",
+                      bodyfat: "bg-rose-500/15 text-rose-600",
+                    };
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveChart(tab)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                          activeChart === tab
+                            ? `${colors[tab]} shadow-sm`
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {tab === "weight" ? "⚖️ Weight" : tab === "bmi" ? "📊 BMI" : "🔥 Body Fat"}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Chart info label */}
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] text-muted-foreground">
+                    {activeChart === "weight" && "Weight trend (kg)"}
+                    {activeChart === "bmi" && "BMI trend — dashed line = overweight (25)"}
+                    {activeChart === "bodyfat" && "Body fat % trend"}
+                  </p>
+                  {activeChart === "weight" && profile?.target_weight_kg && (
+                    <p className="text-[10px] text-primary font-medium">🎯 Target: {Number(profile.target_weight_kg)} kg</p>
+                  )}
+                </div>
+
+                <div className="h-52 -mx-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={weightLogs.map((l) => ({
+                        date: format(parseISO(l.logged_at), "MMM d"),
+                        weight: l.weight_kg,
+                        bmi: l.bmi,
+                        bodyfat: l.body_fat_percent,
+                      }))}
+                      margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="bmiGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(210, 80%, 55%)" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="hsl(210, 80%, 55%)" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={["dataMin - 2", "dataMax + 2"]}
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={36}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        }}
+                        formatter={(value: number) => {
+                          if (activeChart === "weight") return [`${value} kg`, "Weight"];
+                          if (activeChart === "bmi") return [value, "BMI"];
+                          return [`${value}%`, "Body Fat"];
+                        }}
+                        labelStyle={{ fontWeight: 600, marginBottom: 2 }}
+                      />
+                      {activeChart === "weight" && profile?.target_weight_kg && (
+                        <ReferenceLine
+                          y={Number(profile.target_weight_kg)}
+                          stroke="hsl(var(--primary))"
+                          strokeDasharray="6 4"
+                          strokeOpacity={0.6}
+                          label={{ value: "Target", position: "insideTopRight", fontSize: 9, fill: "hsl(var(--primary))" }}
+                        />
+                      )}
+                      {activeChart === "bmi" && (
+                        <>
+                          <ReferenceLine y={18.5} stroke="hsl(210, 70%, 60%)" strokeDasharray="4 4" strokeOpacity={0.3} />
+                          <ReferenceLine
+                            y={25}
+                            stroke="hsl(var(--destructive))"
+                            strokeDasharray="6 4"
+                            strokeOpacity={0.5}
+                            label={{ value: "Overweight", position: "insideTopRight", fontSize: 9, fill: "hsl(var(--destructive))" }}
+                          />
+                        </>
+                      )}
+                      <Line
+                        type="monotone"
+                        dataKey={activeChart === "bodyfat" ? "bodyfat" : activeChart}
+                        stroke={activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)"}
+                        strokeWidth={2.5}
+                        dot={{ fill: "hsl(var(--card))", stroke: activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)", strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, strokeWidth: 2 }}
+                        connectNulls
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {weightLogs.length === 1 && (
+              <p className="text-center text-sm text-muted-foreground py-6 px-5">
+                Log one more entry to see your trends 📈
+              </p>
+            )}
+            {weightLogs.length === 0 && (
+              <div className="text-center py-8 px-5">
+                <p className="text-4xl mb-2">📷</p>
+                <p className="text-sm font-medium text-foreground mb-1">No entries yet</p>
+                <p className="text-xs text-muted-foreground">Log manually or scan a gym receipt to start tracking</p>
+              </div>
+            )}
+
+            {/* Add entry */}
+            <div className="px-5 py-3 border-t border-border/30">
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -629,16 +805,16 @@ function ProfilePage() {
                 />
                 <button
                   onClick={() => setShowManualFields(!showManualFields)}
-                  className="px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium"
+                  className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${showManualFields ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
                 >
-                  {showManualFields ? "Less" : "More"}
+                  {showManualFields ? "Less" : "+ More"}
                 </button>
                 <button
                   onClick={addWeightLog}
                   disabled={addingWeight || !newWeight}
-                  className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm disabled:opacity-40 flex items-center gap-1"
+                  className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm disabled:opacity-40"
                 >
-                  <Plus className="w-4 h-4" />
+                  Log
                 </button>
               </div>
 
@@ -650,155 +826,96 @@ function ProfilePage() {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <input
-                        type="number"
-                        value={newBmi}
-                        onChange={(e) => setNewBmi(e.target.value)}
-                        placeholder="BMI"
-                        step="0.1"
-                        className="px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
-                      />
-                      <input
-                        type="number"
-                        value={newBodyFat}
-                        onChange={(e) => setNewBodyFat(e.target.value)}
-                        placeholder="Body Fat %"
-                        step="0.1"
-                        className="px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
-                      />
-                      <input
-                        type="number"
-                        value={newBodyFatMass}
-                        onChange={(e) => setNewBodyFatMass(e.target.value)}
-                        placeholder="Fat Mass (kg)"
-                        step="0.1"
-                        className="px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
-                      />
-                      <input
-                        type="number"
-                        value={newHeightM}
-                        onChange={(e) => setNewHeightM(e.target.value)}
-                        placeholder="Height (m)"
-                        step="0.01"
-                        className="px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
-                      />
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground mb-0.5 block">BMI</label>
+                        <input
+                          type="number"
+                          value={newBmi}
+                          onChange={(e) => setNewBmi(e.target.value)}
+                          placeholder="e.g. 27.5"
+                          step="0.1"
+                          className="w-full px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground mb-0.5 block">Body Fat %</label>
+                        <input
+                          type="number"
+                          value={newBodyFat}
+                          onChange={(e) => setNewBodyFat(e.target.value)}
+                          placeholder="e.g. 32.5"
+                          step="0.1"
+                          className="w-full px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground mb-0.5 block">Fat Mass (kg)</label>
+                        <input
+                          type="number"
+                          value={newBodyFatMass}
+                          onChange={(e) => setNewBodyFatMass(e.target.value)}
+                          placeholder="e.g. 32.2"
+                          step="0.1"
+                          className="w-full px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground mb-0.5 block">Height (m)</label>
+                        <input
+                          type="number"
+                          value={newHeightM}
+                          onChange={(e) => setNewHeightM(e.target.value)}
+                          placeholder="e.g. 1.90"
+                          step="0.01"
+                          className="w-full px-3 py-2 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Chart tabs */}
-            {weightLogs.length >= 2 && (
-              <>
-                <div className="flex gap-1 mb-3 bg-muted/50 rounded-xl p-1">
-                  {(["weight", "bmi", "bodyfat"] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveChart(tab)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        activeChart === tab
-                          ? "bg-card text-foreground shadow-sm"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {tab === "weight" ? "Weight" : tab === "bmi" ? "BMI" : "Body Fat"}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="h-48 -mx-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={weightLogs.map((l) => ({
-                      date: format(parseISO(l.logged_at), "MMM d"),
-                      weight: l.weight_kg,
-                      bmi: l.bmi,
-                      bodyfat: l.body_fat_percent,
-                    }))}>
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        domain={["dataMin - 2", "dataMax + 2"]}
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={35}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          background: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                        }}
-                        formatter={(value: number) => {
-                          if (activeChart === "weight") return [`${value} kg`, "Weight"];
-                          if (activeChart === "bmi") return [value, "BMI"];
-                          return [`${value}%`, "Body Fat"];
-                        }}
-                      />
-                      {activeChart === "weight" && profile?.target_weight_kg && (
-                        <ReferenceLine
-                          y={Number(profile.target_weight_kg)}
-                          stroke="hsl(var(--primary))"
-                          strokeDasharray="5 5"
-                          strokeOpacity={0.5}
-                        />
-                      )}
-                      {activeChart === "bmi" && (
-                        <ReferenceLine y={25} stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeOpacity={0.4} />
-                      )}
-                      <Line
-                        type="monotone"
-                        dataKey={activeChart === "bodyfat" ? "bodyfat" : activeChart}
-                        stroke={activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)"}
-                        strokeWidth={2.5}
-                        dot={{ fill: activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)", r: 3 }}
-                        activeDot={{ r: 5 }}
-                        connectNulls
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </>
-            )}
-
-            {weightLogs.length === 1 && (
-              <p className="text-center text-sm text-muted-foreground py-6">
-                Log one more entry to see your chart 📈
-              </p>
-            )}
-            {weightLogs.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-6">
-                Start logging or scan a gym receipt
-              </p>
-            )}
-
             {/* Recent logs */}
             {weightLogs.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <p className="text-xs text-muted-foreground font-medium mb-2">Recent</p>
-                {[...weightLogs].reverse().slice(0, 5).map((log) => (
-                  <div key={log.id} className="py-2 px-3 rounded-xl bg-muted/30 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">{format(parseISO(log.logged_at), "MMM d, yyyy")}</span>
-                      <button onClick={() => deleteWeightLog(log.id)} className="p-1 text-muted-foreground/50 hover:text-destructive transition-colors">
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                      <span className="text-sm font-medium text-foreground">{log.weight_kg} kg</span>
-                      {log.bmi != null && <span className="text-xs text-muted-foreground">BMI: {log.bmi}</span>}
-                      {log.body_fat_percent != null && <span className="text-xs text-muted-foreground">Fat: {log.body_fat_percent}%</span>}
-                      {log.body_fat_mass_kg != null && <span className="text-xs text-muted-foreground">Fat Mass: {log.body_fat_mass_kg} kg</span>}
-                    </div>
-                  </div>
-                ))}
+              <div className="border-t border-border/30">
+                <div className="px-5 pt-3 pb-1">
+                  <p className="text-xs text-muted-foreground font-semibold">Recent Entries</p>
+                </div>
+                <div className="px-5 pb-4 space-y-1.5">
+                  {[...weightLogs].reverse().slice(0, 5).map((log, i) => {
+                    const prev = [...weightLogs].reverse()[i + 1];
+                    const diff = prev ? log.weight_kg - prev.weight_kg : null;
+                    return (
+                      <div key={log.id} className="flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-muted/30 transition-colors group">
+                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
+                          {format(parseISO(log.logged_at), "d")}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground">{log.weight_kg} kg</span>
+                            {diff != null && (
+                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                                diff < 0 ? "bg-primary/10 text-primary" : diff > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+                              }`}>
+                                {diff > 0 ? "+" : ""}{diff.toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-3 text-[10px] text-muted-foreground">
+                            <span>{format(parseISO(log.logged_at), "MMM yyyy")}</span>
+                            {log.bmi != null && <span>BMI {log.bmi}</span>}
+                            {log.body_fat_percent != null && <span>{log.body_fat_percent}% fat</span>}
+                          </div>
+                        </div>
+                        <button onClick={() => deleteWeightLog(log.id)} className="p-1.5 text-muted-foreground/30 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </motion.div>
