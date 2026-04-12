@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { loadCalorieGoal, saveCalorieGoal } from "@/lib/food-store";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +15,14 @@ import {
   Dumbbell,
   Check,
   X,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { format, parseISO } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/profile")({
