@@ -288,10 +288,10 @@ function ProfilePage() {
         target_weight_kg: targetWeightNum,
       }, { onConflict: "user_id" }).then(() => {
         // Update new goal columns separately since types may not include them yet
-        return supabase.from("user_profiles").update({
+        return (supabase.from("user_profiles") as any).update({
           target_bmi: targetBmiNum,
           target_body_fat_percent: targetBodyFatNum,
-        } as Record<string, unknown>).eq("user_id", user.id);
+        }).eq("user_id", user.id);
       }),
       supabase.from("user_settings").upsert({
         user_id: user.id,
