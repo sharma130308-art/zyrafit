@@ -429,7 +429,7 @@ function OnboardingPage() {
             )}
 
             {step === "results" && (() => {
-              const macros = calculateMacros();
+              const macros = computeMacros();
               const goalLabel = GOALS.find((g) => g.value === goal)?.label ?? "Your Goal";
               return (
                 <StepContainer
