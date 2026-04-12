@@ -19,6 +19,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/onboarding")({
   }),
 });
 
-const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "signup"] as const;
+const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "results", "signup"] as const;
 type Step = (typeof STEPS)[number];
 
 const GOALS = [
@@ -94,12 +95,13 @@ function OnboardingPage() {
       case "goal": return goal !== "";
       case "obstacles": return obstacles.length > 0;
       case "health": return true;
+      case "results": return true;
       case "signup": return email !== "" && password.length >= 6;
       default: return false;
     }
   };
 
-  const calculateDailyCalories = () => {
+  const calculateMacros = () => {
     const ageNum = parseInt(age);
     const weightNum = parseFloat(weight);
     const heightCm = parseFloat(height);
@@ -109,20 +111,41 @@ function OnboardingPage() {
     } else {
       bmr = 10 * weightNum + 6.25 * heightCm - 5 * ageNum + 5;
     }
-    // Activity multiplier based on workout days
     const activityMultipliers = [1.2, 1.25, 1.3, 1.375, 1.45, 1.55, 1.65, 1.725];
     const tdee = bmr * (activityMultipliers[workoutDays] ?? 1.375);
-    // Adjust for goal
+
+    let calories: number;
+    let proteinRatio: number;
+    let fatRatio: number;
+
     switch (goal) {
-      case "lose_weight": return Math.round(tdee - 500);
-      case "gain_weight": return Math.round(tdee + 300);
-      case "muscle_gain": return Math.round(tdee + 250);
-      default: return Math.round(tdee);
+      case "lose_weight":
+        calories = Math.round(tdee - 500);
+        proteinRatio = 0.35; fatRatio = 0.25; // high protein to preserve muscle
+        break;
+      case "gain_weight":
+        calories = Math.round(tdee + 300);
+        proteinRatio = 0.25; fatRatio = 0.25;
+        break;
+      case "muscle_gain":
+        calories = Math.round(tdee + 250);
+        proteinRatio = 0.35; fatRatio = 0.25; // high protein for muscle
+        break;
+      default: // maintain
+        calories = Math.round(tdee);
+        proteinRatio = 0.30; fatRatio = 0.25;
     }
+
+    const carbRatio = 1 - proteinRatio - fatRatio;
+    const protein = Math.round((calories * proteinRatio) / 4); // 4 cal/g
+    const fat = Math.round((calories * fatRatio) / 9); // 9 cal/g
+    const carbs = Math.round((calories * carbRatio) / 4); // 4 cal/g
+
+    return { calories, protein, carbs, fat };
   };
 
   const saveProfile = async (userId: string) => {
-    const dailyCalories = calculateDailyCalories();
+    const { calories, protein, carbs, fat } = calculateMacros();
     await Promise.all([
       supabase.from("user_profiles").upsert({
         user_id: userId,
@@ -137,7 +160,10 @@ function OnboardingPage() {
       }, { onConflict: "user_id" }),
       supabase.from("user_settings").upsert({
         user_id: userId,
-        daily_calorie_goal: dailyCalories,
+        daily_calorie_goal: calories,
+        protein_goal: protein,
+        carbs_goal: carbs,
+        fat_goal: fat,
       }, { onConflict: "user_id" }),
     ]);
   };
@@ -448,6 +474,58 @@ function OnboardingPage() {
                 </div>
               </StepContainer>
             )}
+
+            {step === "results" && (() => {
+              const macros = calculateMacros();
+              const goalLabel = GOALS.find((g) => g.value === goal)?.label ?? "Your Goal";
+              return (
+                <StepContainer
+                  icon={<Sparkles className="w-6 h-6" />}
+                  title="Your Personalized Plan"
+                  subtitle={`Based on your profile — ${goalLabel}`}
+                >
+                  <div className="space-y-4">
+                    <div className="rounded-2xl bg-primary/10 border border-primary/20 p-5 text-center">
+                      <p className="text-sm text-muted-foreground mb-1">Daily Calories</p>
+                      <p className="text-5xl font-bold text-primary">{macros.calories}</p>
+                      <p className="text-xs text-muted-foreground mt-1">kcal / day</p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-2xl bg-card border border-border/50 p-4 text-center">
+                        <p className="text-2xl font-bold text-foreground">{macros.protein}g</p>
+                        <p className="text-xs text-muted-foreground mt-1">Protein</p>
+                        <div className="w-full h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
+                          <div className="h-full rounded-full bg-blue-500" style={{ width: "100%" }} />
+                        </div>
+                      </div>
+                      <div className="rounded-2xl bg-card border border-border/50 p-4 text-center">
+                        <p className="text-2xl font-bold text-foreground">{macros.carbs}g</p>
+                        <p className="text-xs text-muted-foreground mt-1">Carbs</p>
+                        <div className="w-full h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
+                          <div className="h-full rounded-full bg-amber-500" style={{ width: "100%" }} />
+                        </div>
+                      </div>
+                      <div className="rounded-2xl bg-card border border-border/50 p-4 text-center">
+                        <p className="text-2xl font-bold text-foreground">{macros.fat}g</p>
+                        <p className="text-xs text-muted-foreground mt-1">Fat</p>
+                        <div className="w-full h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
+                          <div className="h-full rounded-full bg-rose-500" style={{ width: "100%" }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                      {goal === "lose_weight" && "High protein preserves muscle while in a calorie deficit."}
+                      {goal === "muscle_gain" && "Extra protein & calories support muscle growth and recovery."}
+                      {goal === "gain_weight" && "A balanced surplus helps you gain weight steadily."}
+                      {goal === "maintain" && "A balanced split keeps you energized and healthy."}
+                      {" "}You can adjust these anytime in Settings.
+                    </p>
+                  </div>
+                </StepContainer>
+              );
+            })()}
 
             {step === "signup" && (
               <StepContainer

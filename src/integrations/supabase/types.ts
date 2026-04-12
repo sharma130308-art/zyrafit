@@ -109,23 +109,32 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          carbs_goal: number
           created_at: string
           daily_calorie_goal: number
+          fat_goal: number
           id: string
+          protein_goal: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          carbs_goal?: number
           created_at?: string
           daily_calorie_goal?: number
+          fat_goal?: number
           id?: string
+          protein_goal?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          carbs_goal?: number
           created_at?: string
           daily_calorie_goal?: number
+          fat_goal?: number
           id?: string
+          protein_goal?: number
           updated_at?: string
           user_id?: string
         }
