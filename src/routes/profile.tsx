@@ -71,6 +71,41 @@ function ProfilePage() {
   // Macro display
   const [macros, setMacros] = useState({ calories: 2000, protein: 0, carbs: 0, fat: 0 });
 
+  // Weight history
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
+  const [newWeight, setNewWeight] = useState("");
+  const [addingWeight, setAddingWeight] = useState(false);
+
+  const fetchWeightLogs = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("weight_logs")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("logged_at", { ascending: true })
+      .limit(90);
+    if (data) setWeightLogs(data as unknown as WeightLog[]);
+  }, [user]);
+
+  const addWeightLog = async () => {
+    if (!user || !newWeight) return;
+    setAddingWeight(true);
+    const weightVal = parseFloat(newWeight);
+    await supabase.from("weight_logs").insert({
+      user_id: user.id,
+      weight_kg: weightVal,
+      logged_at: new Date().toISOString().slice(0, 10),
+    });
+    setNewWeight("");
+    setAddingWeight(false);
+    fetchWeightLogs();
+  };
+
+  const deleteWeightLog = async (id: string) => {
+    await supabase.from("weight_logs").delete().eq("id", id);
+    fetchWeightLogs();
+  };
+
   useEffect(() => {
     if (!user) return;
     Promise.all([
