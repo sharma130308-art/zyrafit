@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   User,
   Weight,
+  Ruler,
   Dumbbell,
   Target,
   AlertCircle,
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/onboarding")({
   }),
 });
 
-const STEPS = ["gender", "age", "weight", "workout", "goal", "obstacles", "health", "signup"] as const;
+const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "signup"] as const;
 type Step = (typeof STEPS)[number];
 
 const GOALS = [
@@ -65,6 +66,7 @@ function OnboardingPage() {
   // Form state
   const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [workoutDays, setWorkoutDays] = useState(3);
   const [goal, setGoal] = useState("");
@@ -86,6 +88,7 @@ function OnboardingPage() {
     switch (step) {
       case "gender": return gender !== "";
       case "age": return age !== "" && parseInt(age) > 0 && parseInt(age) < 120;
+      case "height": return height !== "" && parseFloat(height) > 50 && parseFloat(height) < 300;
       case "weight": return weight !== "" && parseFloat(weight) > 0;
       case "workout": return true;
       case "goal": return goal !== "";
@@ -99,8 +102,7 @@ function OnboardingPage() {
   const calculateDailyCalories = () => {
     const ageNum = parseInt(age);
     const weightNum = parseFloat(weight);
-    // Mifflin-St Jeor (using estimated height of 170cm as default)
-    const heightCm = 170;
+    const heightCm = parseFloat(height);
     let bmr: number;
     if (gender === "female") {
       bmr = 10 * weightNum + 6.25 * heightCm - 5 * ageNum - 161;
@@ -300,6 +302,27 @@ function OnboardingPage() {
                     className="w-32 text-center text-5xl font-bold bg-transparent text-foreground border-none outline-none placeholder:text-muted-foreground/30"
                   />
                   <span className="text-sm text-muted-foreground">years old</span>
+                </div>
+              </StepContainer>
+            )}
+
+            {step === "height" && (
+              <StepContainer
+                icon={<Ruler className="w-6 h-6" />}
+                title="How tall are you?"
+                subtitle="Height helps us calculate your metabolism"
+              >
+                <div className="flex flex-col items-center gap-4">
+                  <input
+                    type="number"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    placeholder="170"
+                    min="50"
+                    max="300"
+                    className="w-32 text-center text-5xl font-bold bg-transparent text-foreground border-none outline-none placeholder:text-muted-foreground/30"
+                  />
+                  <span className="text-sm text-muted-foreground">cm</span>
                 </div>
               </StepContainer>
             )}
