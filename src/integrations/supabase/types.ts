@@ -72,6 +72,8 @@ export type Database = {
           id: string
           obstacles: string | null
           onboarding_completed: boolean
+          target_bmi: number | null
+          target_body_fat_percent: number | null
           target_weight_kg: number | null
           updated_at: string
           user_id: string
@@ -87,6 +89,8 @@ export type Database = {
           id?: string
           obstacles?: string | null
           onboarding_completed?: boolean
+          target_bmi?: number | null
+          target_body_fat_percent?: number | null
           target_weight_kg?: number | null
           updated_at?: string
           user_id: string
@@ -102,6 +106,8 @@ export type Database = {
           id?: string
           obstacles?: string | null
           onboarding_completed?: boolean
+          target_bmi?: number | null
+          target_body_fat_percent?: number | null
           target_weight_kg?: number | null
           updated_at?: string
           user_id?: string

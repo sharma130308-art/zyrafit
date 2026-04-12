@@ -44,6 +44,8 @@ interface ProfileData {
   workout_days_per_week: number | null;
   goal: string | null;
   target_weight_kg: number | null;
+  target_bmi: number | null;
+  target_body_fat_percent: number | null;
 }
 
 interface WeightLog {
@@ -73,6 +75,8 @@ function ProfilePage() {
   const [editWorkoutDays, setEditWorkoutDays] = useState(3);
   const [editGoal, setEditGoal] = useState("");
   const [editTargetWeight, setEditTargetWeight] = useState("");
+  const [editTargetBmi, setEditTargetBmi] = useState("");
+  const [editTargetBodyFat, setEditTargetBodyFat] = useState("");
 
   // Macro display
   const [macros, setMacros] = useState({ calories: 2000, protein: 0, carbs: 0, fat: 0 });
@@ -208,6 +212,8 @@ function ProfilePage() {
           workout_days_per_week: profileRes.data.workout_days_per_week,
           goal: profileRes.data.goal,
           target_weight_kg: (p.target_weight_kg as number) ?? null,
+          target_bmi: (p.target_bmi as number) ?? null,
+          target_body_fat_percent: (p.target_body_fat_percent as number) ?? null,
         };
         setProfile(profileData);
         setEditAge(String(profileData.age ?? ""));
@@ -216,6 +222,8 @@ function ProfilePage() {
         setEditWorkoutDays(profileData.workout_days_per_week ?? 3);
         setEditGoal(profileData.goal ?? "");
         setEditTargetWeight(String(profileData.target_weight_kg ?? ""));
+        setEditTargetBmi(String(profileData.target_bmi ?? ""));
+        setEditTargetBodyFat(String(profileData.target_body_fat_percent ?? ""));
       }
       if (settingsRes.data) {
         const s = settingsRes.data as unknown as Record<string, unknown>;
@@ -243,6 +251,8 @@ function ProfilePage() {
       setEditWorkoutDays(profile.workout_days_per_week ?? 3);
       setEditGoal(profile.goal ?? "");
       setEditTargetWeight(String(profile.target_weight_kg ?? ""));
+      setEditTargetBmi(String(profile.target_bmi ?? ""));
+      setEditTargetBodyFat(String(profile.target_body_fat_percent ?? ""));
     }
     setEditingProfile(false);
   };
@@ -255,6 +265,8 @@ function ProfilePage() {
     const weightNum = parseFloat(editWeight);
     const heightNum = parseFloat(editHeight) || 170;
     const targetWeightNum = editTargetWeight ? parseFloat(editTargetWeight) : null;
+    const targetBmiNum = editTargetBmi ? parseFloat(editTargetBmi) : null;
+    const targetBodyFatNum = editTargetBodyFat ? parseFloat(editTargetBodyFat) : null;
 
     const newMacros = calculateMacros({
       age: ageNum,
@@ -274,7 +286,13 @@ function ProfilePage() {
         workout_days_per_week: editWorkoutDays,
         goal: editGoal,
         target_weight_kg: targetWeightNum,
-      }, { onConflict: "user_id" }),
+      }, { onConflict: "user_id" }).then(() => {
+        // Update new goal columns separately since types may not include them yet
+        return (supabase.from("user_profiles") as any).update({
+          target_bmi: targetBmiNum,
+          target_body_fat_percent: targetBodyFatNum,
+        }).eq("user_id", user.id);
+      }),
       supabase.from("user_settings").upsert({
         user_id: user.id,
         daily_calorie_goal: newMacros.calories,
@@ -293,6 +311,8 @@ function ProfilePage() {
       workout_days_per_week: editWorkoutDays,
       goal: editGoal,
       target_weight_kg: targetWeightNum,
+      target_bmi: targetBmiNum,
+      target_body_fat_percent: targetBodyFatNum,
     });
     setEditingProfile(false);
     setSaving(false);
@@ -377,6 +397,8 @@ function ProfilePage() {
                   <ProfileRow icon={<Dumbbell className="w-4 h-4" />} label="Workouts" value={profile?.workout_days_per_week != null ? `${profile.workout_days_per_week} days/week` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Goal" value={goalLabel} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Weight" value={profile?.target_weight_kg ? `${profile.target_weight_kg} kg` : "—"} />
+                  <ProfileRow icon={<Target className="w-4 h-4" />} label="Target BMI" value={profile?.target_bmi ? `${profile.target_bmi}` : "—"} />
+                  <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Body Fat" value={profile?.target_body_fat_percent ? `${profile.target_body_fat_percent}%` : "—"} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -498,6 +520,35 @@ function ProfilePage() {
                     />
                   </div>
 
+                  {/* Target BMI */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Target BMI</label>
+                    <input
+                      type="number"
+                      value={editTargetBmi}
+                      onChange={(e) => setEditTargetBmi(e.target.value)}
+                      placeholder="e.g. 22"
+                      step="0.1"
+                      className="w-full px-4 py-3 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40"
+                      min="10"
+                      max="50"
+                    />
+                  </div>
+
+                  {/* Target Body Fat % */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Target Body Fat %</label>
+                    <input
+                      type="number"
+                      value={editTargetBodyFat}
+                      onChange={(e) => setEditTargetBodyFat(e.target.value)}
+                      placeholder="e.g. 15"
+                      step="0.1"
+                      className="w-full px-4 py-3 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40"
+                      min="3"
+                      max="60"
+                    />
+                  </div>
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving || !editAge || !editWeight || !editGoal}
@@ -879,9 +930,19 @@ function ProfilePage() {
                       <span className="text-[10px] text-primary font-semibold">🎯 {Number(profile.target_weight_kg)} kg</span>
                     </div>
                   )}
-                  {activeChart === "bmi" && (
+                  {activeChart === "bmi" && profile?.target_bmi && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <span className="text-[10px] text-blue-600 font-semibold">🎯 BMI {profile.target_bmi}</span>
+                    </div>
+                  )}
+                  {activeChart === "bmi" && !profile?.target_bmi && (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
                       <span className="text-[10px] text-blue-600 font-semibold">Healthy: 18.5–25</span>
+                    </div>
+                  )}
+                  {activeChart === "bodyfat" && profile?.target_body_fat_percent && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                      <span className="text-[10px] text-rose-600 font-semibold">🎯 {profile.target_body_fat_percent}%</span>
                     </div>
                   )}
                 </div>
@@ -990,6 +1051,24 @@ function ProfilePage() {
                           <ReferenceLine y={30} stroke="hsl(0, 70%, 50%)" strokeDasharray="4 4" strokeOpacity={0.25} label={{ value: "30 Obese", position: "insideTopRight", fontSize: 8, fill: "hsl(0, 70%, 50%)" }} />
                         </>
                       )}
+                      {activeChart === "bmi" && profile?.target_bmi && (
+                        <ReferenceLine
+                          y={Number(profile.target_bmi)}
+                          stroke="hsl(210, 80%, 55%)"
+                          strokeDasharray="8 4"
+                          strokeOpacity={0.6}
+                          label={{ value: `🎯 ${profile.target_bmi}`, position: "insideTopLeft", fontSize: 9, fill: "hsl(210, 80%, 55%)" }}
+                        />
+                      )}
+                      {activeChart === "bodyfat" && profile?.target_body_fat_percent && (
+                        <ReferenceLine
+                          y={Number(profile.target_body_fat_percent)}
+                          stroke="hsl(340, 80%, 55%)"
+                          strokeDasharray="8 4"
+                          strokeOpacity={0.6}
+                          label={{ value: `🎯 ${profile.target_body_fat_percent}%`, position: "insideTopLeft", fontSize: 9, fill: "hsl(340, 80%, 55%)" }}
+                        />
+                      )}
                       <Line
                         type="monotone"
                         dataKey={activeChart === "bodyfat" ? "bodyfat" : activeChart}
@@ -1032,6 +1111,16 @@ function ProfilePage() {
                   {activeChart === "bmi" && (
                     <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                       <span className="w-4 border-t-2 border-dashed border-destructive" /> Thresholds
+                    </span>
+                  )}
+                  {activeChart === "bmi" && profile?.target_bmi && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-4 border-t-2 border-dashed border-blue-500" /> Target
+                    </span>
+                  )}
+                  {activeChart === "bodyfat" && profile?.target_body_fat_percent && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-4 border-t-2 border-dashed border-rose-500" /> Target
                     </span>
                   )}
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
