@@ -222,8 +222,8 @@ function OnboardingPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-6 flex flex-col">
-        <AnimatePresence mode="wait">
+      <div className="flex-1 px-6 flex flex-col overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={step}
             variants={slideVariants}
@@ -231,7 +231,7 @@ function OnboardingPage() {
             animate="center"
             exit="exit"
             transition={{ duration: 0.25 }}
-            className="flex-1 flex flex-col"
+            className="flex-1 flex flex-col min-h-0"
           >
             {step === "gender" && (
               <StepContainer
