@@ -1051,6 +1051,24 @@ function ProfilePage() {
                           <ReferenceLine y={30} stroke="hsl(0, 70%, 50%)" strokeDasharray="4 4" strokeOpacity={0.25} label={{ value: "30 Obese", position: "insideTopRight", fontSize: 8, fill: "hsl(0, 70%, 50%)" }} />
                         </>
                       )}
+                      {activeChart === "bmi" && profile?.target_bmi && (
+                        <ReferenceLine
+                          y={Number(profile.target_bmi)}
+                          stroke="hsl(210, 80%, 55%)"
+                          strokeDasharray="8 4"
+                          strokeOpacity={0.6}
+                          label={{ value: `🎯 ${profile.target_bmi}`, position: "insideTopLeft", fontSize: 9, fill: "hsl(210, 80%, 55%)" }}
+                        />
+                      )}
+                      {activeChart === "bodyfat" && profile?.target_body_fat_percent && (
+                        <ReferenceLine
+                          y={Number(profile.target_body_fat_percent)}
+                          stroke="hsl(340, 80%, 55%)"
+                          strokeDasharray="8 4"
+                          strokeOpacity={0.6}
+                          label={{ value: `🎯 ${profile.target_body_fat_percent}%`, position: "insideTopLeft", fontSize: 9, fill: "hsl(340, 80%, 55%)" }}
+                        />
+                      )}
                       <Line
                         type="monotone"
                         dataKey={activeChart === "bodyfat" ? "bodyfat" : activeChart}
