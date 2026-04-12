@@ -785,24 +785,39 @@ function ProfilePage() {
               <div className="px-5">
                 <div className="flex gap-1 mb-3 bg-muted/50 rounded-xl p-1">
                   {(["weight", "bmi", "bodyfat"] as const).map((tab) => {
-                    const labels = { weight: "Weight", bmi: "BMI", bodyfat: "Body Fat" };
-                    const icons = { weight: "⚖️", bmi: "📊", bodyfat: "🔥" };
+                    const labels = { weight: "Weight", bmi: "BMI", bodyfat: "Fat" };
                     const activeColors = {
                       weight: "bg-primary text-primary-foreground shadow-md shadow-primary/25",
                       bmi: "bg-blue-500 text-white shadow-md shadow-blue-500/25",
                       bodyfat: "bg-rose-500 text-white shadow-md shadow-rose-500/25",
                     };
+                    const values = weightLogs.map(l => tab === "weight" ? l.weight_kg : tab === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
+                    const first = values.length >= 2 ? values[0] : null;
+                    const last = values.length >= 2 ? values[values.length - 1] : null;
+                    const change = first != null && last != null ? last - first : null;
+                    const pctChange = first != null && change != null && first !== 0 ? (change / first) * 100 : null;
+                    const isGood = change != null ? change <= 0 : null;
+                    const isActive = activeChart === tab;
+
                     return (
                       <button
                         key={tab}
                         onClick={() => setActiveChart(tab)}
-                        className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                          activeChart === tab
-                            ? activeColors[tab]
-                            : "text-muted-foreground hover:text-foreground"
+                        className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                          isActive ? activeColors[tab] : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {icons[tab]} {labels[tab]}
+                        <span>{labels[tab]}</span>
+                        {pctChange != null && (
+                          <span className={`flex items-center gap-0.5 text-[9px] font-bold ${
+                            isActive
+                              ? "opacity-90"
+                              : isGood ? "text-primary" : "text-destructive"
+                          }`}>
+                            {change! > 0 ? "↑" : change! < 0 ? "↓" : "→"}
+                            {Math.abs(pctChange).toFixed(1)}%
+                          </span>
+                        )}
                       </button>
                     );
                   })}
