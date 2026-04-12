@@ -96,18 +96,48 @@ function OnboardingPage() {
     }
   };
 
+  const calculateDailyCalories = () => {
+    const ageNum = parseInt(age);
+    const weightNum = parseFloat(weight);
+    // Mifflin-St Jeor (using estimated height of 170cm as default)
+    const heightCm = 170;
+    let bmr: number;
+    if (gender === "female") {
+      bmr = 10 * weightNum + 6.25 * heightCm - 5 * ageNum - 161;
+    } else {
+      bmr = 10 * weightNum + 6.25 * heightCm - 5 * ageNum + 5;
+    }
+    // Activity multiplier based on workout days
+    const activityMultipliers = [1.2, 1.25, 1.3, 1.375, 1.45, 1.55, 1.65, 1.725];
+    const tdee = bmr * (activityMultipliers[workoutDays] ?? 1.375);
+    // Adjust for goal
+    switch (goal) {
+      case "lose_weight": return Math.round(tdee - 500);
+      case "gain_weight": return Math.round(tdee + 300);
+      case "muscle_gain": return Math.round(tdee + 250);
+      default: return Math.round(tdee);
+    }
+  };
+
   const saveProfile = async (userId: string) => {
-    await supabase.from("user_profiles").upsert({
-      user_id: userId,
-      age: parseInt(age),
-      weight_kg: parseFloat(weight),
-      gender,
-      workout_days_per_week: workoutDays,
-      goal,
-      obstacles: obstacles.join(", "),
-      apple_health_connected: appleHealth,
-      onboarding_completed: true,
-    }, { onConflict: "user_id" });
+    const dailyCalories = calculateDailyCalories();
+    await Promise.all([
+      supabase.from("user_profiles").upsert({
+        user_id: userId,
+        age: parseInt(age),
+        weight_kg: parseFloat(weight),
+        gender,
+        workout_days_per_week: workoutDays,
+        goal,
+        obstacles: obstacles.join(", "),
+        apple_health_connected: appleHealth,
+        onboarding_completed: true,
+      }, { onConflict: "user_id" }),
+      supabase.from("user_settings").upsert({
+        user_id: userId,
+        daily_calorie_goal: dailyCalories,
+      }, { onConflict: "user_id" }),
+    ]);
   };
 
   const handleNext = async () => {
