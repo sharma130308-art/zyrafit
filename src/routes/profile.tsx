@@ -74,11 +74,12 @@ function ProfilePage() {
         setEditGoal(profileRes.data.goal ?? "");
       }
       if (settingsRes.data) {
+        const s = settingsRes.data as unknown as Record<string, unknown>;
         setMacros({
           calories: settingsRes.data.daily_calorie_goal,
-          protein: (settingsRes.data as Record<string, number>).protein_goal ?? 0,
-          carbs: (settingsRes.data as Record<string, number>).carbs_goal ?? 0,
-          fat: (settingsRes.data as Record<string, number>).fat_goal ?? 0,
+          protein: (s.protein_goal as number) ?? 0,
+          carbs: (s.carbs_goal as number) ?? 0,
+          fat: (s.fat_goal as number) ?? 0,
         });
       }
       setProfileLoading(false);
