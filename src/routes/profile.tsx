@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays, subMonths } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/profile")({
@@ -88,6 +88,14 @@ function ProfilePage() {
   const [scanning, setScanning] = useState(false);
   const [showManualFields, setShowManualFields] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "bmi" | "bodyfat">("weight");
+  const [timeRange, setTimeRange] = useState<"1w" | "1m" | "3m" | "all">("all");
+
+  const filteredLogs = (() => {
+    if (timeRange === "all") return weightLogs;
+    const now = new Date();
+    const cutoff = timeRange === "1w" ? subDays(now, 7) : timeRange === "1m" ? subMonths(now, 1) : subMonths(now, 3);
+    return weightLogs.filter(l => parseISO(l.logged_at) >= cutoff);
+  })();
 
   const fetchWeightLogs = useCallback(async () => {
     if (!user) return;
@@ -781,8 +789,30 @@ function ProfilePage() {
             })()}
 
             {/* Chart tabs */}
-            {weightLogs.length >= 2 && (
+             {weightLogs.length >= 2 && (
               <div className="px-5">
+                {/* Time range filter */}
+                <div className="flex gap-1 mb-2">
+                  {([
+                    { key: "1w", label: "1W" },
+                    { key: "1m", label: "1M" },
+                    { key: "3m", label: "3M" },
+                    { key: "all", label: "All" },
+                  ] as const).map((r) => (
+                    <button
+                      key={r.key}
+                      onClick={() => setTimeRange(r.key)}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                        timeRange === r.key
+                          ? "bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="flex gap-1 mb-3 bg-muted/50 rounded-xl p-1">
                   {(["weight", "bmi", "bodyfat"] as const).map((tab) => {
                     const labels = { weight: "Weight", bmi: "BMI", bodyfat: "Fat" };
@@ -791,7 +821,7 @@ function ProfilePage() {
                       bmi: "bg-blue-500 text-white shadow-md shadow-blue-500/25",
                       bodyfat: "bg-rose-500 text-white shadow-md shadow-rose-500/25",
                     };
-                    const values = weightLogs.map(l => tab === "weight" ? l.weight_kg : tab === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
+                    const values = filteredLogs.map(l => tab === "weight" ? l.weight_kg : tab === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
                     const first = values.length >= 2 ? values[0] : null;
                     const last = values.length >= 2 ? values[values.length - 1] : null;
                     const change = first != null && last != null ? last - first : null;
@@ -823,6 +853,13 @@ function ProfilePage() {
                   })}
                 </div>
 
+                {filteredLogs.length < 2 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    Not enough data for this time range
+                  </div>
+                ) : (
+                <>
+
                 {/* Chart header with context */}
                 <div className="flex items-center justify-between mb-2">
                   <div>
@@ -852,7 +889,7 @@ function ProfilePage() {
                 {/* Min/Max/Avg summary */}
                 {(() => {
                   const key = activeChart === "bodyfat" ? "body_fat_percent" : activeChart === "bmi" ? "bmi" : "weight_kg";
-                  const values = weightLogs.map(l => activeChart === "weight" ? l.weight_kg : activeChart === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
+                  const values = filteredLogs.map(l => activeChart === "weight" ? l.weight_kg : activeChart === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
                   if (values.length < 2) return null;
                   const min = Math.min(...values);
                   const max = Math.max(...values);
@@ -879,7 +916,7 @@ function ProfilePage() {
                 <div className="h-52 -mx-2 rounded-xl overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={weightLogs.map((l) => ({
+                      data={filteredLogs.map((l) => ({
                         date: format(parseISO(l.logged_at), "MMM d"),
                         weight: l.weight_kg,
                         bmi: l.bmi,
@@ -960,7 +997,7 @@ function ProfilePage() {
                         strokeWidth={2.5}
                         dot={(props: Record<string, unknown>) => {
                           const { cx, cy, index } = props as { cx: number; cy: number; index: number };
-                          const isLast = index === weightLogs.length - 1;
+                          const isLast = index === filteredLogs.length - 1;
                           const color = activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)";
                           return (
                             <circle
@@ -1001,6 +1038,8 @@ function ProfilePage() {
                     <span className={`w-3.5 h-3.5 rounded-full border-2 ${activeChart === "weight" ? "border-primary" : activeChart === "bmi" ? "border-blue-500" : "border-rose-500"}`} /> Latest
                   </span>
                 </div>
+                </>
+                )}
               </div>
             )}
 
