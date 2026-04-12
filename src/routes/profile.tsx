@@ -80,7 +80,14 @@ function ProfilePage() {
   // Weight history
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [newWeight, setNewWeight] = useState("");
+  const [newBmi, setNewBmi] = useState("");
+  const [newBodyFat, setNewBodyFat] = useState("");
+  const [newBodyFatMass, setNewBodyFatMass] = useState("");
+  const [newHeightM, setNewHeightM] = useState("");
   const [addingWeight, setAddingWeight] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [showManualFields, setShowManualFields] = useState(false);
+  const [activeChart, setActiveChart] = useState<"weight" | "bmi" | "bodyfat">("weight");
 
   const fetchWeightLogs = useCallback(async () => {
     if (!user) return;
@@ -90,19 +97,35 @@ function ProfilePage() {
       .eq("user_id", user.id)
       .order("logged_at", { ascending: true })
       .limit(90);
-    if (data) setWeightLogs(data as unknown as WeightLog[]);
+    if (data) setWeightLogs(data.map((d: Record<string, unknown>) => ({
+      id: d.id as string,
+      weight_kg: Number(d.weight_kg),
+      logged_at: d.logged_at as string,
+      bmi: d.bmi != null ? Number(d.bmi) : null,
+      body_fat_percent: d.body_fat_percent != null ? Number(d.body_fat_percent) : null,
+      body_fat_mass_kg: d.body_fat_mass_kg != null ? Number(d.body_fat_mass_kg) : null,
+      height_m: d.height_m != null ? Number(d.height_m) : null,
+    })));
   }, [user]);
 
   const addWeightLog = async () => {
     if (!user || !newWeight) return;
     setAddingWeight(true);
-    const weightVal = parseFloat(newWeight);
     await supabase.from("weight_logs").insert({
       user_id: user.id,
-      weight_kg: weightVal,
+      weight_kg: parseFloat(newWeight),
       logged_at: new Date().toISOString().slice(0, 10),
+      bmi: newBmi ? parseFloat(newBmi) : null,
+      body_fat_percent: newBodyFat ? parseFloat(newBodyFat) : null,
+      body_fat_mass_kg: newBodyFatMass ? parseFloat(newBodyFatMass) : null,
+      height_m: newHeightM ? parseFloat(newHeightM) : null,
     });
     setNewWeight("");
+    setNewBmi("");
+    setNewBodyFat("");
+    setNewBodyFatMass("");
+    setNewHeightM("");
+    setShowManualFields(false);
     setAddingWeight(false);
     fetchWeightLogs();
   };
@@ -110,6 +133,54 @@ function ProfilePage() {
   const deleteWeightLog = async (id: string) => {
     await supabase.from("weight_logs").delete().eq("id", id);
     fetchWeightLogs();
+  };
+
+  const handleScanPhoto = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.capture = "environment";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file || !user) return;
+      setScanning(true);
+      try {
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+
+        const { data, error } = await supabase.functions.invoke("scan-body-stats", {
+          body: { imageBase64: base64 },
+        });
+
+        if (error) throw error;
+        if (!data?.found) {
+          alert("Could not find body stats in this image. Try a clearer photo.");
+          setScanning(false);
+          return;
+        }
+
+        // Insert the scanned data
+        await supabase.from("weight_logs").insert({
+          user_id: user.id,
+          weight_kg: data.weight_kg || 0,
+          logged_at: data.date || new Date().toISOString().slice(0, 10),
+          bmi: data.bmi || null,
+          body_fat_percent: data.body_fat_percent || null,
+          body_fat_mass_kg: data.body_fat_mass_kg || null,
+          height_m: data.height_m || null,
+        });
+
+        fetchWeightLogs();
+      } catch (err) {
+        console.error("Scan error:", err);
+        alert("Failed to scan. Please try again.");
+      }
+      setScanning(false);
+    };
+    input.click();
   };
 
   useEffect(() => {
