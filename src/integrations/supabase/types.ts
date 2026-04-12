@@ -72,6 +72,7 @@ export type Database = {
           id: string
           obstacles: string | null
           onboarding_completed: boolean
+          target_weight_kg: number | null
           updated_at: string
           user_id: string
           weight_kg: number | null
@@ -86,6 +87,7 @@ export type Database = {
           id?: string
           obstacles?: string | null
           onboarding_completed?: boolean
+          target_weight_kg?: number | null
           updated_at?: string
           user_id: string
           weight_kg?: number | null
@@ -100,6 +102,7 @@ export type Database = {
           id?: string
           obstacles?: string | null
           onboarding_completed?: boolean
+          target_weight_kg?: number | null
           updated_at?: string
           user_id?: string
           weight_kg?: number | null

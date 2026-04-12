@@ -35,6 +35,7 @@ interface ProfileData {
   gender: string | null;
   workout_days_per_week: number | null;
   goal: string | null;
+  target_weight_kg: number | null;
 }
 
 function ProfilePage() {
@@ -53,6 +54,7 @@ function ProfilePage() {
   const [editGender, setEditGender] = useState("");
   const [editWorkoutDays, setEditWorkoutDays] = useState(3);
   const [editGoal, setEditGoal] = useState("");
+  const [editTargetWeight, setEditTargetWeight] = useState("");
 
   // Macro display
   const [macros, setMacros] = useState({ calories: 2000, protein: 0, carbs: 0, fat: 0 });
@@ -66,12 +68,22 @@ function ProfilePage() {
     ]).then(([fetchedGoal, profileRes, settingsRes]) => {
       setGoal(fetchedGoal);
       if (profileRes.data) {
-        setProfile(profileRes.data);
-        setEditAge(String(profileRes.data.age ?? ""));
-        setEditWeight(String(profileRes.data.weight_kg ?? ""));
-        setEditGender(profileRes.data.gender ?? "");
-        setEditWorkoutDays(profileRes.data.workout_days_per_week ?? 3);
-        setEditGoal(profileRes.data.goal ?? "");
+        const p = profileRes.data as unknown as Record<string, unknown>;
+        const profileData: ProfileData = {
+          age: profileRes.data.age,
+          weight_kg: profileRes.data.weight_kg,
+          gender: profileRes.data.gender,
+          workout_days_per_week: profileRes.data.workout_days_per_week,
+          goal: profileRes.data.goal,
+          target_weight_kg: (p.target_weight_kg as number) ?? null,
+        };
+        setProfile(profileData);
+        setEditAge(String(profileData.age ?? ""));
+        setEditWeight(String(profileData.weight_kg ?? ""));
+        setEditGender(profileData.gender ?? "");
+        setEditWorkoutDays(profileData.workout_days_per_week ?? 3);
+        setEditGoal(profileData.goal ?? "");
+        setEditTargetWeight(String(profileData.target_weight_kg ?? ""));
       }
       if (settingsRes.data) {
         const s = settingsRes.data as unknown as Record<string, unknown>;
@@ -97,6 +109,7 @@ function ProfilePage() {
       setEditGender(profile.gender ?? "");
       setEditWorkoutDays(profile.workout_days_per_week ?? 3);
       setEditGoal(profile.goal ?? "");
+      setEditTargetWeight(String(profile.target_weight_kg ?? ""));
     }
     setEditingProfile(false);
   };
@@ -108,6 +121,7 @@ function ProfilePage() {
     const ageNum = parseInt(editAge);
     const weightNum = parseFloat(editWeight);
     const heightNum = parseFloat(editHeight) || 170;
+    const targetWeightNum = editTargetWeight ? parseFloat(editTargetWeight) : null;
 
     const newMacros = calculateMacros({
       age: ageNum,
@@ -126,6 +140,7 @@ function ProfilePage() {
         gender: editGender,
         workout_days_per_week: editWorkoutDays,
         goal: editGoal,
+        target_weight_kg: targetWeightNum,
       }, { onConflict: "user_id" }),
       supabase.from("user_settings").upsert({
         user_id: user.id,
@@ -144,6 +159,7 @@ function ProfilePage() {
       gender: editGender,
       workout_days_per_week: editWorkoutDays,
       goal: editGoal,
+      target_weight_kg: targetWeightNum,
     });
     setEditingProfile(false);
     setSaving(false);
@@ -227,6 +243,7 @@ function ProfilePage() {
                   <ProfileRow icon={<Weight className="w-4 h-4" />} label="Weight" value={profile?.weight_kg ? `${profile.weight_kg} kg` : "—"} />
                   <ProfileRow icon={<Dumbbell className="w-4 h-4" />} label="Workouts" value={profile?.workout_days_per_week != null ? `${profile.workout_days_per_week} days/week` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Goal" value={goalLabel} />
+                  <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Weight" value={profile?.target_weight_kg ? `${profile.target_weight_kg} kg` : "—"} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -333,6 +350,21 @@ function ProfilePage() {
                     </div>
                   </div>
 
+                  {/* Target Weight */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Target Weight (kg)</label>
+                    <input
+                      type="number"
+                      value={editTargetWeight}
+                      onChange={(e) => setEditTargetWeight(e.target.value)}
+                      placeholder="e.g. 65"
+                      step="0.1"
+                      className="w-full px-4 py-3 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40"
+                      min="20"
+                      max="300"
+                    />
+                  </div>
+
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving || !editAge || !editWeight || !editGoal}
@@ -374,6 +406,74 @@ function ProfilePage() {
               <MacroCard label="Carbs" value={`${macros.carbs}g`} color="bg-amber-500" />
               <MacroCard label="Fat" value={`${macros.fat}g`} color="bg-rose-500" />
             </div>
+          </motion.div>
+        )}
+
+        {/* Weight Progress */}
+        {user && !profileLoading && profile?.target_weight_kg && profile?.weight_kg && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="rounded-2xl bg-card p-5 shadow-sm border border-border/50"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Weight className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-card-foreground">Weight Progress</h3>
+                <p className="text-xs text-muted-foreground">Track your journey</p>
+              </div>
+            </div>
+
+            {(() => {
+              const current = Number(profile.weight_kg);
+              const target = Number(profile.target_weight_kg);
+              const diff = current - target;
+              const absDiff = Math.abs(diff);
+              const isAtGoal = absDiff < 0.5;
+              // Progress: how close to target (capped 0-100)
+              const startDiff = Math.max(absDiff, 1); // avoid division by zero on first set
+              const progress = isAtGoal ? 100 : Math.min(95, Math.max(5, ((startDiff - absDiff) / startDiff) * 100 + 50));
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-foreground">{current}</p>
+                      <p className="text-xs text-muted-foreground">Current (kg)</p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center px-4">
+                      <div className="text-center">
+                        {isAtGoal ? (
+                          <span className="text-lg font-semibold text-primary">🎉 Goal reached!</span>
+                        ) : (
+                          <>
+                            <p className="text-lg font-bold text-foreground">
+                              {diff > 0 ? `${absDiff.toFixed(1)} kg to lose` : `${absDiff.toFixed(1)} kg to gain`}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-primary">{target}</p>
+                      <p className="text-xs text-muted-foreground">Target (kg)</p>
+                    </div>
+                  </div>
+
+                  <div className="h-3 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-primary"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </motion.div>
         )}
 
