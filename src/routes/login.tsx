@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -58,29 +58,12 @@ function LoginPage() {
       return;
     }
 
-    if (mode === "signup") {
-      const { data: signUpData, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      setLoading(false);
-      if (error) {
-        setError(error.message);
-      } else if (signUpData.user) {
-        // Auto-confirmed, redirect to onboarding
-        await redirectAfterAuth(signUpData.user.id);
-      } else {
-        setSuccess("Check your email to confirm your account, then sign in.");
-      }
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
     } else {
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
-      if (error) {
-        setError(error.message);
-      } else {
-        await redirectAfterAuth(signInData.user?.id);
-      }
+      await redirectAfterAuth(signInData.user?.id);
     }
   };
 
@@ -94,7 +77,7 @@ function LoginPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">CalTrack</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {mode === "login" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset your password"}
+            {mode === "login" ? "Welcome back" : "Reset your password"}
           </p>
         </div>
 
@@ -179,7 +162,7 @@ function LoginPage() {
               />
             ) : (
               <>
-                {mode === "login" ? "Sign In" : mode === "signup" ? "Sign Up" : "Send Reset Link"}
+                {mode === "login" ? "Sign In" : "Send Reset Link"}
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -242,13 +225,10 @@ function LoginPage() {
             </button>
           ) : (
             <>
-              {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-              <button
-                onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); setSuccess(null); }}
-                className="text-primary font-medium"
-              >
-                {mode === "login" ? "Sign Up" : "Sign In"}
-              </button>
+              Don't have an account?{" "}
+              <Link to="/onboarding" className="text-primary font-medium">
+                Sign Up
+              </Link>
             </>
           )}
         </p>
