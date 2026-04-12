@@ -44,6 +44,12 @@ interface ProfileData {
   target_weight_kg: number | null;
 }
 
+interface WeightLog {
+  id: string;
+  weight_kg: number;
+  logged_at: string;
+}
+
 function ProfilePage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
