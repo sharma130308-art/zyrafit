@@ -70,8 +70,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const [showSplash, setShowSplash] = useState(true);
+  const handleSplashFinish = useCallback(() => setShowSplash(false), []);
+
   return (
     <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative">
+      <AnimatePresence>
+        {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+      </AnimatePresence>
       <Outlet />
     </div>
   );
