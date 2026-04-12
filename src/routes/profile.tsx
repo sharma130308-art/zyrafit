@@ -88,6 +88,14 @@ function ProfilePage() {
   const [scanning, setScanning] = useState(false);
   const [showManualFields, setShowManualFields] = useState(false);
   const [activeChart, setActiveChart] = useState<"weight" | "bmi" | "bodyfat">("weight");
+  const [timeRange, setTimeRange] = useState<"1w" | "1m" | "3m" | "all">("all");
+
+  const filteredLogs = (() => {
+    if (timeRange === "all") return weightLogs;
+    const now = new Date();
+    const cutoff = timeRange === "1w" ? subDays(now, 7) : timeRange === "1m" ? subMonths(now, 1) : subMonths(now, 3);
+    return weightLogs.filter(l => parseISO(l.logged_at) >= cutoff);
+  })();
 
   const fetchWeightLogs = useCallback(async () => {
     if (!user) return;
