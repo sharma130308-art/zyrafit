@@ -889,7 +889,7 @@ function ProfilePage() {
                 {/* Min/Max/Avg summary */}
                 {(() => {
                   const key = activeChart === "bodyfat" ? "body_fat_percent" : activeChart === "bmi" ? "bmi" : "weight_kg";
-                  const values = weightLogs.map(l => activeChart === "weight" ? l.weight_kg : activeChart === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
+                  const values = filteredLogs.map(l => activeChart === "weight" ? l.weight_kg : activeChart === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
                   if (values.length < 2) return null;
                   const min = Math.min(...values);
                   const max = Math.max(...values);
