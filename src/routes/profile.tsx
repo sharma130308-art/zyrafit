@@ -783,42 +783,85 @@ function ProfilePage() {
             {/* Chart tabs */}
             {weightLogs.length >= 2 && (
               <div className="px-5">
-                <div className="flex gap-1 mb-2 bg-muted/50 rounded-xl p-1">
+                <div className="flex gap-1 mb-3 bg-muted/50 rounded-xl p-1">
                   {(["weight", "bmi", "bodyfat"] as const).map((tab) => {
-                    const colors = {
-                      weight: "bg-primary/15 text-primary",
-                      bmi: "bg-blue-500/15 text-blue-600",
-                      bodyfat: "bg-rose-500/15 text-rose-600",
+                    const labels = { weight: "Weight", bmi: "BMI", bodyfat: "Body Fat" };
+                    const icons = { weight: "⚖️", bmi: "📊", bodyfat: "🔥" };
+                    const activeColors = {
+                      weight: "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                      bmi: "bg-blue-500 text-white shadow-md shadow-blue-500/25",
+                      bodyfat: "bg-rose-500 text-white shadow-md shadow-rose-500/25",
                     };
                     return (
                       <button
                         key={tab}
                         onClick={() => setActiveChart(tab)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${
                           activeChart === tab
-                            ? `${colors[tab]} shadow-sm`
+                            ? activeColors[tab]
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {tab === "weight" ? "⚖️ Weight" : tab === "bmi" ? "📊 BMI" : "🔥 Body Fat"}
+                        {icons[tab]} {labels[tab]}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Chart info label */}
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] text-muted-foreground">
-                    {activeChart === "weight" && "Weight trend (kg)"}
-                    {activeChart === "bmi" && "BMI trend — dashed line = overweight (25)"}
-                    {activeChart === "bodyfat" && "Body fat % trend"}
-                  </p>
+                {/* Chart header with context */}
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      {activeChart === "weight" && "Weight Trend"}
+                      {activeChart === "bmi" && "BMI Trend"}
+                      {activeChart === "bodyfat" && "Body Fat Trend"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {activeChart === "weight" && "Tracking your weight over time"}
+                      {activeChart === "bmi" && "18.5–25 is the healthy range"}
+                      {activeChart === "bodyfat" && "Lower is leaner"}
+                    </p>
+                  </div>
                   {activeChart === "weight" && profile?.target_weight_kg && (
-                    <p className="text-[10px] text-primary font-medium">🎯 Target: {Number(profile.target_weight_kg)} kg</p>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20">
+                      <span className="text-[10px] text-primary font-semibold">🎯 {Number(profile.target_weight_kg)} kg</span>
+                    </div>
+                  )}
+                  {activeChart === "bmi" && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <span className="text-[10px] text-blue-600 font-semibold">Healthy: 18.5–25</span>
+                    </div>
                   )}
                 </div>
 
-                <div className="h-52 -mx-2">
+                {/* Min/Max/Avg summary */}
+                {(() => {
+                  const key = activeChart === "bodyfat" ? "body_fat_percent" : activeChart === "bmi" ? "bmi" : "weight_kg";
+                  const values = weightLogs.map(l => activeChart === "weight" ? l.weight_kg : activeChart === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
+                  if (values.length < 2) return null;
+                  const min = Math.min(...values);
+                  const max = Math.max(...values);
+                  const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                  const unit = activeChart === "weight" ? " kg" : activeChart === "bodyfat" ? "%" : "";
+                  const change = values[values.length - 1] - values[0];
+                  return (
+                    <div className="grid grid-cols-4 gap-1.5 mb-3">
+                      {[
+                        { label: "Min", value: min.toFixed(1) + unit },
+                        { label: "Max", value: max.toFixed(1) + unit },
+                        { label: "Avg", value: avg.toFixed(1) + unit },
+                        { label: "Change", value: (change > 0 ? "+" : "") + change.toFixed(1) + unit, isChange: true, positive: activeChart === "weight" ? change < 0 : change < 0 },
+                      ].map((stat) => (
+                        <div key={stat.label} className="rounded-lg bg-muted/40 px-2 py-1.5 text-center">
+                          <p className={`text-xs font-bold ${stat.isChange ? (stat.positive ? "text-primary" : "text-destructive") : "text-foreground"}`}>{stat.value}</p>
+                          <p className="text-[9px] text-muted-foreground">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                <div className="h-52 -mx-2 rounded-xl overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={weightLogs.map((l) => ({
@@ -827,19 +870,19 @@ function ProfilePage() {
                         bmi: l.bmi,
                         bodyfat: l.body_fat_percent,
                       }))}
-                      margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
+                      margin={{ top: 12, right: 16, bottom: 4, left: -4 }}
                     >
                       <defs>
                         <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
                           <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="bmiGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(210, 80%, 55%)" stopOpacity={0.3} />
+                          <stop offset="0%" stopColor="hsl(210, 80%, 55%)" stopOpacity={0.15} />
                           <stop offset="100%" stopColor="hsl(210, 80%, 55%)" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0.3} />
+                          <stop offset="0%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0.15} />
                           <stop offset="100%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
@@ -848,48 +891,51 @@ function ProfilePage() {
                         tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                         axisLine={false}
                         tickLine={false}
+                        interval="preserveStartEnd"
                       />
                       <YAxis
                         domain={["dataMin - 2", "dataMax + 2"]}
                         tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                         axisLine={false}
                         tickLine={false}
-                        width={36}
+                        width={38}
+                        tickFormatter={(v: number) => {
+                          if (activeChart === "bodyfat") return `${v}%`;
+                          if (activeChart === "weight") return `${v}`;
+                          return `${v}`;
+                        }}
                       />
                       <Tooltip
                         contentStyle={{
                           background: "hsl(var(--card))",
                           border: "1px solid hsl(var(--border))",
-                          borderRadius: "12px",
+                          borderRadius: "14px",
                           fontSize: "12px",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                          padding: "10px 14px",
                         }}
                         formatter={(value: number) => {
                           if (activeChart === "weight") return [`${value} kg`, "Weight"];
-                          if (activeChart === "bmi") return [value, "BMI"];
+                          if (activeChart === "bmi") return [value.toFixed(1), "BMI"];
                           return [`${value}%`, "Body Fat"];
                         }}
-                        labelStyle={{ fontWeight: 600, marginBottom: 2 }}
+                        labelStyle={{ fontWeight: 700, marginBottom: 4, fontSize: 11 }}
+                        cursor={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1, strokeDasharray: "4 4" }}
                       />
                       {activeChart === "weight" && profile?.target_weight_kg && (
                         <ReferenceLine
                           y={Number(profile.target_weight_kg)}
                           stroke="hsl(var(--primary))"
-                          strokeDasharray="6 4"
-                          strokeOpacity={0.6}
-                          label={{ value: "Target", position: "insideTopRight", fontSize: 9, fill: "hsl(var(--primary))" }}
+                          strokeDasharray="8 4"
+                          strokeOpacity={0.5}
+                          label={{ value: `Target ${profile.target_weight_kg}kg`, position: "insideTopRight", fontSize: 9, fill: "hsl(var(--primary))" }}
                         />
                       )}
                       {activeChart === "bmi" && (
                         <>
-                          <ReferenceLine y={18.5} stroke="hsl(210, 70%, 60%)" strokeDasharray="4 4" strokeOpacity={0.3} />
-                          <ReferenceLine
-                            y={25}
-                            stroke="hsl(var(--destructive))"
-                            strokeDasharray="6 4"
-                            strokeOpacity={0.5}
-                            label={{ value: "Overweight", position: "insideTopRight", fontSize: 9, fill: "hsl(var(--destructive))" }}
-                          />
+                          <ReferenceLine y={18.5} stroke="hsl(210, 70%, 60%)" strokeDasharray="4 4" strokeOpacity={0.25} label={{ value: "18.5", position: "insideBottomLeft", fontSize: 8, fill: "hsl(210, 70%, 60%)" }} />
+                          <ReferenceLine y={25} stroke="hsl(var(--destructive))" strokeDasharray="6 4" strokeOpacity={0.4} label={{ value: "25 Overweight", position: "insideTopRight", fontSize: 8, fill: "hsl(var(--destructive))" }} />
+                          <ReferenceLine y={30} stroke="hsl(0, 70%, 50%)" strokeDasharray="4 4" strokeOpacity={0.25} label={{ value: "30 Obese", position: "insideTopRight", fontSize: 8, fill: "hsl(0, 70%, 50%)" }} />
                         </>
                       )}
                       <Line
@@ -897,12 +943,48 @@ function ProfilePage() {
                         dataKey={activeChart === "bodyfat" ? "bodyfat" : activeChart}
                         stroke={activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)"}
                         strokeWidth={2.5}
-                        dot={{ fill: "hsl(var(--card))", stroke: activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)", strokeWidth: 2, r: 4 }}
-                        activeDot={{ r: 6, strokeWidth: 2 }}
+                        dot={(props: Record<string, unknown>) => {
+                          const { cx, cy, index } = props as { cx: number; cy: number; index: number };
+                          const isLast = index === weightLogs.length - 1;
+                          const color = activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)";
+                          return (
+                            <circle
+                              key={index}
+                              cx={cx}
+                              cy={cy}
+                              r={isLast ? 6 : 3.5}
+                              fill={isLast ? color : "hsl(var(--card))"}
+                              stroke={color}
+                              strokeWidth={isLast ? 3 : 2}
+                            />
+                          );
+                        }}
+                        activeDot={{ r: 7, strokeWidth: 2.5 }}
                         connectNulls
                       />
                     </LineChart>
                   </ResponsiveContainer>
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-3 mt-2 pb-1">
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className={`w-2.5 h-2.5 rounded-full ${activeChart === "weight" ? "bg-primary" : activeChart === "bmi" ? "bg-blue-500" : "bg-rose-500"}`} />
+                    {activeChart === "weight" ? "Weight (kg)" : activeChart === "bmi" ? "BMI" : "Body Fat %"}
+                  </span>
+                  {activeChart === "weight" && profile?.target_weight_kg && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-4 border-t-2 border-dashed border-primary" /> Target
+                    </span>
+                  )}
+                  {activeChart === "bmi" && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-4 border-t-2 border-dashed border-destructive" /> Thresholds
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className={`w-3.5 h-3.5 rounded-full border-2 ${activeChart === "weight" ? "border-primary" : activeChart === "bmi" ? "border-blue-500" : "border-rose-500"}`} /> Latest
+                  </span>
                 </div>
               </div>
             )}
