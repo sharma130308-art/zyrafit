@@ -243,6 +243,7 @@ function ProfilePage() {
                   <ProfileRow icon={<Weight className="w-4 h-4" />} label="Weight" value={profile?.weight_kg ? `${profile.weight_kg} kg` : "—"} />
                   <ProfileRow icon={<Dumbbell className="w-4 h-4" />} label="Workouts" value={profile?.workout_days_per_week != null ? `${profile.workout_days_per_week} days/week` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Goal" value={goalLabel} />
+                  <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Weight" value={profile?.target_weight_kg ? `${profile.target_weight_kg} kg` : "—"} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -347,6 +348,21 @@ function ProfilePage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Target Weight */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Target Weight (kg)</label>
+                    <input
+                      type="number"
+                      value={editTargetWeight}
+                      onChange={(e) => setEditTargetWeight(e.target.value)}
+                      placeholder="e.g. 65"
+                      step="0.1"
+                      className="w-full px-4 py-3 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40"
+                      min="20"
+                      max="300"
+                    />
                   </div>
 
                   <button
