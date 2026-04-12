@@ -75,6 +75,8 @@ function ProfilePage() {
   const [editWorkoutDays, setEditWorkoutDays] = useState(3);
   const [editGoal, setEditGoal] = useState("");
   const [editTargetWeight, setEditTargetWeight] = useState("");
+  const [editTargetBmi, setEditTargetBmi] = useState("");
+  const [editTargetBodyFat, setEditTargetBodyFat] = useState("");
 
   // Macro display
   const [macros, setMacros] = useState({ calories: 2000, protein: 0, carbs: 0, fat: 0 });
@@ -210,6 +212,8 @@ function ProfilePage() {
           workout_days_per_week: profileRes.data.workout_days_per_week,
           goal: profileRes.data.goal,
           target_weight_kg: (p.target_weight_kg as number) ?? null,
+          target_bmi: (p.target_bmi as number) ?? null,
+          target_body_fat_percent: (p.target_body_fat_percent as number) ?? null,
         };
         setProfile(profileData);
         setEditAge(String(profileData.age ?? ""));
@@ -218,6 +222,8 @@ function ProfilePage() {
         setEditWorkoutDays(profileData.workout_days_per_week ?? 3);
         setEditGoal(profileData.goal ?? "");
         setEditTargetWeight(String(profileData.target_weight_kg ?? ""));
+        setEditTargetBmi(String(profileData.target_bmi ?? ""));
+        setEditTargetBodyFat(String(profileData.target_body_fat_percent ?? ""));
       }
       if (settingsRes.data) {
         const s = settingsRes.data as unknown as Record<string, unknown>;
@@ -245,6 +251,8 @@ function ProfilePage() {
       setEditWorkoutDays(profile.workout_days_per_week ?? 3);
       setEditGoal(profile.goal ?? "");
       setEditTargetWeight(String(profile.target_weight_kg ?? ""));
+      setEditTargetBmi(String(profile.target_bmi ?? ""));
+      setEditTargetBodyFat(String(profile.target_body_fat_percent ?? ""));
     }
     setEditingProfile(false);
   };
@@ -257,6 +265,8 @@ function ProfilePage() {
     const weightNum = parseFloat(editWeight);
     const heightNum = parseFloat(editHeight) || 170;
     const targetWeightNum = editTargetWeight ? parseFloat(editTargetWeight) : null;
+    const targetBmiNum = editTargetBmi ? parseFloat(editTargetBmi) : null;
+    const targetBodyFatNum = editTargetBodyFat ? parseFloat(editTargetBodyFat) : null;
 
     const newMacros = calculateMacros({
       age: ageNum,
@@ -276,7 +286,9 @@ function ProfilePage() {
         workout_days_per_week: editWorkoutDays,
         goal: editGoal,
         target_weight_kg: targetWeightNum,
-      }, { onConflict: "user_id" }),
+        target_bmi: targetBmiNum,
+        target_body_fat_percent: targetBodyFatNum,
+      } as Record<string, unknown>, { onConflict: "user_id" }),
       supabase.from("user_settings").upsert({
         user_id: user.id,
         daily_calorie_goal: newMacros.calories,
@@ -295,6 +307,8 @@ function ProfilePage() {
       workout_days_per_week: editWorkoutDays,
       goal: editGoal,
       target_weight_kg: targetWeightNum,
+      target_bmi: targetBmiNum,
+      target_body_fat_percent: targetBodyFatNum,
     });
     setEditingProfile(false);
     setSaving(false);
