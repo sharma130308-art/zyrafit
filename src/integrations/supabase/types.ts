@@ -145,21 +145,33 @@ export type Database = {
       }
       weight_logs: {
         Row: {
+          bmi: number | null
+          body_fat_mass_kg: number | null
+          body_fat_percent: number | null
           created_at: string
+          height_m: number | null
           id: string
           logged_at: string
           user_id: string
           weight_kg: number
         }
         Insert: {
+          bmi?: number | null
+          body_fat_mass_kg?: number | null
+          body_fat_percent?: number | null
           created_at?: string
+          height_m?: number | null
           id?: string
           logged_at?: string
           user_id: string
           weight_kg: number
         }
         Update: {
+          bmi?: number | null
+          body_fat_mass_kg?: number | null
+          body_fat_percent?: number | null
           created_at?: string
+          height_m?: number | null
           id?: string
           logged_at?: string
           user_id?: string
