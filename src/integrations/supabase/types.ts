@@ -62,6 +62,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          age: number | null
+          apple_health_connected: boolean
+          created_at: string
+          gender: string | null
+          goal: string | null
+          id: string
+          obstacles: string | null
+          onboarding_completed: boolean
+          updated_at: string
+          user_id: string
+          weight_kg: number | null
+          workout_days_per_week: number | null
+        }
+        Insert: {
+          age?: number | null
+          apple_health_connected?: boolean
+          created_at?: string
+          gender?: string | null
+          goal?: string | null
+          id?: string
+          obstacles?: string | null
+          onboarding_completed?: boolean
+          updated_at?: string
+          user_id: string
+          weight_kg?: number | null
+          workout_days_per_week?: number | null
+        }
+        Update: {
+          age?: number | null
+          apple_health_connected?: boolean
+          created_at?: string
+          gender?: string | null
+          goal?: string | null
+          id?: string
+          obstacles?: string | null
+          onboarding_completed?: boolean
+          updated_at?: string
+          user_id?: string
+          weight_kg?: number | null
+          workout_days_per_week?: number | null
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           created_at: string

@@ -25,6 +25,20 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const redirectAfterAuth = async (userId?: string) => {
+    if (!userId) { navigate({ to: "/" }); return; }
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("onboarding_completed")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data?.onboarding_completed) {
+      navigate({ to: "/" });
+    } else {
+      navigate({ to: "/onboarding" });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -45,7 +59,7 @@ function LoginPage() {
     }
 
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: window.location.origin },
@@ -53,16 +67,19 @@ function LoginPage() {
       setLoading(false);
       if (error) {
         setError(error.message);
+      } else if (signUpData.user) {
+        // Auto-confirmed, redirect to onboarding
+        await redirectAfterAuth(signUpData.user.id);
       } else {
         setSuccess("Check your email to confirm your account, then sign in.");
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) {
         setError(error.message);
       } else {
-        navigate({ to: "/" });
+        await redirectAfterAuth(signInData.user?.id);
       }
     }
   };
