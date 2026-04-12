@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
+import { calculateMacros, GOALS, GENDERS } from "@/lib/macro-calc";
 import {
   ArrowRight,
   ArrowLeft,
@@ -35,13 +36,6 @@ export const Route = createFileRoute("/onboarding")({
 const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "results", "signup"] as const;
 type Step = (typeof STEPS)[number];
 
-const GOALS = [
-  { value: "lose_weight", label: "Lose Weight", emoji: "🔥" },
-  { value: "gain_weight", label: "Gain Weight", emoji: "📈" },
-  { value: "maintain", label: "Maintain Weight", emoji: "⚖️" },
-  { value: "muscle_gain", label: "Build Muscle", emoji: "💪" },
-];
-
 const OBSTACLES = [
   { value: "time", label: "Not Enough Time", emoji: "⏰" },
   { value: "motivation", label: "Lack of Motivation", emoji: "😴" },
@@ -49,13 +43,6 @@ const OBSTACLES = [
   { value: "knowledge", label: "Not Sure What to Do", emoji: "🤔" },
   { value: "consistency", label: "Staying Consistent", emoji: "📅" },
   { value: "stress", label: "Stress & Emotional Eating", emoji: "😰" },
-];
-
-const GENDERS = [
-  { value: "male", label: "Male", emoji: "♂️" },
-  { value: "female", label: "Female", emoji: "♀️" },
-  { value: "other", label: "Other", emoji: "⚧️" },
-  { value: "prefer_not", label: "Prefer not to say", emoji: "🤐" },
 ];
 
 function OnboardingPage() {
@@ -101,51 +88,17 @@ function OnboardingPage() {
     }
   };
 
-  const calculateMacros = () => {
-    const ageNum = parseInt(age);
-    const weightNum = parseFloat(weight);
-    const heightCm = parseFloat(height);
-    let bmr: number;
-    if (gender === "female") {
-      bmr = 10 * weightNum + 6.25 * heightCm - 5 * ageNum - 161;
-    } else {
-      bmr = 10 * weightNum + 6.25 * heightCm - 5 * ageNum + 5;
-    }
-    const activityMultipliers = [1.2, 1.25, 1.3, 1.375, 1.45, 1.55, 1.65, 1.725];
-    const tdee = bmr * (activityMultipliers[workoutDays] ?? 1.375);
-
-    let calories: number;
-    let proteinRatio: number;
-    let fatRatio: number;
-
-    switch (goal) {
-      case "lose_weight":
-        calories = Math.round(tdee - 500);
-        proteinRatio = 0.35; fatRatio = 0.25; // high protein to preserve muscle
-        break;
-      case "gain_weight":
-        calories = Math.round(tdee + 300);
-        proteinRatio = 0.25; fatRatio = 0.25;
-        break;
-      case "muscle_gain":
-        calories = Math.round(tdee + 250);
-        proteinRatio = 0.35; fatRatio = 0.25; // high protein for muscle
-        break;
-      default: // maintain
-        calories = Math.round(tdee);
-        proteinRatio = 0.30; fatRatio = 0.25;
-    }
-
-    const carbRatio = 1 - proteinRatio - fatRatio;
-    const protein = Math.round((calories * proteinRatio) / 4); // 4 cal/g
-    const fat = Math.round((calories * fatRatio) / 9); // 9 cal/g
-    const carbs = Math.round((calories * carbRatio) / 4); // 4 cal/g
-
-    return { calories, protein, carbs, fat };
-  };
+  const computeMacros = () => calculateMacros({
+    age: parseInt(age),
+    weight: parseFloat(weight),
+    height: parseFloat(height),
+    gender,
+    workoutDays,
+    goal,
+  });
 
   const saveProfile = async (userId: string) => {
-    const { calories, protein, carbs, fat } = calculateMacros();
+    const { calories, protein, carbs, fat } = computeMacros();
     await Promise.all([
       supabase.from("user_profiles").upsert({
         user_id: userId,
@@ -476,7 +429,7 @@ function OnboardingPage() {
             )}
 
             {step === "results" && (() => {
-              const macros = calculateMacros();
+              const macros = computeMacros();
               const goalLabel = GOALS.find((g) => g.value === goal)?.label ?? "Your Goal";
               return (
                 <StepContainer
