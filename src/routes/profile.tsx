@@ -525,6 +525,129 @@ function ProfilePage() {
           </motion.div>
         )}
 
+        {/* Weight History */}
+        {user && !profileLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.14 }}
+            className="rounded-2xl bg-card p-5 shadow-sm border border-border/50"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                {profile?.target_weight_kg && profile?.weight_kg && Number(profile.weight_kg) > Number(profile.target_weight_kg) ? (
+                  <TrendingDown className="w-5 h-5 text-primary" />
+                ) : (
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-card-foreground">Weight History</h3>
+                <p className="text-xs text-muted-foreground">{weightLogs.length} entries logged</p>
+              </div>
+            </div>
+
+            {/* Add weight log */}
+            <div className="flex gap-2 mb-4">
+              <input
+                type="number"
+                value={newWeight}
+                onChange={(e) => setNewWeight(e.target.value)}
+                placeholder="Today's weight (kg)"
+                step="0.1"
+                min="20"
+                max="300"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-sm placeholder:text-muted-foreground/40"
+              />
+              <button
+                onClick={addWeightLog}
+                disabled={addingWeight || !newWeight}
+                className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm disabled:opacity-40 flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Log
+              </button>
+            </div>
+
+            {/* Chart */}
+            {weightLogs.length >= 2 ? (
+              <div className="h-48 -mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={weightLogs.map((l) => ({
+                    date: format(parseISO(l.logged_at), "MMM d"),
+                    weight: Number(l.weight_kg),
+                  }))}>
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={["dataMin - 2", "dataMax + 2"]}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={35}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                      }}
+                      formatter={(value: number) => [`${value} kg`, "Weight"]}
+                    />
+                    {profile?.target_weight_kg && (
+                      <ReferenceLine
+                        y={Number(profile.target_weight_kg)}
+                        stroke="hsl(var(--primary))"
+                        strokeDasharray="5 5"
+                        strokeOpacity={0.5}
+                      />
+                    )}
+                    <Line
+                      type="monotone"
+                      dataKey="weight"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2.5}
+                      dot={{ fill: "hsl(var(--primary))", r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : weightLogs.length === 1 ? (
+              <p className="text-center text-sm text-muted-foreground py-6">
+                Log one more entry to see your chart 📈
+              </p>
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-6">
+                Start logging your weight to see trends
+              </p>
+            )}
+
+            {/* Recent logs */}
+            {weightLogs.length > 0 && (
+              <div className="mt-4 space-y-1.5">
+                <p className="text-xs text-muted-foreground font-medium mb-2">Recent</p>
+                {[...weightLogs].reverse().slice(0, 5).map((log) => (
+                  <div key={log.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/50 transition-colors">
+                    <span className="text-sm text-muted-foreground">{format(parseISO(log.logged_at), "MMM d, yyyy")}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{Number(log.weight_kg)} kg</span>
+                      <button onClick={() => deleteWeightLog(log.id)} className="p-1 text-muted-foreground/50 hover:text-destructive transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {/* Auth action */}
         {!authLoading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
