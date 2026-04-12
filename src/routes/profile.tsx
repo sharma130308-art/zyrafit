@@ -286,9 +286,13 @@ function ProfilePage() {
         workout_days_per_week: editWorkoutDays,
         goal: editGoal,
         target_weight_kg: targetWeightNum,
-        target_bmi: targetBmiNum,
-        target_body_fat_percent: targetBodyFatNum,
-      } as Record<string, unknown>, { onConflict: "user_id" }),
+      }, { onConflict: "user_id" }).then(() => {
+        // Update new goal columns separately since types may not include them yet
+        return supabase.from("user_profiles").update({
+          target_bmi: targetBmiNum,
+          target_body_fat_percent: targetBodyFatNum,
+        } as Record<string, unknown>).eq("user_id", user.id);
+      }),
       supabase.from("user_settings").upsert({
         user_id: user.id,
         daily_calorie_goal: newMacros.calories,
