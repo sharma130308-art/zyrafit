@@ -25,6 +25,20 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const redirectAfterAuth = async (userId?: string) => {
+    if (!userId) { navigate({ to: "/" }); return; }
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("onboarding_completed")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data?.onboarding_completed) {
+      navigate({ to: "/" });
+    } else {
+      navigate({ to: "/onboarding" });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
