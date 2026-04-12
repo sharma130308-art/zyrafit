@@ -203,7 +203,9 @@ function OnboardingPage() {
               <ArrowLeft className="w-5 h-5" />
             </button>
           ) : (
-            <div className="w-7" />
+            <Link to="/welcome" className="text-muted-foreground p-1">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
           )}
           <span className="text-xs text-muted-foreground font-medium">
             {currentStep + 1} / {totalSteps}
