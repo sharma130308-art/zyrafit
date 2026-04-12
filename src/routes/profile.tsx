@@ -44,6 +44,8 @@ interface ProfileData {
   workout_days_per_week: number | null;
   goal: string | null;
   target_weight_kg: number | null;
+  target_bmi: number | null;
+  target_body_fat_percent: number | null;
 }
 
 interface WeightLog {
