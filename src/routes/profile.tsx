@@ -916,7 +916,7 @@ function ProfilePage() {
                 <div className="h-52 -mx-2 rounded-xl overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={weightLogs.map((l) => ({
+                      data={filteredLogs.map((l) => ({
                         date: format(parseISO(l.logged_at), "MMM d"),
                         weight: l.weight_kg,
                         bmi: l.bmi,
