@@ -997,7 +997,7 @@ function ProfilePage() {
                         strokeWidth={2.5}
                         dot={(props: Record<string, unknown>) => {
                           const { cx, cy, index } = props as { cx: number; cy: number; index: number };
-                          const isLast = index === weightLogs.length - 1;
+                          const isLast = index === filteredLogs.length - 1;
                           const color = activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)";
                           return (
                             <circle
