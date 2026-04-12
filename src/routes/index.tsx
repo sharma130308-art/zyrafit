@@ -42,6 +42,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const today = getTodayDate();
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -49,6 +51,26 @@ function Dashboard() {
   const [quickAddMeal, setQuickAddMeal] = useState<MealType | null>(null);
   const [goal, setGoal] = useState(2000);
   const [loading, setLoading] = useState(true);
+
+  // Redirect unauthenticated users to login, new users to onboarding
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate({ to: "/login" });
+      return;
+    }
+    // Check onboarding status
+    supabase
+      .from("user_profiles")
+      .select("onboarding_completed")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data?.onboarding_completed) {
+          navigate({ to: "/onboarding" });
+        }
+      });
+  }, [user, authLoading, navigate]);
 
   // Barcode scanner state
   const [scannerOpen, setScannerOpen] = useState(false);
