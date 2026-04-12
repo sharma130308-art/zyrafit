@@ -35,6 +35,7 @@ interface ProfileData {
   gender: string | null;
   workout_days_per_week: number | null;
   goal: string | null;
+  target_weight_kg: number | null;
 }
 
 function ProfilePage() {
@@ -53,6 +54,7 @@ function ProfilePage() {
   const [editGender, setEditGender] = useState("");
   const [editWorkoutDays, setEditWorkoutDays] = useState(3);
   const [editGoal, setEditGoal] = useState("");
+  const [editTargetWeight, setEditTargetWeight] = useState("");
 
   // Macro display
   const [macros, setMacros] = useState({ calories: 2000, protein: 0, carbs: 0, fat: 0 });
@@ -66,12 +68,22 @@ function ProfilePage() {
     ]).then(([fetchedGoal, profileRes, settingsRes]) => {
       setGoal(fetchedGoal);
       if (profileRes.data) {
-        setProfile(profileRes.data);
-        setEditAge(String(profileRes.data.age ?? ""));
-        setEditWeight(String(profileRes.data.weight_kg ?? ""));
-        setEditGender(profileRes.data.gender ?? "");
-        setEditWorkoutDays(profileRes.data.workout_days_per_week ?? 3);
-        setEditGoal(profileRes.data.goal ?? "");
+        const p = profileRes.data as unknown as Record<string, unknown>;
+        const profileData: ProfileData = {
+          age: profileRes.data.age,
+          weight_kg: profileRes.data.weight_kg,
+          gender: profileRes.data.gender,
+          workout_days_per_week: profileRes.data.workout_days_per_week,
+          goal: profileRes.data.goal,
+          target_weight_kg: (p.target_weight_kg as number) ?? null,
+        };
+        setProfile(profileData);
+        setEditAge(String(profileData.age ?? ""));
+        setEditWeight(String(profileData.weight_kg ?? ""));
+        setEditGender(profileData.gender ?? "");
+        setEditWorkoutDays(profileData.workout_days_per_week ?? 3);
+        setEditGoal(profileData.goal ?? "");
+        setEditTargetWeight(String(profileData.target_weight_kg ?? ""));
       }
       if (settingsRes.data) {
         const s = settingsRes.data as unknown as Record<string, unknown>;
@@ -97,6 +109,7 @@ function ProfilePage() {
       setEditGender(profile.gender ?? "");
       setEditWorkoutDays(profile.workout_days_per_week ?? 3);
       setEditGoal(profile.goal ?? "");
+      setEditTargetWeight(String(profile.target_weight_kg ?? ""));
     }
     setEditingProfile(false);
   };
@@ -108,6 +121,7 @@ function ProfilePage() {
     const ageNum = parseInt(editAge);
     const weightNum = parseFloat(editWeight);
     const heightNum = parseFloat(editHeight) || 170;
+    const targetWeightNum = editTargetWeight ? parseFloat(editTargetWeight) : null;
 
     const newMacros = calculateMacros({
       age: ageNum,
@@ -126,6 +140,7 @@ function ProfilePage() {
         gender: editGender,
         workout_days_per_week: editWorkoutDays,
         goal: editGoal,
+        target_weight_kg: targetWeightNum,
       }, { onConflict: "user_id" }),
       supabase.from("user_settings").upsert({
         user_id: user.id,
@@ -144,6 +159,7 @@ function ProfilePage() {
       gender: editGender,
       workout_days_per_week: editWorkoutDays,
       goal: editGoal,
+      target_weight_kg: targetWeightNum,
     });
     setEditingProfile(false);
     setSaving(false);
