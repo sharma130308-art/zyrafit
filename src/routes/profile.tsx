@@ -678,3 +678,155 @@ function MacroCard({ label, value, color }: { label: string; value: string; colo
     </div>
   );
 }
+
+function MacroGoalsCard({
+  macros,
+  setMacros,
+  goal,
+  setGoal,
+  userId,
+}: {
+  macros: { calories: number; protein: number; carbs: number; fat: number };
+  setMacros: (m: { calories: number; protein: number; carbs: number; fat: number }) => void;
+  goal: number;
+  setGoal: (g: number) => void;
+  userId: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editCal, setEditCal] = useState(String(macros.calories));
+  const [editProtein, setEditProtein] = useState(String(macros.protein));
+  const [editCarbs, setEditCarbs] = useState(String(macros.carbs));
+  const [editFat, setEditFat] = useState(String(macros.fat));
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setEditCal(String(macros.calories));
+    setEditProtein(String(macros.protein));
+    setEditCarbs(String(macros.carbs));
+    setEditFat(String(macros.fat));
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const newMacros = {
+      calories: parseInt(editCal) || macros.calories,
+      protein: parseInt(editProtein) || 0,
+      carbs: parseInt(editCarbs) || 0,
+      fat: parseInt(editFat) || 0,
+    };
+
+    await supabase.from("user_settings").upsert({
+      user_id: userId,
+      daily_calorie_goal: newMacros.calories,
+      protein_goal: newMacros.protein,
+      carbs_goal: newMacros.carbs,
+      fat_goal: newMacros.fat,
+    }, { onConflict: "user_id" });
+
+    await saveCalorieGoal(newMacros.calories);
+    setMacros(newMacros);
+    setGoal(newMacros.calories);
+    setEditing(false);
+    setSaving(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="rounded-2xl bg-card p-5 shadow-sm border border-border/50"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Target className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-card-foreground">Daily Goals</h3>
+            <p className="text-xs text-muted-foreground">Your personalized targets</p>
+          </div>
+        </div>
+        {!editing ? (
+          <button onClick={startEdit} className="flex items-center gap-1 text-sm text-primary font-medium">
+            <Pencil className="w-3.5 h-3.5" /> Edit
+          </button>
+        ) : (
+          <button onClick={() => setEditing(false)} className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
+            <X className="w-3.5 h-3.5" /> Cancel
+          </button>
+        )}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {!editing ? (
+          <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="rounded-xl bg-primary/10 border border-primary/20 p-4 text-center mb-3">
+              <p className="text-3xl font-bold text-primary">{macros.calories}</p>
+              <p className="text-xs text-muted-foreground">kcal / day</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <MacroCard label="Protein" value={`${macros.protein}g`} color="bg-blue-500" />
+              <MacroCard label="Carbs" value={`${macros.carbs}g`} color="bg-amber-500" />
+              <MacroCard label="Fat" value={`${macros.fat}g`} color="bg-rose-500" />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Calories (kcal)</label>
+              <input
+                type="number"
+                value={editCal}
+                onChange={(e) => setEditCal(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-center text-xl font-bold"
+                min="500"
+                max="10000"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block text-center">Protein (g)</label>
+                <input
+                  type="number"
+                  value={editProtein}
+                  onChange={(e) => setEditProtein(e.target.value)}
+                  className="w-full px-2 py-2.5 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-center font-semibold"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block text-center">Carbs (g)</label>
+                <input
+                  type="number"
+                  value={editCarbs}
+                  onChange={(e) => setEditCarbs(e.target.value)}
+                  className="w-full px-2 py-2.5 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-center font-semibold"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block text-center">Fat (g)</label>
+                <input
+                  type="number"
+                  value={editFat}
+                  onChange={(e) => setEditFat(e.target.value)}
+                  className="w-full px-2 py-2.5 rounded-xl bg-muted text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 text-center font-semibold"
+                  min="0"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 disabled:opacity-40"
+            >
+              {saving ? "Saving…" : "Save Goals"}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
