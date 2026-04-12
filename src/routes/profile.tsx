@@ -930,9 +930,19 @@ function ProfilePage() {
                       <span className="text-[10px] text-primary font-semibold">🎯 {Number(profile.target_weight_kg)} kg</span>
                     </div>
                   )}
-                  {activeChart === "bmi" && (
+                  {activeChart === "bmi" && profile?.target_bmi && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <span className="text-[10px] text-blue-600 font-semibold">🎯 BMI {profile.target_bmi}</span>
+                    </div>
+                  )}
+                  {activeChart === "bmi" && !profile?.target_bmi && (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
                       <span className="text-[10px] text-blue-600 font-semibold">Healthy: 18.5–25</span>
+                    </div>
+                  )}
+                  {activeChart === "bodyfat" && profile?.target_body_fat_percent && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                      <span className="text-[10px] text-rose-600 font-semibold">🎯 {profile.target_body_fat_percent}%</span>
                     </div>
                   )}
                 </div>
