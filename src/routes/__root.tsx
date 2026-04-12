@@ -67,5 +67,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative">
+      <Outlet />
+    </div>
+  );
 }
