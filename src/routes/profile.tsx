@@ -789,8 +789,30 @@ function ProfilePage() {
             })()}
 
             {/* Chart tabs */}
-            {weightLogs.length >= 2 && (
+             {weightLogs.length >= 2 && (
               <div className="px-5">
+                {/* Time range filter */}
+                <div className="flex gap-1 mb-2">
+                  {([
+                    { key: "1w", label: "1W" },
+                    { key: "1m", label: "1M" },
+                    { key: "3m", label: "3M" },
+                    { key: "all", label: "All" },
+                  ] as const).map((r) => (
+                    <button
+                      key={r.key}
+                      onClick={() => setTimeRange(r.key)}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                        timeRange === r.key
+                          ? "bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="flex gap-1 mb-3 bg-muted/50 rounded-xl p-1">
                   {(["weight", "bmi", "bodyfat"] as const).map((tab) => {
                     const labels = { weight: "Weight", bmi: "BMI", bodyfat: "Fat" };
@@ -799,7 +821,7 @@ function ProfilePage() {
                       bmi: "bg-blue-500 text-white shadow-md shadow-blue-500/25",
                       bodyfat: "bg-rose-500 text-white shadow-md shadow-rose-500/25",
                     };
-                    const values = weightLogs.map(l => tab === "weight" ? l.weight_kg : tab === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
+                    const values = filteredLogs.map(l => tab === "weight" ? l.weight_kg : tab === "bmi" ? l.bmi : l.body_fat_percent).filter((v): v is number => v != null);
                     const first = values.length >= 2 ? values[0] : null;
                     const last = values.length >= 2 ? values[values.length - 1] : null;
                     const change = first != null && last != null ? last - first : null;
@@ -830,6 +852,13 @@ function ProfilePage() {
                     );
                   })}
                 </div>
+
+                {filteredLogs.length < 2 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    Not enough data for this time range
+                  </div>
+                ) : (
+                <>
 
                 {/* Chart header with context */}
                 <div className="flex items-center justify-between mb-2">
