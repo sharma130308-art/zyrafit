@@ -50,6 +50,10 @@ interface WeightLog {
   id: string;
   weight_kg: number;
   logged_at: string;
+  bmi: number | null;
+  body_fat_percent: number | null;
+  body_fat_mass_kg: number | null;
+  height_m: number | null;
 }
 
 function ProfilePage() {
