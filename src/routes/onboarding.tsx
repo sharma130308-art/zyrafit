@@ -19,6 +19,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/onboarding")({
   }),
 });
 
-const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "signup"] as const;
+const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "results", "signup"] as const;
 type Step = (typeof STEPS)[number];
 
 const GOALS = [
@@ -94,12 +95,13 @@ function OnboardingPage() {
       case "goal": return goal !== "";
       case "obstacles": return obstacles.length > 0;
       case "health": return true;
+      case "results": return true;
       case "signup": return email !== "" && password.length >= 6;
       default: return false;
     }
   };
 
-  const calculateDailyCalories = () => {
+  const calculateMacros = () => {
     const ageNum = parseInt(age);
     const weightNum = parseFloat(weight);
     const heightCm = parseFloat(height);
@@ -109,20 +111,41 @@ function OnboardingPage() {
     } else {
       bmr = 10 * weightNum + 6.25 * heightCm - 5 * ageNum + 5;
     }
-    // Activity multiplier based on workout days
     const activityMultipliers = [1.2, 1.25, 1.3, 1.375, 1.45, 1.55, 1.65, 1.725];
     const tdee = bmr * (activityMultipliers[workoutDays] ?? 1.375);
-    // Adjust for goal
+
+    let calories: number;
+    let proteinRatio: number;
+    let fatRatio: number;
+
     switch (goal) {
-      case "lose_weight": return Math.round(tdee - 500);
-      case "gain_weight": return Math.round(tdee + 300);
-      case "muscle_gain": return Math.round(tdee + 250);
-      default: return Math.round(tdee);
+      case "lose_weight":
+        calories = Math.round(tdee - 500);
+        proteinRatio = 0.35; fatRatio = 0.25; // high protein to preserve muscle
+        break;
+      case "gain_weight":
+        calories = Math.round(tdee + 300);
+        proteinRatio = 0.25; fatRatio = 0.25;
+        break;
+      case "muscle_gain":
+        calories = Math.round(tdee + 250);
+        proteinRatio = 0.35; fatRatio = 0.25; // high protein for muscle
+        break;
+      default: // maintain
+        calories = Math.round(tdee);
+        proteinRatio = 0.30; fatRatio = 0.25;
     }
+
+    const carbRatio = 1 - proteinRatio - fatRatio;
+    const protein = Math.round((calories * proteinRatio) / 4); // 4 cal/g
+    const fat = Math.round((calories * fatRatio) / 9); // 9 cal/g
+    const carbs = Math.round((calories * carbRatio) / 4); // 4 cal/g
+
+    return { calories, protein, carbs, fat };
   };
 
   const saveProfile = async (userId: string) => {
-    const dailyCalories = calculateDailyCalories();
+    const { calories, protein, carbs, fat } = calculateMacros();
     await Promise.all([
       supabase.from("user_profiles").upsert({
         user_id: userId,
@@ -137,7 +160,10 @@ function OnboardingPage() {
       }, { onConflict: "user_id" }),
       supabase.from("user_settings").upsert({
         user_id: userId,
-        daily_calorie_goal: dailyCalories,
+        daily_calorie_goal: calories,
+        protein_goal: protein,
+        carbs_goal: carbs,
+        fat_goal: fat,
       }, { onConflict: "user_id" }),
     ]);
   };
