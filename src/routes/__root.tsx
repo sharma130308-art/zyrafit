@@ -74,7 +74,7 @@ function RootComponent() {
   const handleSplashFinish = useCallback(() => setShowSplash(false), []);
 
   return (
-    <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative">
+    <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative overflow-hidden">
       <AnimatePresence>
         {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       </AnimatePresence>
