@@ -20,7 +20,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-primary"
+          className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-primary"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.05 }}
           transition={{ duration: 0.45, ease: "easeInOut" }}
