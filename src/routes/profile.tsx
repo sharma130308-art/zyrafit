@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays, subMonths } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/profile")({
