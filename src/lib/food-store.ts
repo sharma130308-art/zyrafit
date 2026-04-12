@@ -165,7 +165,8 @@ export async function loadCalorieGoal(): Promise<number> {
     const { data } = await supabase
       .from("user_settings")
       .select("daily_calorie_goal")
-      .single();
+      .eq("user_id", userId)
+      .maybeSingle();
 
     if (data) {
       const goal = data.daily_calorie_goal;
@@ -185,7 +186,8 @@ export async function saveCalorieGoal(goal: number) {
     const { data: existing } = await supabase
       .from("user_settings")
       .select("id")
-      .single();
+      .eq("user_id", userId)
+      .maybeSingle();
 
     if (existing) {
       await supabase
