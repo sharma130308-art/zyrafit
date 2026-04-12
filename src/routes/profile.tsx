@@ -19,6 +19,8 @@ import {
   TrendingDown,
   TrendingUp,
   Trash2,
+  Camera,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
