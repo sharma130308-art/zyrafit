@@ -1113,6 +1113,16 @@ function ProfilePage() {
                       <span className="w-4 border-t-2 border-dashed border-destructive" /> Thresholds
                     </span>
                   )}
+                  {activeChart === "bmi" && profile?.target_bmi && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-4 border-t-2 border-dashed border-blue-500" /> Target
+                    </span>
+                  )}
+                  {activeChart === "bodyfat" && profile?.target_body_fat_percent && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-4 border-t-2 border-dashed border-rose-500" /> Target
+                    </span>
+                  )}
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <span className={`w-3.5 h-3.5 rounded-full border-2 ${activeChart === "weight" ? "border-primary" : activeChart === "bmi" ? "border-blue-500" : "border-rose-500"}`} /> Latest
                   </span>
