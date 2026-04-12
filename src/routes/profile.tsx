@@ -427,34 +427,14 @@ function ProfilePage() {
         )}
 
         {/* Macro Goals */}
-        {user && !profileLoading && macros.protein > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-2xl bg-card p-5 shadow-sm border border-border/50"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Target className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-card-foreground">Daily Goals</h3>
-                <p className="text-xs text-muted-foreground">Your personalized targets</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-primary/10 border border-primary/20 p-4 text-center mb-3">
-              <p className="text-3xl font-bold text-primary">{macros.calories}</p>
-              <p className="text-xs text-muted-foreground">kcal / day</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <MacroCard label="Protein" value={`${macros.protein}g`} color="bg-blue-500" />
-              <MacroCard label="Carbs" value={`${macros.carbs}g`} color="bg-amber-500" />
-              <MacroCard label="Fat" value={`${macros.fat}g`} color="bg-rose-500" />
-            </div>
-          </motion.div>
+        {user && !profileLoading && (
+          <MacroGoalsCard
+            macros={macros}
+            setMacros={setMacros}
+            goal={goal}
+            setGoal={setGoal}
+            userId={user.id}
+          />
         )}
 
         {/* Weight Progress */}
