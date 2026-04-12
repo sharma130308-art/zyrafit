@@ -409,6 +409,74 @@ function ProfilePage() {
           </motion.div>
         )}
 
+        {/* Weight Progress */}
+        {user && !profileLoading && profile?.target_weight_kg && profile?.weight_kg && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="rounded-2xl bg-card p-5 shadow-sm border border-border/50"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Weight className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-card-foreground">Weight Progress</h3>
+                <p className="text-xs text-muted-foreground">Track your journey</p>
+              </div>
+            </div>
+
+            {(() => {
+              const current = Number(profile.weight_kg);
+              const target = Number(profile.target_weight_kg);
+              const diff = current - target;
+              const absDiff = Math.abs(diff);
+              const isAtGoal = absDiff < 0.5;
+              // Progress: how close to target (capped 0-100)
+              const startDiff = Math.max(absDiff, 1); // avoid division by zero on first set
+              const progress = isAtGoal ? 100 : Math.min(95, Math.max(5, ((startDiff - absDiff) / startDiff) * 100 + 50));
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-foreground">{current}</p>
+                      <p className="text-xs text-muted-foreground">Current (kg)</p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center px-4">
+                      <div className="text-center">
+                        {isAtGoal ? (
+                          <span className="text-lg font-semibold text-primary">🎉 Goal reached!</span>
+                        ) : (
+                          <>
+                            <p className="text-lg font-bold text-foreground">
+                              {diff > 0 ? `${absDiff.toFixed(1)} kg to lose` : `${absDiff.toFixed(1)} kg to gain`}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-primary">{target}</p>
+                      <p className="text-xs text-muted-foreground">Target (kg)</p>
+                    </div>
+                  </div>
+
+                  <div className="h-3 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-primary"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+
         {/* Auth action */}
         {!authLoading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
