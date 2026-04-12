@@ -1038,6 +1038,8 @@ function ProfilePage() {
                     <span className={`w-3.5 h-3.5 rounded-full border-2 ${activeChart === "weight" ? "border-primary" : activeChart === "bmi" ? "border-blue-500" : "border-rose-500"}`} /> Latest
                   </span>
                 </div>
+                </>
+                )}
               </div>
             )}
 
