@@ -11,8 +11,8 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(onFinish, 500); // wait for exit animation
-    }, 2000);
+      setTimeout(onFinish, 400);
+    }, 1400);
     return () => clearTimeout(timer);
   }, [onFinish]);
 
@@ -20,42 +20,34 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-primary"
+          className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-card"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.05 }}
-          transition={{ duration: 0.45, ease: "easeInOut" }}
+          exit={{ opacity: 0, scale: 1.08 }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
-          {/* Glowing ring */}
+          {/* Subtle gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary/[0.03]" />
+
+          {/* Logo mark */}
           <motion.div
-            className="relative mb-6"
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", damping: 14, stiffness: 120, delay: 0.15 }}
+            className="relative mb-5"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", damping: 20, stiffness: 200, delay: 0.1 }}
           >
-            <div className="w-24 h-24 rounded-full border-[3px] border-primary-foreground/20 flex items-center justify-center relative">
-              {/* Animated arc */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 96 96">
-                <motion.circle
-                  cx="48"
-                  cy="48"
-                  r="44"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  className="text-primary-foreground"
-                  strokeDasharray="276.5"
-                  initial={{ strokeDashoffset: 276.5 }}
-                  animate={{ strokeDashoffset: 0 }}
-                  transition={{ duration: 1.4, ease: "easeInOut", delay: 0.3 }}
-                />
-              </svg>
-              {/* Flame / leaf icon */}
+            <div className="w-20 h-20 rounded-[22px] bg-primary flex items-center justify-center shadow-[0_8px_32px_-4px] shadow-primary/30 relative overflow-hidden">
+              {/* Shimmer effect */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/15 to-transparent"
+                initial={{ x: "-100%" }}
+                animate={{ x: "200%" }}
+                transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
+              />
               <motion.span
-                className="text-4xl"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.4 }}
+                className="text-3xl relative z-10"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.3 }}
               >
                 🔥
               </motion.span>
@@ -64,44 +56,37 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
           {/* App name */}
           <motion.h1
-            className="text-3xl font-black tracking-tight text-primary-foreground"
-            initial={{ opacity: 0, y: 20 }}
+            className="text-[26px] font-black tracking-tight text-foreground relative z-10"
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5, ease: "easeOut" }}
+            transition={{ delay: 0.35, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
           >
             CalTrack
           </motion.h1>
 
           {/* Tagline */}
           <motion.p
-            className="text-sm text-primary-foreground/70 mt-2 font-medium"
+            className="text-[13px] text-muted-foreground mt-1 font-medium tracking-wide relative z-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.9, duration: 0.5 }}
+            transition={{ delay: 0.55, duration: 0.4 }}
           >
             Eat smart. Live better.
           </motion.p>
 
-          {/* Loading dots */}
+          {/* Minimal loading bar */}
           <motion.div
-            className="flex gap-1.5 mt-8"
+            className="mt-10 w-12 h-[3px] rounded-full bg-muted overflow-hidden relative z-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
+            transition={{ delay: 0.7 }}
           >
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 rounded-full bg-primary-foreground/50"
-                animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 0.7, delay: 0.75, ease: [0.4, 0, 0.2, 1] }}
+            />
           </motion.div>
         </motion.div>
       )}
