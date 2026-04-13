@@ -283,7 +283,7 @@ function Dashboard() {
           const meal = quickAddMeal;
           setQuickAddMeal(null);
           if (meal) setDialogMealType(meal);
-          setPhotoCaptureOpen(true);
+          setTimeout(() => cameraInputRef.current?.click(), 100);
         }}
         onBarcodeScan={() => {
           const meal = quickAddMeal;
@@ -310,7 +310,7 @@ function Dashboard() {
         }}
         onAiClick={() => {
           setDialogOpen(false);
-          setPhotoCaptureOpen(true);
+          setTimeout(() => cameraInputRef.current?.click(), 100);
         }}
       />
 
@@ -332,14 +332,19 @@ function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* AI Photo Capture */}
-      <AnimatePresence>
-        <PhotoCapture
-          open={photoCaptureOpen}
-          onClose={() => setPhotoCaptureOpen(false)}
-          onCapture={handlePhotoCapture}
-        />
-      </AnimatePresence>
+      {/* Hidden camera input for AI photo */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoCapture(file);
+          e.target.value = "";
+        }}
+        className="hidden"
+      />
 
       {/* AI Food Preview */}
       <AnimatePresence>
