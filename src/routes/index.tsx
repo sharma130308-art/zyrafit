@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +26,7 @@ import { AddFoodDialog } from "@/components/AddFoodDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodPreview } from "@/components/FoodPreview";
-import { PhotoCapture } from "@/components/PhotoCapture";
+
 import { AIFoodPreview } from "@/components/AIFoodPreview";
 import { QuickAddPicker } from "@/components/QuickAddPicker";
 import { WeeklyChart } from "@/components/WeeklyChart";
@@ -79,11 +79,11 @@ function Dashboard() {
   const [scanError, setScanError] = useState<string | null>(null);
 
   // AI photo state
-  const [photoCaptureOpen, setPhotoCaptureOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
 
   const refresh = useCallback(async () => {
@@ -283,7 +283,7 @@ function Dashboard() {
           const meal = quickAddMeal;
           setQuickAddMeal(null);
           if (meal) setDialogMealType(meal);
-          setPhotoCaptureOpen(true);
+          setTimeout(() => cameraInputRef.current?.click(), 100);
         }}
         onBarcodeScan={() => {
           const meal = quickAddMeal;
@@ -310,7 +310,7 @@ function Dashboard() {
         }}
         onAiClick={() => {
           setDialogOpen(false);
-          setPhotoCaptureOpen(true);
+          setTimeout(() => cameraInputRef.current?.click(), 100);
         }}
       />
 
@@ -332,14 +332,19 @@ function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* AI Photo Capture */}
-      <AnimatePresence>
-        <PhotoCapture
-          open={photoCaptureOpen}
-          onClose={() => setPhotoCaptureOpen(false)}
-          onCapture={handlePhotoCapture}
-        />
-      </AnimatePresence>
+      {/* Hidden camera input for AI photo */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoCapture(file);
+          e.target.value = "";
+        }}
+        className="hidden"
+      />
 
       {/* AI Food Preview */}
       <AnimatePresence>
