@@ -79,11 +79,11 @@ function Dashboard() {
   const [scanError, setScanError] = useState<string | null>(null);
 
   // AI photo state
-  const [photoCaptureOpen, setPhotoCaptureOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
 
   const refresh = useCallback(async () => {
