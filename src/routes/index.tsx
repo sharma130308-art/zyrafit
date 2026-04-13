@@ -26,7 +26,7 @@ import { AddFoodDialog } from "@/components/AddFoodDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodPreview } from "@/components/FoodPreview";
-import { PhotoCapture } from "@/components/PhotoCapture";
+
 import { AIFoodPreview } from "@/components/AIFoodPreview";
 import { QuickAddPicker } from "@/components/QuickAddPicker";
 import { WeeklyChart } from "@/components/WeeklyChart";
