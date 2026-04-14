@@ -112,12 +112,14 @@ function Dashboard() {
     mealType: MealType;
     barcode?: string;
     source?: FoodSource;
+    photoUrl?: string;
   }) => {
     await addEntry({
       ...food,
       date: today,
       source: food.source || "manual",
       barcode: food.barcode || null,
+      photoUrl: food.photoUrl || null,
     });
     refresh();
   };
@@ -167,6 +169,25 @@ function Dashboard() {
     try {
       const base64 = await captureImageAsBase64(file);
       setAiImageUrl(base64);
+
+      // Upload photo to storage
+      let uploadedPhotoUrl: string | null = null;
+      const userId = user?.id;
+      if (userId) {
+        const fileName = `${userId}/${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("food-photos")
+          .upload(fileName, file, { contentType: file.type });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from("food-photos")
+            .getPublicUrl(fileName);
+          uploadedPhotoUrl = urlData.publicUrl;
+        }
+      }
+      // Store the uploaded URL for use when adding
+      uploadedPhotoUrlRef.current = uploadedPhotoUrl;
+
       const result = await analyzePhoto(base64);
       setAiLoading(false);
       if (!result.is_food || result.items.length === 0) {
@@ -182,6 +203,8 @@ function Dashboard() {
     }
   };
 
+  const uploadedPhotoUrlRef = useRef<string | null>(null);
+
   const handleAddFromAi = async (foods: {
     name: string;
     calories: number;
@@ -192,11 +215,13 @@ function Dashboard() {
     mealType: MealType;
     source: "ai";
   }[]) => {
+    const photoUrl = uploadedPhotoUrlRef.current;
     for (const food of foods) {
-      await handleAdd(food);
+      await handleAdd({ ...food, photoUrl: photoUrl || undefined });
     }
     setAiItems(null);
     setAiImageUrl("");
+    uploadedPhotoUrlRef.current = null;
   };
 
   const totals = getDailyTotals(entries);
