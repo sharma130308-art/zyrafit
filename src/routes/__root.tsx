@@ -84,7 +84,13 @@ function RootComponent() {
       <AnimatePresence>
         {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       </AnimatePresence>
-      <Outlet />
+      <motion.div
+        initial={showSplash ? { opacity: 0, y: 8 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1], delay: showSplash ? 0 : 0 }}
+      >
+        <Outlet />
+      </motion.div>
     </div>
   );
 }
