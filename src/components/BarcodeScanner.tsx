@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, ZapOff, ScanBarcode } from "lucide-react";
+import { X, Zap, ZapOff, ScanBarcode, Keyboard } from "lucide-react";
 
 interface BarcodeScannerProps {
   open: boolean;
@@ -14,13 +14,16 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
   const [flashOn, setFlashOn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState("");
   const hasScannedRef = useRef(false);
+  const scannerIdRef = useRef(`barcode-scanner-${Date.now()}`);
 
   const stopScanner = useCallback(async () => {
     if (html5QrCodeRef.current) {
       try {
         const state = html5QrCodeRef.current.getState();
-        if (state === 2) { // SCANNING
+        if (state === 2) {
           await html5QrCodeRef.current.stop();
         }
       } catch {
@@ -33,22 +36,33 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
       }
       html5QrCodeRef.current = null;
     }
+    // Clean up DOM element
+    if (scannerRef.current) {
+      const el = scannerRef.current.querySelector(`#${scannerIdRef.current}`);
+      if (el) el.remove();
+    }
   }, []);
 
   const startScanner = useCallback(async () => {
     if (!scannerRef.current || html5QrCodeRef.current) return;
     hasScannedRef.current = false;
 
+    // Generate a fresh ID each time to avoid stale DOM conflicts
+    const scannerId = `barcode-scanner-${Date.now()}`;
+    scannerIdRef.current = scannerId;
+
+    // Clean up any existing scanner elements
+    if (scannerRef.current) {
+      const existing = scannerRef.current.querySelectorAll('[id^="barcode-scanner-"]');
+      existing.forEach(el => el.remove());
+    }
+
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
 
-      const scannerId = "barcode-scanner-region";
-      // Ensure element exists
-      if (!document.getElementById(scannerId)) {
-        const div = document.createElement("div");
-        div.id = scannerId;
-        scannerRef.current.appendChild(div);
-      }
+      const div = document.createElement("div");
+      div.id = scannerId;
+      scannerRef.current.appendChild(div);
 
       const scanner = new Html5Qrcode(scannerId);
       html5QrCodeRef.current = scanner;
@@ -56,15 +70,15 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 15,
+          fps: 10,
           qrbox: { width: 280, height: 160 },
           aspectRatio: 1.0,
+          disableFlip: false,
         },
         (decodedText: string) => {
           if (hasScannedRef.current) return;
           hasScannedRef.current = true;
 
-          // Vibrate on success
           if (navigator.vibrate) {
             navigator.vibrate(100);
           }
@@ -82,15 +96,20 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
       console.error("Scanner error:", err);
       if (err?.message?.includes("Permission")) {
         setError("Camera permission denied. Please allow camera access.");
+      } else if (err?.message?.includes("NotFound") || err?.message?.includes("Requested device not found")) {
+        setError("No camera found. Use manual entry below.");
+        setShowManualInput(true);
       } else {
-        setError("Unable to start camera. Please check permissions.");
+        setError("Unable to start camera. Try manual entry.");
+        setShowManualInput(true);
       }
     }
   }, [onScan]);
 
   useEffect(() => {
     if (open) {
-      // Small delay to let animation complete
+      setShowManualInput(false);
+      setManualBarcode("");
       const timeout = setTimeout(startScanner, 400);
       return () => {
         clearTimeout(timeout);
@@ -120,6 +139,13 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
     }
   };
 
+  const handleManualSubmit = () => {
+    const trimmed = manualBarcode.trim();
+    if (trimmed.length >= 4) {
+      onScan(trimmed);
+    }
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -132,17 +158,17 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
           {/* Camera viewport */}
           <div ref={scannerRef} className="absolute inset-0 overflow-hidden">
             <style>{`
-              #barcode-scanner-region video {
+              [id^="barcode-scanner-"] video {
                 width: 100% !important;
                 height: 100% !important;
                 object-fit: cover !important;
               }
-              #barcode-scanner-region {
+              [id^="barcode-scanner-"] {
                 width: 100%;
                 height: 100%;
               }
-              #barcode-scanner-region img[alt="Info icon"] { display: none !important; }
-              #barcode-scanner-region div[style*="border"] { border: none !important; }
+              [id^="barcode-scanner-"] img[alt="Info icon"] { display: none !important; }
+              [id^="barcode-scanner-"] div[style*="border"] { border: none !important; }
               #qr-shaded-region { border: none !important; }
             `}</style>
           </div>
@@ -177,15 +203,12 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
             {/* Center scanning area */}
             <div className="flex-1 flex items-center justify-center">
               <div className="relative">
-                {/* Scanning frame */}
                 <div className="w-72 h-44 relative">
-                  {/* Corner brackets */}
                   <div className="absolute top-0 left-0 w-8 h-8 border-t-3 border-l-3 border-primary rounded-tl-lg" />
                   <div className="absolute top-0 right-0 w-8 h-8 border-t-3 border-r-3 border-primary rounded-tr-lg" />
                   <div className="absolute bottom-0 left-0 w-8 h-8 border-b-3 border-l-3 border-primary rounded-bl-lg" />
                   <div className="absolute bottom-0 right-0 w-8 h-8 border-b-3 border-r-3 border-primary rounded-br-lg" />
 
-                  {/* Scanning line animation */}
                   {scanning && (
                     <motion.div
                       className="absolute left-2 right-2 h-0.5 bg-primary/80 rounded-full shadow-[0_0_8px_var(--color-primary)]"
@@ -198,7 +221,7 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
             </div>
 
             {/* Bottom info */}
-            <div className="px-6 pb-12 pointer-events-auto">
+            <div className="px-6 pb-12 pointer-events-auto space-y-3">
               {error ? (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -206,12 +229,6 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
                   className="bg-destructive/90 backdrop-blur-md rounded-2xl p-4 text-center"
                 >
                   <p className="text-destructive-foreground text-sm font-medium">{error}</p>
-                  <button
-                    onClick={() => { stopScanner(); onClose(); }}
-                    className="mt-2 text-destructive-foreground/80 text-sm underline"
-                  >
-                    Go back
-                  </button>
                 </motion.div>
               ) : (
                 <div className="bg-foreground/40 backdrop-blur-md rounded-2xl p-4 flex items-center gap-3">
@@ -225,6 +242,46 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
                     </p>
                   </div>
                 </div>
+              )}
+
+              {/* Manual barcode entry */}
+              {showManualInput ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-foreground/40 backdrop-blur-md rounded-2xl p-4"
+                >
+                  <p className="text-background text-sm font-medium mb-2">Enter barcode manually</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={manualBarcode}
+                      onChange={(e) => setManualBarcode(e.target.value)}
+                      placeholder="e.g. 5901234123457"
+                      className="flex-1 px-3 py-2.5 rounded-xl bg-background text-foreground text-sm placeholder:text-muted-foreground/50 outline-none"
+                      autoFocus
+                      onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+                    />
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleManualSubmit}
+                      disabled={manualBarcode.trim().length < 4}
+                      className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+                    >
+                      Go
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setShowManualInput(true)}
+                  className="w-full bg-foreground/25 backdrop-blur-md rounded-2xl p-3 flex items-center justify-center gap-2"
+                >
+                  <Keyboard className="w-4 h-4 text-background/70" />
+                  <span className="text-background/70 text-sm font-medium">Enter barcode manually</span>
+                </motion.button>
               )}
             </div>
           </div>
