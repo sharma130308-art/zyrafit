@@ -15,6 +15,7 @@ export interface FoodEntry {
   date: string; // YYYY-MM-DD
   barcode?: string | null;
   source: FoodSource;
+  photoUrl?: string | null;
 }
 
 const STORAGE_KEY = "caltrack_entries";
@@ -78,6 +79,7 @@ export async function getEntries(date: string): Promise<FoodEntry[]> {
         date: row.date,
         barcode: row.barcode,
         source: (row.source as FoodSource) || "manual",
+        photoUrl: (row as any).photo_url || null,
       }));
       // Cache locally
       const all = getLocalEntries().filter((e) => e.date !== date);
@@ -97,21 +99,26 @@ export async function addEntry(
   const localId = crypto.randomUUID();
 
   if (userId) {
+    const insertData: any = {
+      user_id: userId,
+      name: entry.name,
+      calories: entry.calories,
+      protein: entry.protein,
+      carbs: entry.carbs,
+      fat: entry.fat,
+      quantity: entry.quantity,
+      meal_type: entry.mealType,
+      date: entry.date,
+      barcode: entry.barcode || null,
+      source: entry.source || "manual",
+    };
+    if (entry.photoUrl) {
+      insertData.photo_url = entry.photoUrl;
+    }
+
     const { data, error } = await supabase
       .from("food_entries")
-      .insert({
-        user_id: userId,
-        name: entry.name,
-        calories: entry.calories,
-        protein: entry.protein,
-        carbs: entry.carbs,
-        fat: entry.fat,
-        quantity: entry.quantity,
-        meal_type: entry.mealType,
-        date: entry.date,
-        barcode: entry.barcode || null,
-        source: entry.source || "manual",
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -128,6 +135,7 @@ export async function addEntry(
         date: data.date,
         barcode: data.barcode,
         source: (data.source as FoodSource) || "manual",
+        photoUrl: (data as any).photo_url || null,
       };
       // Update local cache
       const all = getLocalEntries();
