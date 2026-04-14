@@ -25,6 +25,7 @@ export type Database = {
           id: string
           meal_type: Database["public"]["Enums"]["meal_type"]
           name: string
+          photo_url: string | null
           protein: number
           quantity: number
           source: Database["public"]["Enums"]["food_source"]
@@ -40,6 +41,7 @@ export type Database = {
           id?: string
           meal_type?: Database["public"]["Enums"]["meal_type"]
           name: string
+          photo_url?: string | null
           protein?: number
           quantity?: number
           source?: Database["public"]["Enums"]["food_source"]
@@ -55,6 +57,7 @@ export type Database = {
           id?: string
           meal_type?: Database["public"]["Enums"]["meal_type"]
           name?: string
+          photo_url?: string | null
           protein?: number
           quantity?: number
           source?: Database["public"]["Enums"]["food_source"]
