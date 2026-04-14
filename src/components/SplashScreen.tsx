@@ -35,10 +35,10 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", damping: 20, stiffness: 200, delay: 0.1 }}
           >
-            <div className="w-20 h-20 rounded-[22px] bg-primary flex items-center justify-center shadow-[0_8px_32px_-4px] shadow-primary/30 relative overflow-hidden">
+            <div className="w-20 h-20 rounded-[22px] bg-foreground/[0.04] flex items-center justify-center shadow-[0_8px_32px_-4px] shadow-foreground/5 relative overflow-hidden border border-foreground/[0.06]">
               {/* Shimmer effect */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/15 to-transparent"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.04] to-transparent"
                 initial={{ x: "-100%" }}
                 animate={{ x: "200%" }}
                 transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
@@ -82,7 +82,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             transition={{ delay: 0.7 }}
           >
             <motion.div
-              className="h-full bg-primary rounded-full"
+              className="h-full bg-foreground/20 rounded-full"
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ duration: 0.7, delay: 0.75, ease: [0.4, 0, 0.2, 1] }}
