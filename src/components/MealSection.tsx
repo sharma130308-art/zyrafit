@@ -66,6 +66,11 @@ export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionP
                 transition={{ duration: 0.25 }}
                 className="flex items-center justify-between py-2.5 border-t border-border/20 first:border-t-0"
               >
+                {entry.photoUrl && (
+                  <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 mr-3 border border-border/30">
+                    <img src={entry.photoUrl} alt={entry.name} className="w-full h-full object-cover" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-medium text-card-foreground truncate">{entry.name}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
