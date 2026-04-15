@@ -78,19 +78,24 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const [showSplash, setShowSplash] = useState(true);
   const handleSplashFinish = useCallback(() => setShowSplash(false), []);
+  const location = useLocation();
 
   return (
     <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative overflow-hidden">
       <AnimatePresence>
         {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       </AnimatePresence>
-      <motion.div
-        initial={showSplash ? { opacity: 0, y: 8 } : false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1], delay: showSplash ? 0 : 0 }}
-      >
-        <Outlet />
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <Outlet />
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
