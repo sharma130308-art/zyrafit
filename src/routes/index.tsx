@@ -387,19 +387,88 @@ function Dashboard() {
       <AnimatePresence>
         {(scanLoading || aiLoading) && (
           <motion.div
-            className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center px-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <motion.div
-              className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-            <p className="text-foreground font-medium">
-              {aiLoading ? "Analyzing your meal..." : "Looking up food..."}
-            </p>
+            {aiLoading && aiImageUrl ? (
+              <>
+                {/* Photo with shimmer overlay */}
+                <motion.div
+                  className="relative w-52 h-52 rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 mb-8"
+                  initial={{ scale: 0.85, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 200 }}
+                >
+                  <img src={aiImageUrl} alt="Analyzing" className="w-full h-full object-cover" />
+                  {/* Shimmer sweep */}
+                  <motion.div
+                    className="absolute inset-0"
+                    style={{
+                      background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.25) 50%, transparent 60%)",
+                    }}
+                    animate={{ x: ["-100%", "200%"] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.3 }}
+                  />
+                  {/* Scanning line */}
+                  <motion.div
+                    className="absolute left-0 right-0 h-0.5 bg-primary/70 shadow-[0_0_12px_var(--color-primary)]"
+                    animate={{ top: ["0%", "100%", "0%"] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </motion.div>
+
+                {/* Shimmer placeholder rows */}
+                <div className="w-full max-w-[260px] space-y-3 mb-6">
+                  {[0.8, 0.6, 0.45].map((w, i) => (
+                    <motion.div
+                      key={i}
+                      className="relative h-3.5 rounded-full bg-muted/60 overflow-hidden"
+                      style={{ width: `${w * 100}%` }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0"
+                        style={{
+                          background: "linear-gradient(90deg, transparent, var(--color-muted) 50%, transparent)",
+                        }}
+                        animate={{ x: ["-100%", "200%"] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+
+                <motion.p
+                  className="text-foreground font-semibold text-[15px]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Analyzing your meal…
+                </motion.p>
+                <motion.p
+                  className="text-muted-foreground text-xs mt-1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0.4, 0.8, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  Detecting calories & macros
+                </motion.p>
+              </>
+            ) : (
+              <>
+                <motion.div
+                  className="w-14 h-14 rounded-full border-[3px] border-primary border-t-transparent"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                />
+                <p className="text-foreground font-medium mt-4">Looking up food...</p>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
