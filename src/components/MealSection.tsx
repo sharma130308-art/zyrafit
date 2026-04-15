@@ -73,10 +73,20 @@ export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionP
                     <motion.button
                       whileTap={{ scale: 0.92 }}
                       onClick={() => setFullscreenPhoto({ url: entry.photoUrl!, name: entry.name })}
-                      className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 mr-3 border border-border/30"
+                      className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 mr-3 border border-border/30"
                     >
                       <img src={entry.photoUrl} alt={entry.name} className="w-full h-full object-cover" />
+                      {entry.source === "ai" && (
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 bg-primary rounded-full flex items-center justify-center shadow-sm border border-background">
+                          <Camera className="w-2.5 h-2.5 text-primary-foreground" />
+                        </span>
+                      )}
                     </motion.button>
+                  )}
+                  {!entry.photoUrl && entry.source === "ai" && (
+                    <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mr-2">
+                      <Camera className="w-3 h-3 text-primary" />
+                    </span>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-medium text-card-foreground truncate">{entry.name}</p>
