@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, ZapOff, ScanBarcode, Keyboard } from "lucide-react";
+import { X, Zap, ZapOff, ScanBarcode, Keyboard, RotateCcw } from "lucide-react";
 
 interface BarcodeScannerProps {
   open: boolean;
