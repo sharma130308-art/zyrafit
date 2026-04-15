@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, ZapOff, ScanBarcode, Keyboard } from "lucide-react";
+import { X, Zap, ZapOff, ScanBarcode, Keyboard, RotateCcw } from "lucide-react";
 
 interface BarcodeScannerProps {
   open: boolean;
@@ -226,9 +226,22 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-destructive/90 backdrop-blur-md rounded-2xl p-4 text-center"
+                  className="bg-destructive/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-3"
                 >
-                  <p className="text-destructive-foreground text-sm font-medium">{error}</p>
+                  <p className="text-destructive-foreground text-sm font-medium flex-1">{error}</p>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={async () => {
+                      setError(null);
+                      setScanning(false);
+                      await stopScanner();
+                      setTimeout(startScanner, 300);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-background text-foreground text-xs font-semibold flex items-center gap-1.5 shrink-0"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Retry
+                  </motion.button>
                 </motion.div>
               ) : (
                 <div className="bg-foreground/40 backdrop-blur-md rounded-2xl p-4 flex items-center gap-3">
