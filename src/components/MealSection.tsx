@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, Plus, X } from "lucide-react";
+import { Trash2, Plus, X, Camera } from "lucide-react";
 import type { FoodEntry, MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 
