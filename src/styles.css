@@ -103,6 +103,12 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -111,5 +117,39 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Allow text selection in inputs and textareas */
+  input, textarea, [contenteditable] {
+    user-select: text;
+    -webkit-user-select: text;
+    touch-action: auto;
+  }
+
+  /* Native-style active states */
+  button, a, [role="button"] {
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  button:active, a:active, [role="button"]:active {
+    opacity: 0.7;
+  }
+
+  /* Smooth scrolling containers */
+  .overflow-y-auto, .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+  }
+
+  /* iOS-style bounce prevention on fixed overlays */
+  .fixed {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 }

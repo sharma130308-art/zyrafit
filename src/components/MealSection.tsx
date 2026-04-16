@@ -19,8 +19,8 @@ export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionP
     <>
       <motion.div
         className="rounded-2xl bg-card p-4 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)] border border-border/40"
-        whileTap={{ scale: 0.995 }}
-        transition={{ duration: 0.1 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2.5">

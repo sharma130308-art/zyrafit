@@ -120,7 +120,11 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 32, stiffness: 350 }}
+            transition={{ type: "spring", damping: 28, stiffness: 300, mass: 0.8 }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.1}
+            onDragEnd={(_, info) => { if (info.offset.y > 100) { resetForm(); onClose(); } }}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1">
