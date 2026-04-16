@@ -28,7 +28,11 @@ export function QuickAddPicker({ mealType, onClose, onAiPhoto, onBarcodeScan, on
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 32, stiffness: 350 }}
+        transition={{ type: "spring", damping: 28, stiffness: 300, mass: 0.8 }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.1}
+        onDragEnd={(_, info) => { if (info.offset.y > 100) onClose(); }}
       >
         <div className="flex justify-center mb-3">
           <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
