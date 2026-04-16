@@ -30,6 +30,7 @@ import { FoodPreview } from "@/components/FoodPreview";
 import { AIFoodPreview } from "@/components/AIFoodPreview";
 import { QuickAddPicker } from "@/components/QuickAddPicker";
 import { WeeklyChart } from "@/components/WeeklyChart";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -254,6 +255,7 @@ function Dashboard() {
   }
 
   return (
+    <PullToRefresh onRefresh={refresh}>
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="px-6 pt-14 pb-2">
@@ -512,5 +514,6 @@ function Dashboard() {
         )}
       </AnimatePresence>
     </div>
+    </PullToRefresh>
   );
 }
