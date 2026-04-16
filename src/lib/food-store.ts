@@ -343,3 +343,52 @@ export const MEAL_ICONS: Record<MealType, string> = {
   dinner: "🌙",
   snack: "🍿",
 };
+
+// ── Streak calculation ────────────────────────────────────────
+
+export async function getLoggingStreak(): Promise<number> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    // Fallback: check local entries
+    const local = getLocalEntries();
+    return calcStreakFromDates(local.map((e) => e.date));
+  }
+
+  const { data, error } = await supabase
+    .from("food_entries")
+    .select("date")
+    .eq("user_id", userId)
+    .order("date", { ascending: false })
+    .limit(365);
+
+  if (error || !data) return 0;
+
+  const dates = data.map((r) => r.date);
+  return calcStreakFromDates(dates);
+}
+
+function calcStreakFromDates(dates: string[]): number {
+  if (dates.length === 0) return 0;
+
+  const unique = [...new Set(dates)].sort().reverse();
+  const today = getTodayDate();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+  // Streak must include today or yesterday
+  if (unique[0] !== today && unique[0] !== yesterdayStr) return 0;
+
+  let streak = 1;
+  for (let i = 1; i < unique.length; i++) {
+    const prev = new Date(unique[i - 1]);
+    const curr = new Date(unique[i]);
+    const diff = (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24);
+    if (Math.round(diff) === 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
