@@ -90,16 +90,19 @@ function Dashboard() {
   const [aiError, setAiError] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
+  const [streak, setStreak] = useState(0);
 
   const refresh = useCallback(async () => {
-    const [fetchedEntries, fetchedGoal, fetchedWeekly] = await Promise.all([
+    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
       getWeeklyHistory(),
+      getLoggingStreak(),
     ]);
     setEntries(fetchedEntries);
     setGoal(fetchedGoal);
     setWeeklyData(fetchedWeekly);
+    setStreak(fetchedStreak);
     setLoading(false);
   }, [today]);
 
