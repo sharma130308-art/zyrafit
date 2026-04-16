@@ -1,7 +1,8 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SplashScreen } from "@/components/SplashScreen";
+import { registerServiceWorker } from "@/lib/register-sw";
 
 import appCss from "../styles.css?url";
 
@@ -77,6 +78,10 @@ function RootComponent() {
   const [showSplash, setShowSplash] = useState(true);
   const handleSplashFinish = useCallback(() => setShowSplash(false), []);
   const location = useLocation();
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative overflow-hidden">
