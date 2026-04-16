@@ -471,6 +471,17 @@ function Dashboard() {
                 >
                   Detecting calories & macros
                 </motion.p>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.5 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCancelAiAnalysis}
+                  className="mt-6 px-6 py-2.5 rounded-2xl bg-muted/80 text-muted-foreground text-sm font-medium border border-border/40 active:bg-muted"
+                >
+                  Cancel
+                </motion.button>
               </>
             ) : (
               <>
