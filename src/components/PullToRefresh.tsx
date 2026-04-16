@@ -99,11 +99,10 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
             <motion.div
               key="spinner"
               exit={{ scale: 0, opacity: 0 }}
-              transition={{ duration: 0.15 }}
               className="w-8 h-8 rounded-full border-[2.5px] border-primary border-t-transparent"
               style={{ rotate: state === "refreshing" ? undefined : spinnerRotate }}
               animate={state === "refreshing" ? { rotate: 360 } : undefined}
-              transition={state === "refreshing" ? { duration: 0.8, repeat: Infinity, ease: "linear" } : undefined}
+              transition={state === "refreshing" ? { duration: 0.8, repeat: Infinity, ease: "linear" } : { duration: 0.15 }}
             />
           )}
         </AnimatePresence>
