@@ -110,9 +110,14 @@ export async function subscribeToPush(): Promise<{
   );
   if (subErr) return { ok: false, error: subErr.message };
 
+  let timezone = "UTC";
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {}
+
   const { error: setErr } = await supabase
     .from("user_settings")
-    .update({ reminders_enabled: true })
+    .update({ reminders_enabled: true, timezone })
     .eq("user_id", userId);
   if (setErr) return { ok: false, error: setErr.message };
 

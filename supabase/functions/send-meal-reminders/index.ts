@@ -53,19 +53,40 @@ Deno.serve(async (req) => {
       privateKey,
     );
 
-    const body = await req.json().catch(() => ({}));
-    const meal = (body.meal as string) || "default";
-    const message = MESSAGES[meal] || MESSAGES.default;
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Get all users with reminders enabled
+    // Determine current local hour for each user's timezone
+    // Cron invokes this hourly; we send reminders when local hour is 8, 13, or 19
+    const MEAL_BY_HOUR: Record<number, string> = { 8: "breakfast", 13: "lunch", 19: "dinner" };
+
+    function getLocalHourAndDate(tz: string): { hour: number; date: string } {
+      try {
+        const fmt = new Intl.DateTimeFormat("en-CA", {
+          timeZone: tz,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          hour12: false,
+        });
+        const parts = fmt.formatToParts(new Date());
+        const get = (t: string) => parts.find((p) => p.type === t)?.value || "";
+        const hour = parseInt(get("hour"), 10);
+        const date = `${get("year")}-${get("month")}-${get("day")}`;
+        return { hour: isNaN(hour) ? -1 : hour, date };
+      } catch {
+        const now = new Date();
+        return { hour: now.getUTCHours(), date: now.toISOString().slice(0, 10) };
+      }
+    }
+
+    // Get all users with reminders enabled + their timezone
     const { data: enabledUsers, error: usersErr } = await supabase
       .from("user_settings")
-      .select("user_id")
+      .select("user_id, timezone")
       .eq("reminders_enabled", true);
 
     if (usersErr) throw usersErr;
@@ -75,44 +96,59 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Filter out users who already logged food today (UTC date)
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: loggedToday } = await supabase
-      .from("food_entries")
-      .select("user_id")
-      .eq("date", today);
+    // Group users by (meal, localDate) — only those whose local hour matches a meal slot
+    type Target = { userId: string; meal: string; localDate: string };
+    const targets: Target[] = [];
+    for (const u of enabledUsers) {
+      const tz = (u as any).timezone || "UTC";
+      const { hour, date } = getLocalHourAndDate(tz);
+      const meal = MEAL_BY_HOUR[hour];
+      if (meal) targets.push({ userId: u.user_id, meal, localDate: date });
+    }
 
-    const loggedSet = new Set((loggedToday || []).map((r) => r.user_id));
-    const targetUserIds = enabledUsers
-      .map((u) => u.user_id)
-      .filter((id) => !loggedSet.has(id));
-
-    if (targetUserIds.length === 0) {
+    if (targets.length === 0) {
       return new Response(
-        JSON.stringify({ sent: 0, skipped: enabledUsers.length, reason: "all logged" }),
+        JSON.stringify({ sent: 0, skipped: enabledUsers.length, reason: "no users in slot" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Fetch their push subscriptions
+    // Skip users who already logged today (in their local date)
+    const uniqueDates = [...new Set(targets.map((t) => t.localDate))];
+    const { data: loggedRows } = await supabase
+      .from("food_entries")
+      .select("user_id, date")
+      .in("date", uniqueDates)
+      .in("user_id", targets.map((t) => t.userId));
+
+    const loggedSet = new Set((loggedRows || []).map((r) => `${r.user_id}|${r.date}`));
+    const finalTargets = targets.filter(
+      (t) => !loggedSet.has(`${t.userId}|${t.localDate}`),
+    );
+
+    if (finalTargets.length === 0) {
+      return new Response(
+        JSON.stringify({ sent: 0, skipped: targets.length, reason: "all logged" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Fetch push subscriptions for target users
+    const userIds = [...new Set(finalTargets.map((t) => t.userId))];
     const { data: subs, error: subsErr } = await supabase
       .from("push_subscriptions")
       .select("id, user_id, endpoint, p256dh, auth")
-      .in("user_id", targetUserIds);
+      .in("user_id", userIds);
 
     if (subsErr) throw subsErr;
     if (!subs || subs.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, skipped: targetUserIds.length }), {
+      return new Response(JSON.stringify({ sent: 0, skipped: userIds.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const payload = JSON.stringify({
-      title: message.title,
-      body: message.body,
-      url: "/",
-      tag: `zyrafit-${meal}`,
-    });
+    // Map userId -> meal
+    const mealByUser = new Map(finalTargets.map((t) => [t.userId, t.meal]));
 
     let sent = 0;
     let failed = 0;
@@ -120,6 +156,14 @@ Deno.serve(async (req) => {
 
     await Promise.all(
       subs.map(async (s) => {
+        const meal = mealByUser.get(s.user_id) || "default";
+        const message = MESSAGES[meal] || MESSAGES.default;
+        const payload = JSON.stringify({
+          title: message.title,
+          body: message.body,
+          url: "/",
+          tag: `zyrafit-${meal}`,
+        });
         try {
           await webpush.sendNotification(
             {
@@ -147,7 +191,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ sent, failed, removed_stale: staleIds.length, meal }),
+      JSON.stringify({ sent, failed, removed_stale: staleIds.length, targets: finalTargets.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
