@@ -26,6 +26,7 @@ import { MacroBar } from "@/components/MacroBar";
 import { MealSection } from "@/components/MealSection";
 import { AddFoodDialog } from "@/components/AddFoodDialog";
 import { BottomNav } from "@/components/BottomNav";
+import { ReminderPrompt } from "@/components/ReminderPrompt";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodPreview } from "@/components/FoodPreview";
 
