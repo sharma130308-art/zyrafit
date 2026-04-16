@@ -31,7 +31,7 @@ export const Route = createFileRoute("/profile")({
   component: ProfilePage,
   head: () => ({
     meta: [
-      { title: "CalTrack — Profile" },
+      { title: "ZyraFit — Profile" },
       { name: "description", content: "View and edit your profile and macro goals." },
     ],
   }),

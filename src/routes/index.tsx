@@ -35,7 +35,7 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: "CalTrack — Daily Calorie & Macro Tracker" },
+      { title: "ZyraFit — Daily Calorie & Macro Tracker" },
       { name: "description", content: "Track your daily calories and macros with a beautiful, intuitive interface." },
     ],
   }),
