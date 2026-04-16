@@ -8,8 +8,8 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
   head: () => ({
     meta: [
-      { title: "CalTrack — Reset Password" },
-      { name: "description", content: "Set a new password for your CalTrack account." },
+      { title: "ZyraFit — Reset Password" },
+      { name: "description", content: "Set a new password for your ZyraFit account." },
     ],
   }),
 });

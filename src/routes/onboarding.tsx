@@ -27,7 +27,7 @@ export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
   head: () => ({
     meta: [
-      { title: "CalTrack — Set Up Your Profile" },
+      { title: "ZyraFit — Set Up Your Profile" },
       { name: "description", content: "Tell us about yourself so we can personalize your experience." },
     ],
   }),

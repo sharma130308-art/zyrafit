@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import zyrafitIcon from "@/assets/zyrafit-icon.png";
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -35,22 +36,15 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", damping: 20, stiffness: 200, delay: 0.1 }}
           >
-            <div className="w-20 h-20 rounded-[22px] bg-foreground/[0.04] flex items-center justify-center shadow-[0_8px_32px_-4px] shadow-foreground/5 relative overflow-hidden border border-foreground/[0.06]">
+            <div className="w-20 h-20 rounded-[22px] overflow-hidden shadow-[0_8px_32px_-4px] shadow-foreground/5 relative border border-foreground/[0.06]">
               {/* Shimmer effect */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.04] to-transparent"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.04] to-transparent z-10"
                 initial={{ x: "-100%" }}
                 animate={{ x: "200%" }}
                 transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
               />
-              <motion.span
-                className="text-3xl relative z-10"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.3 }}
-              >
-                🔥
-              </motion.span>
+              <img src={zyrafitIcon} alt="ZyraFit" className="w-full h-full object-cover" />
             </div>
           </motion.div>
 
@@ -61,7 +55,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
           >
-            CalTrack
+            ZyraFit
           </motion.h1>
 
           {/* Tagline */}
