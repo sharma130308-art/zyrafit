@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ sent, failed, removed_stale: staleIds.length, meal }),
+      JSON.stringify({ sent, failed, removed_stale: staleIds.length, targets: finalTargets.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
