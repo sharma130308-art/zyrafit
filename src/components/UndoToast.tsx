@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Undo2 } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import type { FoodEntry } from "@/lib/food-store";
-import { restoreEntry } from "@/lib/food-store";
 
 interface UndoToastProps {
   entry: FoodEntry | null;
