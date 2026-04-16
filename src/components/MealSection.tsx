@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, Plus, X, Camera } from "lucide-react";
+import { Plus, X, Camera } from "lucide-react";
 import type { FoodEntry, MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
-import { hapticLight, hapticHeavy } from "@/lib/haptics";
+import { hapticLight } from "@/lib/haptics";
+import { SwipeToDelete } from "@/components/SwipeToDelete";
 
 interface MealSectionProps {
   mealType: MealType;
@@ -66,49 +67,45 @@ export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionP
                   layout
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20, height: 0 }}
+                  exit={{ opacity: 0, x: -100, height: 0, marginTop: 0, paddingTop: 0, paddingBottom: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="flex items-center justify-between py-2.5 border-t border-border/20 first:border-t-0"
                 >
-                  {entry.photoUrl && (
-                    <motion.button
-                      whileTap={{ scale: 0.92 }}
-                      onClick={() => setFullscreenPhoto({ url: entry.photoUrl!, name: entry.name })}
-                      className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 mr-3 border border-border/30"
-                    >
-                      <img src={entry.photoUrl} alt={entry.name} className="w-full h-full object-cover" />
-                      {entry.source === "ai" && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 bg-primary rounded-full flex items-center justify-center shadow-sm border border-background">
-                          <Camera className="w-2.5 h-2.5 text-primary-foreground" />
+                  <SwipeToDelete onDelete={() => onDelete(entry.id)}>
+                    <div className="flex items-center justify-between py-2.5 border-t border-border/20 first:border-t-0 px-1">
+                      {entry.photoUrl && (
+                        <motion.button
+                          whileTap={{ scale: 0.92 }}
+                          onClick={() => setFullscreenPhoto({ url: entry.photoUrl!, name: entry.name })}
+                          className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 mr-3 border border-border/30"
+                        >
+                          <img src={entry.photoUrl} alt={entry.name} className="w-full h-full object-cover" />
+                          {entry.source === "ai" && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 bg-primary rounded-full flex items-center justify-center shadow-sm border border-background">
+                              <Camera className="w-2.5 h-2.5 text-primary-foreground" />
+                            </span>
+                          )}
+                        </motion.button>
+                      )}
+                      {!entry.photoUrl && entry.source === "ai" && (
+                        <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mr-2">
+                          <Camera className="w-3 h-3 text-primary" />
                         </span>
                       )}
-                    </motion.button>
-                  )}
-                  {!entry.photoUrl && entry.source === "ai" && (
-                    <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mr-2">
-                      <Camera className="w-3 h-3 text-primary" />
-                    </span>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-card-foreground truncate">{entry.name}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {Math.round(entry.calories * entry.quantity)} cal
-                      <span className="mx-1">·</span>
-                      P {Math.round(entry.protein * entry.quantity)}
-                      <span className="mx-1">·</span>
-                      C {Math.round(entry.carbs * entry.quantity)}
-                      <span className="mx-1">·</span>
-                      F {Math.round(entry.fat * entry.quantity)}
-                      {entry.quantity > 1 && <span className="ml-1">×{entry.quantity}</span>}
-                    </p>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.85 }}
-                    onClick={() => { hapticHeavy(); onDelete(entry.id); }}
-                    className="p-2 rounded-xl text-muted-foreground/50 hover:text-destructive hover:bg-destructive/8 transition-colors ml-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </motion.button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-medium text-card-foreground truncate">{entry.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {Math.round(entry.calories * entry.quantity)} cal
+                          <span className="mx-1">·</span>
+                          P {Math.round(entry.protein * entry.quantity)}
+                          <span className="mx-1">·</span>
+                          C {Math.round(entry.carbs * entry.quantity)}
+                          <span className="mx-1">·</span>
+                          F {Math.round(entry.fat * entry.quantity)}
+                          {entry.quantity > 1 && <span className="ml-1">×{entry.quantity}</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </SwipeToDelete>
                 </motion.div>
               ))}
             </div>
