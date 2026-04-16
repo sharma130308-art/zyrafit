@@ -80,6 +80,7 @@ function Dashboard() {
 
   // AI photo state
   const [aiLoading, setAiLoading] = useState(false);
+  const aiAbortRef = useRef<AbortController | null>(null);
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
@@ -164,6 +165,8 @@ function Dashboard() {
   };
 
   const handlePhotoCapture = async (file: File) => {
+    const abortController = new AbortController();
+    aiAbortRef.current = abortController;
     setAiLoading(true);
     setAiError(null);
     try {
@@ -188,7 +191,9 @@ function Dashboard() {
       // Store the uploaded URL for use when adding
       uploadedPhotoUrlRef.current = uploadedPhotoUrl;
 
+      if (abortController.signal.aborted) return;
       const result = await analyzePhoto(base64);
+      if (abortController.signal.aborted) return;
       setAiLoading(false);
       if (!result.is_food || result.items.length === 0) {
         setAiError("No food detected in this photo. Try again with a clearer shot.");
@@ -197,12 +202,20 @@ function Dashboard() {
         setAiItems(result.items);
       }
     } catch (err) {
+      if (abortController.signal.aborted) return;
       setAiLoading(false);
       setAiError(err instanceof Error ? err.message : "AI analysis failed");
       setTimeout(() => setAiError(null), 3000);
     }
   };
 
+  const handleCancelAiAnalysis = useCallback(() => {
+    aiAbortRef.current?.abort();
+    aiAbortRef.current = null;
+    setAiLoading(false);
+    setAiImageUrl("");
+    setAiItems(null);
+  }, []);
   const uploadedPhotoUrlRef = useRef<string | null>(null);
 
   const handleAddFromAi = async (foods: {
@@ -458,6 +471,17 @@ function Dashboard() {
                 >
                   Detecting calories & macros
                 </motion.p>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.5 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCancelAiAnalysis}
+                  className="mt-6 px-6 py-2.5 rounded-2xl bg-muted/80 text-muted-foreground text-sm font-medium border border-border/40 active:bg-muted"
+                >
+                  Cancel
+                </motion.button>
               </>
             ) : (
               <>
