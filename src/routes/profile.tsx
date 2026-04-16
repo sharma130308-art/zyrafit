@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { format, parseISO, subDays, subMonths } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
+import { RemindersToggle } from "@/components/RemindersToggle";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -1275,6 +1276,9 @@ function ProfilePage() {
             )}
           </motion.div>
         )}
+
+        {/* Notifications */}
+        {user && <RemindersToggle />}
 
         {/* Auth action */}
         {!authLoading && (
