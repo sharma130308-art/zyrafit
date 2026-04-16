@@ -21,13 +21,14 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-card"
+          className="absolute inset-0 z-[100] flex flex-col items-center justify-center"
+          style={{ backgroundColor: "#1a1b2f" }}
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.08 }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           {/* Subtle gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary/[0.03]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-transparent to-primary/[0.08]" />
 
           {/* Logo mark */}
           <motion.div
@@ -50,7 +51,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
           {/* App name */}
           <motion.h1
-            className="text-[26px] font-black tracking-tight text-foreground relative z-10"
+            className="text-[26px] font-black tracking-tight text-white relative z-10"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -60,7 +61,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
           {/* Tagline */}
           <motion.p
-            className="text-[13px] text-muted-foreground mt-1 font-medium tracking-wide relative z-10"
+            className="text-[13px] text-white/60 mt-1 font-medium tracking-wide relative z-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.55, duration: 0.4 }}
@@ -70,13 +71,13 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
           {/* Minimal loading bar */}
           <motion.div
-            className="mt-10 w-12 h-[3px] rounded-full bg-muted overflow-hidden relative z-10"
+            className="mt-10 w-12 h-[3px] rounded-full bg-white/10 overflow-hidden relative z-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
           >
             <motion.div
-              className="h-full bg-foreground/20 rounded-full"
+              className="h-full bg-white/40 rounded-full"
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ duration: 0.7, delay: 0.75, ease: [0.4, 0, 0.2, 1] }}
