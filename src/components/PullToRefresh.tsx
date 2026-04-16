@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { hapticMedium } from "@/lib/haptics";
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion";
+import { hapticMedium, hapticSuccess } from "@/lib/haptics";
+import { Check } from "lucide-react";
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -10,7 +11,7 @@ interface PullToRefreshProps {
 const THRESHOLD = 80;
 
 export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
-  const [refreshing, setRefreshing] = useState(false);
+  const [state, setState] = useState<"idle" | "refreshing" | "done">("idle");
   const pullY = useMotionValue(0);
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -20,7 +21,6 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const spinnerRotate = useTransform(pullY, [0, THRESHOLD * 2], [0, 360]);
 
   const handleDragStart = useCallback(() => {
-    // Only allow pull if scrolled to top
     const el = containerRef.current;
     if (el && el.scrollTop > 0) return;
     isDragging.current = true;
@@ -28,37 +28,44 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
 
   const handleDrag = useCallback(
     (_: any, info: { delta: { y: number } }) => {
-      if (!isDragging.current || refreshing) return;
+      if (!isDragging.current || state !== "idle") return;
       const el = containerRef.current;
       if (el && el.scrollTop > 0) return;
 
       const newY = Math.max(0, pullY.get() + info.delta.y * 0.5);
       pullY.set(newY);
 
-      if (newY >= THRESHOLD && pullY.getPrevious()! < THRESHOLD) {
+      if (newY >= THRESHOLD && (pullY.getPrevious() ?? 0) < THRESHOLD) {
         hapticMedium();
       }
     },
-    [pullY, refreshing]
+    [pullY, state]
   );
 
   const handleDragEnd = useCallback(async () => {
     if (!isDragging.current) return;
     isDragging.current = false;
 
-    if (pullY.get() >= THRESHOLD && !refreshing) {
-      setRefreshing(true);
+    if (pullY.get() >= THRESHOLD && state === "idle") {
+      setState("refreshing");
       animate(pullY, 50, { type: "spring", stiffness: 300, damping: 30 });
       try {
         await onRefresh();
       } finally {
-        setRefreshing(false);
-        animate(pullY, 0, { type: "spring", stiffness: 300, damping: 30 });
+        // Show checkmark
+        setState("done");
+        hapticSuccess();
+
+        // Hold checkmark for 800ms then dismiss
+        setTimeout(() => {
+          setState("idle");
+          animate(pullY, 0, { type: "spring", stiffness: 300, damping: 30 });
+        }, 800);
       }
     } else {
       animate(pullY, 0, { type: "spring", stiffness: 300, damping: 30 });
     }
-  }, [pullY, refreshing, onRefresh]);
+  }, [pullY, state, onRefresh]);
 
   return (
     <div ref={containerRef} className="relative overflow-y-auto min-h-screen">
@@ -71,12 +78,35 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
           scale: spinnerScale,
         }}
       >
-        <motion.div
-          className="w-8 h-8 rounded-full border-[2.5px] border-primary border-t-transparent"
-          style={{ rotate: refreshing ? undefined : spinnerRotate }}
-          animate={refreshing ? { rotate: 360 } : undefined}
-          transition={refreshing ? { duration: 0.8, repeat: Infinity, ease: "linear" } : undefined}
-        />
+        <AnimatePresence mode="wait">
+          {state === "done" ? (
+            <motion.div
+              key="check"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 25 }}
+              className="w-8 h-8 rounded-full bg-success flex items-center justify-center"
+            >
+              <motion.div
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+              >
+                <Check className="w-5 h-5 text-success-foreground" strokeWidth={3} />
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="spinner"
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-8 h-8 rounded-full border-[2.5px] border-primary border-t-transparent"
+              style={{ rotate: state === "refreshing" ? undefined : spinnerRotate }}
+              animate={state === "refreshing" ? { rotate: 360 } : undefined}
+              transition={state === "refreshing" ? { duration: 0.8, repeat: Infinity, ease: "linear" } : undefined}
+            />
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Content */}
