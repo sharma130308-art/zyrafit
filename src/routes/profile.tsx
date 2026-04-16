@@ -196,17 +196,55 @@ function ProfilePage() {
     input.click();
   };
 
+  // Hydrate from cache instantly
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const cached = localStorage.getItem("zyrafit_profile_cache");
+      if (!cached) return;
+      const c = JSON.parse(cached);
+      if (c.profile) {
+        setProfile(c.profile);
+        setEditAge(String(c.profile.age ?? ""));
+        setEditWeight(String(c.profile.weight_kg ?? ""));
+        setEditGender(c.profile.gender ?? "");
+        setEditWorkoutDays(c.profile.workout_days_per_week ?? 3);
+        setEditGoal(c.profile.goal ?? "");
+        setEditTargetWeight(String(c.profile.target_weight_kg ?? ""));
+        setEditTargetBmi(String(c.profile.target_bmi ?? ""));
+        setEditTargetBodyFat(String(c.profile.target_body_fat_percent ?? ""));
+      }
+      if (c.macros) setMacros(c.macros);
+      if (c.goal) setGoal(c.goal);
+      if (c.weightLogs) setWeightLogs(c.weightLogs);
+      setProfileLoading(false);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) return;
+    // All 4 queries in parallel — single round-trip
     Promise.all([
       loadCalorieGoal(),
       supabase.from("user_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
-    ]).then(([fetchedGoal, profileRes, settingsRes]) => {
+      supabase
+        .from("weight_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("logged_at", { ascending: true })
+        .limit(90),
+    ]).then(([fetchedGoal, profileRes, settingsRes, weightRes]) => {
       setGoal(fetchedGoal);
+      let profileData: ProfileData | null = null;
+      let macrosData = { calories: fetchedGoal, protein: 0, carbs: 0, fat: 0 };
+      let logsData: WeightLog[] = [];
+
       if (profileRes.data) {
         const p = profileRes.data as unknown as Record<string, unknown>;
-        const profileData: ProfileData = {
+        profileData = {
           age: profileRes.data.age,
           weight_kg: profileRes.data.weight_kg,
           gender: profileRes.data.gender,
@@ -228,17 +266,38 @@ function ProfilePage() {
       }
       if (settingsRes.data) {
         const s = settingsRes.data as unknown as Record<string, unknown>;
-        setMacros({
+        macrosData = {
           calories: settingsRes.data.daily_calorie_goal,
           protein: (s.protein_goal as number) ?? 0,
           carbs: (s.carbs_goal as number) ?? 0,
           fat: (s.fat_goal as number) ?? 0,
-        });
+        };
+        setMacros(macrosData);
+      }
+      if (weightRes.data) {
+        logsData = weightRes.data.map((d: Record<string, unknown>) => ({
+          id: d.id as string,
+          weight_kg: Number(d.weight_kg),
+          logged_at: d.logged_at as string,
+          bmi: d.bmi != null ? Number(d.bmi) : null,
+          body_fat_percent: d.body_fat_percent != null ? Number(d.body_fat_percent) : null,
+          body_fat_mass_kg: d.body_fat_mass_kg != null ? Number(d.body_fat_mass_kg) : null,
+          height_m: d.height_m != null ? Number(d.height_m) : null,
+        }));
+        setWeightLogs(logsData);
       }
       setProfileLoading(false);
+
+      try {
+        localStorage.setItem(
+          "zyrafit_profile_cache",
+          JSON.stringify({ profile: profileData, macros: macrosData, goal: fetchedGoal, weightLogs: logsData })
+        );
+      } catch {
+        /* ignore */
+      }
     });
-    fetchWeightLogs();
-  }, [user, fetchWeightLogs]);
+  }, [user]);
 
   const startEditing = () => {
     setEditingProfile(true);
