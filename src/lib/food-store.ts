@@ -18,8 +18,8 @@ export interface FoodEntry {
   photoUrl?: string | null;
 }
 
-const STORAGE_KEY = "caltrack_entries";
-const GOAL_KEY = "caltrack_goal";
+const STORAGE_KEY = "zyrafit_entries";
+const GOAL_KEY = "zyrafit_goal";
 
 // ── Local helpers ──────────────────────────────────────────────
 
