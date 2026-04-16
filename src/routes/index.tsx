@@ -16,6 +16,7 @@ import {
   type MealType,
   type FoodSource,
   type DaySummary,
+  getLoggingStreak,
 } from "@/lib/food-store";
 import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
 import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
@@ -32,6 +33,7 @@ import { QuickAddPicker } from "@/components/QuickAddPicker";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { StreakBadge } from "@/components/StreakBadge";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
