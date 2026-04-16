@@ -13,12 +13,12 @@ interface UndoToastProps {
 const UNDO_TIMEOUT = 5000;
 
 export function UndoToast({ entry, onUndo, onDismiss }: UndoToastProps) {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!entry) return;
-    timerRef.current = setTimeout(onDismiss, UNDO_TIMEOUT);
-    return () => clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(onDismiss, UNDO_TIMEOUT);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [entry, onDismiss]);
 
   const handleUndo = useCallback(() => {
