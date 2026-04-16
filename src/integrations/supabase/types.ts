@@ -65,6 +65,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           age: number | null
@@ -127,6 +160,7 @@ export type Database = {
           fat_goal: number
           id: string
           protein_goal: number
+          reminders_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -137,6 +171,7 @@ export type Database = {
           fat_goal?: number
           id?: string
           protein_goal?: number
+          reminders_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -147,6 +182,7 @@ export type Database = {
           fat_goal?: number
           id?: string
           protein_goal?: number
+          reminders_enabled?: boolean
           updated_at?: string
           user_id?: string
         }
