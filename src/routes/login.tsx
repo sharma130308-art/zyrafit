@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import zyrafitIcon from "@/assets/zyrafit-icon.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
   head: () => ({
     meta: [
-      { title: "CalTrack — Sign In" },
-      { name: "description", content: "Sign in to CalTrack to sync your food diary across devices." },
+      { title: "ZyraFit — Sign In" },
+      { name: "description", content: "Sign in to ZyraFit to sync your food diary across devices." },
     ],
   }),
 });
@@ -75,7 +76,8 @@ function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">CalTrack</h1>
+          <img src={zyrafitIcon} alt="ZyraFit" className="w-16 h-16 rounded-2xl mx-auto mb-3" />
+          <h1 className="text-3xl font-bold text-foreground">ZyraFit</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {mode === "login" ? "Welcome back" : "Reset your password"}
           </p>

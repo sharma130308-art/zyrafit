@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, LogIn } from "lucide-react";
+import zyrafitIcon from "@/assets/zyrafit-icon.png";
 
 export const Route = createFileRoute("/welcome")({
   component: WelcomePage,
   head: () => ({
     meta: [
-      { title: "CalTrack — Welcome" },
+      { title: "ZyraFit — Welcome" },
       { name: "description", content: "Track your calories and macros effortlessly. Get started or sign in." },
     ],
   }),
@@ -20,8 +21,8 @@ function WelcomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="mb-2 text-6xl">🔥</div>
-        <h1 className="text-4xl font-bold text-foreground mb-2">CalTrack</h1>
+        <img src={zyrafitIcon} alt="ZyraFit" className="w-20 h-20 rounded-[22px] mx-auto mb-4" />
+        <h1 className="text-4xl font-bold text-foreground mb-2">ZyraFit</h1>
         <p className="text-muted-foreground text-sm mb-10">
           Track your calories & macros with ease. Let's personalize your experience.
         </p>
