@@ -22,7 +22,7 @@ export function UndoToast({ entry, onUndo, onDismiss }: UndoToastProps) {
   }, [entry, onDismiss]);
 
   const handleUndo = useCallback(() => {
-    clearTimeout(timerRef.current);
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
     hapticLight();
     onUndo();
   }, [onUndo]);
