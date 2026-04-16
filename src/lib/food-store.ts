@@ -341,23 +341,61 @@ export interface DaySummary {
 }
 
 export async function getWeeklyHistory(): Promise<DaySummary[]> {
-  const days: DaySummary[] = [];
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
+  const dateMeta: { date: string; label: string }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
-    const entries = await getEntries(dateStr);
-    const totals = getDailyTotals(entries);
-    days.push({
-      date: dateStr,
+    dateMeta.push({
+      date: d.toISOString().split("T")[0],
       label: dayNames[d.getDay()],
-      ...totals,
     });
   }
+  const startDate = dateMeta[0].date;
+  const endDate = dateMeta[dateMeta.length - 1].date;
 
-  return days;
+  const userId = await getCurrentUserId();
+  let entriesByDate = new Map<string, FoodEntry[]>();
+
+  if (userId) {
+    const { data, error } = await supabase
+      .from("food_entries")
+      .select("*")
+      .gte("date", startDate)
+      .lte("date", endDate);
+    if (!error && data) {
+      for (const row of data) {
+        const e: FoodEntry = {
+          id: row.id,
+          name: row.name,
+          calories: Number(row.calories),
+          protein: Number(row.protein),
+          carbs: Number(row.carbs),
+          fat: Number(row.fat),
+          quantity: row.quantity,
+          mealType: row.meal_type as MealType,
+          date: row.date,
+          barcode: row.barcode,
+          source: (row.source as FoodSource) || "manual",
+          photoUrl: (row as any).photo_url || null,
+        };
+        const arr = entriesByDate.get(e.date) || [];
+        arr.push(e);
+        entriesByDate.set(e.date, arr);
+      }
+    }
+  } else {
+    for (const e of getLocalEntries()) {
+      const arr = entriesByDate.get(e.date) || [];
+      arr.push(e);
+      entriesByDate.set(e.date, arr);
+    }
+  }
+
+  return dateMeta.map(({ date, label }) => {
+    const totals = getDailyTotals(entriesByDate.get(date) || []);
+    return { date, label, ...totals };
+  });
 }
 
 // ── Computed helpers ──────────────────────────────────────────
