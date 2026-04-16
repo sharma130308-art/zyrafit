@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, ZapOff, ImageIcon, ScanBarcode, Pencil } from "lucide-react";
+import { X, Zap, ZapOff, ImageIcon, ScanBarcode, Pencil, VideoOff } from "lucide-react";
 
 interface PhotoCaptureProps {
   open: boolean;
@@ -26,26 +26,104 @@ function ScanCorner({ position }: { position: "tl" | "tr" | "bl" | "br" }) {
 }
 
 export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [flashOn, setFlashOn] = useState(false);
   const [activeMode, setActiveMode] = useState<"scan" | "barcode" | "gallery" | "manual">("scan");
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState(false);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setCameraReady(false);
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    setCameraError(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setCameraReady(true);
+      }
+    } catch {
+      setCameraError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [open, startCamera, stopCamera]);
+
+  // Toggle torch if supported
+  useEffect(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
+      if (capabilities?.torch) {
+        track.applyConstraints({ advanced: [{ torch: flashOn } as any] }).catch(() => {});
+      }
+    }
+  }, [flashOn]);
+
+  const handleGalleryFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      stopCamera();
       onCapture(file);
       onClose();
     }
     e.target.value = "";
   };
 
-  const handleCapture = () => {
+  const handleShutter = () => {
     if (activeMode === "gallery") {
       galleryRef.current?.click();
-    } else {
-      cameraRef.current?.click();
+      return;
     }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || !cameraReady) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], `scan-${Date.now()}.jpg`, { type: "image/jpeg" });
+          stopCamera();
+          onCapture(file);
+          onClose();
+        }
+      },
+      "image/jpeg",
+      0.92
+    );
+  };
+
+  const handleClose = () => {
+    stopCamera();
+    onClose();
   };
 
   const modes = [
@@ -65,27 +143,49 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* Simulated camera background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-neutral-900 via-neutral-800 to-neutral-900">
-            {/* Subtle grain texture */}
-            <div className="absolute inset-0 opacity-[0.03]" style={{
-              backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")",
-            }} />
-          </div>
+          {/* Live camera feed */}
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover"
+            playsInline
+            muted
+            autoPlay
+          />
+          {/* Hidden canvas for capture */}
+          <canvas ref={canvasRef} className="hidden" />
+
+          {/* Fallback when camera not available */}
+          {!cameraReady && (
+            <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
+              {cameraError ? (
+                <div className="flex flex-col items-center gap-3 text-white/60">
+                  <VideoOff className="w-10 h-10" />
+                  <p className="text-sm font-medium">Camera unavailable</p>
+                  <p className="text-xs text-white/40">Use gallery to pick a photo</p>
+                </div>
+              ) : (
+                <motion.div
+                  className="w-10 h-10 rounded-full border-[3px] border-white/30 border-t-white/80"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                />
+              )}
+            </div>
+          )}
 
           {/* Top bar */}
           <div className="relative z-10 flex items-center justify-between px-4 pt-[max(3.5rem,env(safe-area-inset-top))] pb-3">
             <motion.button
               whileTap={{ scale: 0.85 }}
-              onClick={onClose}
-              className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center"
+              onClick={handleClose}
+              className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center"
             >
               <X className="w-5 h-5 text-white" />
             </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.85 }}
-              className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center"
             >
               <span className="text-white text-lg font-bold">?</span>
             </motion.button>
@@ -148,7 +248,7 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
               <motion.button
                 whileTap={{ scale: 0.85 }}
                 onClick={() => setFlashOn(!flashOn)}
-                className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center"
+                className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center"
               >
                 {flashOn ? (
                   <Zap className="w-5 h-5 text-yellow-400" />
@@ -160,12 +260,10 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
               {/* Shutter button */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={handleCapture}
+                onClick={handleShutter}
                 className="relative w-[72px] h-[72px] rounded-full"
               >
-                {/* Outer ring */}
                 <div className="absolute inset-0 rounded-full border-[3px] border-white/90" />
-                {/* Inner white circle */}
                 <motion.div
                   className="absolute inset-[5px] rounded-full bg-white"
                   whileTap={{ scale: 0.92 }}
@@ -178,20 +276,12 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
             </div>
           </div>
 
-          {/* Hidden file inputs */}
-          <input
-            ref={cameraRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFile}
-            className="hidden"
-          />
+          {/* Hidden gallery input */}
           <input
             ref={galleryRef}
             type="file"
             accept="image/*"
-            onChange={handleFile}
+            onChange={handleGalleryFile}
             className="hidden"
           />
         </motion.div>
