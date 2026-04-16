@@ -257,9 +257,12 @@ function Dashboard() {
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="px-6 pt-14 pb-2">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-sm text-muted-foreground">Today</p>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Today</p>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          </div>
+          <StreakBadge streak={streak} />
         </motion.div>
       </div>
 
