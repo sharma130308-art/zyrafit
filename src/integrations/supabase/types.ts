@@ -161,6 +161,7 @@ export type Database = {
           id: string
           protein_goal: number
           reminders_enabled: boolean
+          timezone: string
           updated_at: string
           user_id: string
         }
@@ -172,6 +173,7 @@ export type Database = {
           id?: string
           protein_goal?: number
           reminders_enabled?: boolean
+          timezone?: string
           updated_at?: string
           user_id: string
         }
@@ -183,6 +185,7 @@ export type Database = {
           id?: string
           protein_goal?: number
           reminders_enabled?: boolean
+          timezone?: string
           updated_at?: string
           user_id?: string
         }
