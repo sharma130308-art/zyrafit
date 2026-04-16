@@ -525,6 +525,12 @@ function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <UndoToast
+        entry={deletedEntry}
+        onUndo={handleUndoDelete}
+        onDismiss={() => setDeletedEntry(null)}
+      />
     </div>
     </PullToRefresh>
   );
