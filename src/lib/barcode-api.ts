@@ -29,7 +29,7 @@ export interface ScannedFood {
   barcode: string;
 }
 
-const BARCODE_CACHE_KEY = "caltrack_barcode_cache";
+const BARCODE_CACHE_KEY = "zyrafit_barcode_cache";
 
 function getCache(): Record<string, ScannedFood> {
   if (typeof window === "undefined") return {};
