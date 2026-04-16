@@ -37,16 +37,44 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", damping: 20, stiffness: 200, delay: 0.1 }}
           >
-            <div className="w-20 h-20 rounded-[22px] overflow-hidden shadow-[0_8px_32px_-4px] shadow-foreground/5 relative border border-foreground/[0.06]">
+            {/* Soft pulsing glow halo behind logo */}
+            <motion.div
+              className="absolute inset-0 rounded-[28px] -z-10"
+              style={{
+                background: "radial-gradient(circle, rgba(61,160,224,0.55) 0%, rgba(61,160,224,0.15) 45%, transparent 70%)",
+                filter: "blur(20px)",
+              }}
+              animate={{
+                opacity: [0.4, 0.85, 0.4],
+                scale: [0.95, 1.15, 0.95],
+              }}
+              transition={{
+                duration: 2.4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.3,
+              }}
+            />
+            <motion.div
+              className="w-20 h-20 rounded-[22px] overflow-hidden shadow-[0_8px_32px_-4px] shadow-primary/20 relative border border-white/10"
+              animate={{
+                boxShadow: [
+                  "0 8px 32px -4px rgba(61,160,224,0.25)",
+                  "0 12px 40px -2px rgba(61,160,224,0.55)",
+                  "0 8px 32px -4px rgba(61,160,224,0.25)",
+                ],
+              }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+            >
               {/* Shimmer effect */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.04] to-transparent z-10"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent z-10"
                 initial={{ x: "-100%" }}
                 animate={{ x: "200%" }}
                 transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
               />
               <img src={zyrafitIcon} alt="ZyraFit" className="w-full h-full object-cover" />
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* App name */}
