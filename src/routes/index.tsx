@@ -17,6 +17,7 @@ import {
   type FoodSource,
   type DaySummary,
   getLoggingStreak,
+  restoreEntry,
 } from "@/lib/food-store";
 import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
 import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
@@ -34,6 +35,7 @@ import { WeeklyChart } from "@/components/WeeklyChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { StreakBadge } from "@/components/StreakBadge";
+import { UndoToast } from "@/components/UndoToast";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -55,6 +57,7 @@ function Dashboard() {
   const [quickAddMeal, setQuickAddMeal] = useState<MealType | null>(null);
   const [goal, setGoal] = useState(2000);
   const [loading, setLoading] = useState(true);
+  const [deletedEntry, setDeletedEntry] = useState<FoodEntry | null>(null);
 
   // Redirect unauthenticated users to login, new users to onboarding
   useEffect(() => {
@@ -133,9 +136,17 @@ function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteEntry(id);
+    const entry = await deleteEntry(id);
+    if (entry) setDeletedEntry(entry);
     refresh();
   };
+
+  const handleUndoDelete = useCallback(async () => {
+    if (!deletedEntry) return;
+    await restoreEntry(deletedEntry);
+    setDeletedEntry(null);
+    refresh();
+  }, [deletedEntry, refresh]);
 
   const handleBarcodeScan = async (barcode: string) => {
     setScannerOpen(false);
