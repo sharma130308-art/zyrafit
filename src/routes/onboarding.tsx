@@ -207,8 +207,11 @@ function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Progress bar */}
+      {/* Logo + Progress bar */}
       <div className="px-6 pt-14 pb-4">
+        <div className="flex items-center justify-center mb-4">
+          <img src={zyrafitIcon} alt="ZyraFit" className="w-10 h-10 rounded-xl" />
+        </div>
         <div className="flex items-center justify-between mb-3">
           {currentStep > 0 ? (
             <button onClick={handleBack} className="text-muted-foreground p-1">
