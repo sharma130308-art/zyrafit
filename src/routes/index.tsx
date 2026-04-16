@@ -16,6 +16,7 @@ import {
   type MealType,
   type FoodSource,
   type DaySummary,
+  getLoggingStreak,
 } from "@/lib/food-store";
 import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
 import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
@@ -32,6 +33,7 @@ import { QuickAddPicker } from "@/components/QuickAddPicker";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { StreakBadge } from "@/components/StreakBadge";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -88,16 +90,19 @@ function Dashboard() {
   const [aiError, setAiError] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
+  const [streak, setStreak] = useState(0);
 
   const refresh = useCallback(async () => {
-    const [fetchedEntries, fetchedGoal, fetchedWeekly] = await Promise.all([
+    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
       getWeeklyHistory(),
+      getLoggingStreak(),
     ]);
     setEntries(fetchedEntries);
     setGoal(fetchedGoal);
     setWeeklyData(fetchedWeekly);
+    setStreak(fetchedStreak);
     setLoading(false);
   }, [today]);
 
@@ -252,9 +257,12 @@ function Dashboard() {
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="px-6 pt-14 pb-2">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-sm text-muted-foreground">Today</p>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Today</p>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          </div>
+          <StreakBadge streak={streak} />
         </motion.div>
       </div>
 
