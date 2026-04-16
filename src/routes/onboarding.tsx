@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { calculateMacros, GOALS, GENDERS } from "@/lib/macro-calc";
+import zyrafitIcon from "@/assets/zyrafit-icon.png";
 import {
   ArrowRight,
   ArrowLeft,
