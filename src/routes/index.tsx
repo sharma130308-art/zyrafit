@@ -188,8 +188,8 @@ function Dashboard() {
           uploadedPhotoUrl = urlData.publicUrl;
         }
       }
-      // Store the uploaded URL for use when adding
-      uploadedPhotoUrlRef.current = uploadedPhotoUrl;
+      // Store the uploaded URL for use when adding, fallback to base64
+      uploadedPhotoUrlRef.current = uploadedPhotoUrl || base64;
 
       if (abortController.signal.aborted) return;
       const result = await analyzePhoto(base64);
