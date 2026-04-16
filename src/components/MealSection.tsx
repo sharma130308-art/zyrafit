@@ -4,7 +4,6 @@ import { Trash2, Plus, X, Camera } from "lucide-react";
 import type { FoodEntry, MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 import { hapticLight, hapticHeavy } from "@/lib/haptics";
-import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 
 interface MealSectionProps {
   mealType: MealType;
