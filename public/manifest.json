@@ -5,8 +5,8 @@
   "description": "Track your daily calories and macros with AI-powered food recognition.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3da0e0",
+  "background_color": "#1a1b2f",
+  "theme_color": "#1a1b2f",
   "orientation": "portrait",
   "categories": ["health", "fitness", "lifestyle"],
   "icons": [
