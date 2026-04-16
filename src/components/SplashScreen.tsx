@@ -87,14 +87,27 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             ZyraFit
           </motion.h1>
 
-          {/* Tagline */}
+          {/* Tagline — letter-by-letter reveal */}
           <motion.p
-            className="text-[13px] text-white/60 mt-1 font-medium tracking-wide relative z-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.55, duration: 0.4 }}
+            className="text-[13px] text-white/60 mt-1 font-medium tracking-wide relative z-10 flex"
+            initial="hidden"
+            animate="visible"
+            transition={{ delayChildren: 0.55, staggerChildren: 0.025 }}
+            aria-label="Eat smart. Live better."
           >
-            Eat smart. Live better.
+            {"Eat smart. Live better.".split("").map((char, i) => (
+              <motion.span
+                key={i}
+                variants={{
+                  hidden: { opacity: 0, y: 6, filter: "blur(4px)" },
+                  visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+                }}
+                transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+                style={{ display: "inline-block", whiteSpace: "pre" }}
+              >
+                {char}
+              </motion.span>
+            ))}
           </motion.p>
 
           {/* Minimal loading bar */}
