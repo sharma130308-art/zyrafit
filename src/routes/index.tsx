@@ -31,6 +31,7 @@ import { AIFoodPreview } from "@/components/AIFoodPreview";
 import { QuickAddPicker } from "@/components/QuickAddPicker";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -243,15 +244,7 @@ function Dashboard() {
   const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
