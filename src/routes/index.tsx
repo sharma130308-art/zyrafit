@@ -191,7 +191,9 @@ function Dashboard() {
       // Store the uploaded URL for use when adding
       uploadedPhotoUrlRef.current = uploadedPhotoUrl;
 
+      if (abortController.signal.aborted) return;
       const result = await analyzePhoto(base64);
+      if (abortController.signal.aborted) return;
       setAiLoading(false);
       if (!result.is_food || result.items.length === 0) {
         setAiError("No food detected in this photo. Try again with a clearer shot.");
@@ -200,12 +202,20 @@ function Dashboard() {
         setAiItems(result.items);
       }
     } catch (err) {
+      if (abortController.signal.aborted) return;
       setAiLoading(false);
       setAiError(err instanceof Error ? err.message : "AI analysis failed");
       setTimeout(() => setAiError(null), 3000);
     }
   };
 
+  const handleCancelAiAnalysis = useCallback(() => {
+    aiAbortRef.current?.abort();
+    aiAbortRef.current = null;
+    setAiLoading(false);
+    setAiImageUrl("");
+    setAiItems(null);
+  }, []);
   const uploadedPhotoUrlRef = useRef<string | null>(null);
 
   const handleAddFromAi = async (foods: {
