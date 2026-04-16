@@ -328,6 +328,8 @@ function Dashboard() {
 
       <BottomNav onAddClick={() => setQuickAddMeal("breakfast")} />
 
+      <ReminderPrompt isAuthenticated={!!user} />
+
       {/* Quick Add Picker */}
       <QuickAddPicker
         mealType={quickAddMeal}
