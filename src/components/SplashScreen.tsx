@@ -30,13 +30,50 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           {/* Subtle gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-transparent to-primary/[0.08]" />
 
-          {/* Logo mark */}
+          {/* Logo mark with orbiting sparkles */}
           <motion.div
             className="relative mb-5"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", damping: 20, stiffness: 200, delay: 0.1 }}
           >
+            {/* Sparkle particles — fixed positions around the logo */}
+            {[
+              { x: -42, y: -38, size: 3, delay: 0.6, duration: 2.2 },
+              { x: 48, y: -30, size: 2, delay: 0.9, duration: 2.6 },
+              { x: 52, y: 36, size: 2.5, delay: 1.2, duration: 2.4 },
+              { x: -50, y: 42, size: 2, delay: 0.75, duration: 2.8 },
+              { x: -56, y: 4, size: 1.5, delay: 1.4, duration: 2.0 },
+              { x: 58, y: 8, size: 1.5, delay: 1.0, duration: 2.5 },
+              { x: -8, y: -54, size: 2, delay: 1.6, duration: 2.3 },
+              { x: 12, y: 56, size: 1.5, delay: 0.85, duration: 2.7 },
+            ].map((p, i) => (
+              <motion.span
+                key={i}
+                className="absolute top-1/2 left-1/2 rounded-full bg-white pointer-events-none"
+                style={{
+                  width: p.size,
+                  height: p.size,
+                  marginLeft: -p.size / 2,
+                  marginTop: -p.size / 2,
+                  boxShadow: "0 0 6px 1px rgba(180, 220, 255, 0.9)",
+                }}
+                initial={{ opacity: 0, x: p.x * 0.6, y: p.y * 0.6, scale: 0 }}
+                animate={{
+                  opacity: [0, 1, 0],
+                  scale: [0, 1, 0],
+                  x: [p.x * 0.6, p.x, p.x * 0.6],
+                  y: [p.y * 0.6, p.y, p.y * 0.6],
+                }}
+                transition={{
+                  duration: p.duration,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: p.delay,
+                }}
+              />
+            ))}
+
             {/* Soft pulsing glow halo behind logo */}
             <motion.div
               className="absolute inset-0 rounded-[28px] -z-10"
