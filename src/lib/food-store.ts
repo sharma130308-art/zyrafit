@@ -153,14 +153,71 @@ export async function addEntry(
   return newEntry;
 }
 
-export async function deleteEntry(id: string) {
+export async function deleteEntry(id: string): Promise<FoodEntry | null> {
   const userId = await getCurrentUserId();
 
+  // Find the entry before deleting (for undo)
+  const all = getLocalEntries();
+  const deleted = all.find((e) => e.id === id) || null;
+
   if (userId) {
+    // Fetch from DB if not in local cache
+    if (!deleted) {
+      const { data } = await supabase
+        .from("food_entries")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (data) {
+        const entry: FoodEntry = {
+          id: data.id,
+          name: data.name,
+          calories: Number(data.calories),
+          protein: Number(data.protein),
+          carbs: Number(data.carbs),
+          fat: Number(data.fat),
+          quantity: data.quantity,
+          mealType: data.meal_type as MealType,
+          date: data.date,
+          barcode: data.barcode,
+          source: (data.source as FoodSource) || "manual",
+          photoUrl: (data as any).photo_url || null,
+        };
+        await supabase.from("food_entries").delete().eq("id", id);
+        setLocalEntries(all.filter((e) => e.id !== id));
+        return entry;
+      }
+    }
     await supabase.from("food_entries").delete().eq("id", id);
   }
 
-  const all = getLocalEntries().filter((e) => e.id !== id);
+  setLocalEntries(all.filter((e) => e.id !== id));
+  return deleted;
+}
+
+export async function restoreEntry(entry: FoodEntry): Promise<void> {
+  const userId = await getCurrentUserId();
+
+  if (userId) {
+    await supabase.from("food_entries").insert({
+      id: entry.id,
+      user_id: userId,
+      name: entry.name,
+      calories: entry.calories,
+      protein: entry.protein,
+      carbs: entry.carbs,
+      fat: entry.fat,
+      quantity: entry.quantity,
+      meal_type: entry.mealType,
+      date: entry.date,
+      barcode: entry.barcode || null,
+      source: entry.source,
+      photo_url: entry.photoUrl || null,
+    });
+  }
+
+  const all = getLocalEntries();
+  all.push(entry);
   setLocalEntries(all);
 }
 
