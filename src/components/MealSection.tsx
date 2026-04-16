@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Plus, X, Camera } from "lucide-react";
 import type { FoodEntry, MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
+import { hapticLight, hapticHeavy } from "@/lib/haptics";
+import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 
 interface MealSectionProps {
   mealType: MealType;
@@ -40,7 +42,7 @@ export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionP
             {onAdd && (
               <motion.button
                 whileTap={{ scale: 0.85 }}
-                onClick={() => onAdd(mealType)}
+                onClick={() => { hapticLight(); onAdd(mealType); }}
                 className="p-1.5 rounded-xl bg-primary/10 text-primary"
               >
                 <Plus className="w-4 h-4" />
@@ -103,7 +105,7 @@ export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionP
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.85 }}
-                    onClick={() => onDelete(entry.id)}
+                    onClick={() => { hapticHeavy(); onDelete(entry.id); }}
                     className="p-2 rounded-xl text-muted-foreground/50 hover:text-destructive hover:bg-destructive/8 transition-colors ml-2"
                   >
                     <Trash2 className="w-4 h-4" />
