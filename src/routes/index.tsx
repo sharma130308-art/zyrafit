@@ -97,6 +97,22 @@ function Dashboard() {
   const [streak, setStreak] = useState(0);
 
   const refresh = useCallback(async () => {
+    // Instant render from localStorage cache — no waiting for network
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("zyrafit_entries");
+        const cachedGoal = localStorage.getItem("zyrafit_goal");
+        if (cached) {
+          const all = JSON.parse(cached) as FoodEntry[];
+          setEntries(all.filter((e) => e.date === today));
+        }
+        if (cachedGoal) setGoal(parseInt(cachedGoal, 10));
+        setLoading(false);
+      } catch {
+        /* ignore */
+      }
+    }
+
     const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
