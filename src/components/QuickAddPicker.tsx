@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Camera, ScanBarcode, Pencil, X } from "lucide-react";
 import type { MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
+import { hapticLight } from "@/lib/haptics";
 
 interface QuickAddPickerProps {
   mealType: MealType | null;
@@ -55,7 +56,7 @@ export function QuickAddPicker({ mealType, onClose, onAiPhoto, onBarcodeScan, on
         <div className="flex gap-3">
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={onAiPhoto}
+            onClick={() => { hapticLight(); onAiPhoto(); }}
             className="flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25"
           >
             <Camera className="w-7 h-7" />
@@ -64,7 +65,7 @@ export function QuickAddPicker({ mealType, onClose, onAiPhoto, onBarcodeScan, on
 
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={onBarcodeScan}
+            onClick={() => { hapticLight(); onBarcodeScan(); }}
             className="flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-muted/60 text-foreground font-semibold border border-border/30"
           >
             <ScanBarcode className="w-7 h-7" />
@@ -73,7 +74,7 @@ export function QuickAddPicker({ mealType, onClose, onAiPhoto, onBarcodeScan, on
 
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={onManual}
+            onClick={() => { hapticLight(); onManual(); }}
             className="flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-muted/60 text-foreground font-semibold border border-border/30"
           >
             <Pencil className="w-7 h-7" />

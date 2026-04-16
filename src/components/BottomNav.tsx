@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Home, PlusCircle, User } from "lucide-react";
+import { hapticMedium } from "@/lib/haptics";
 
 interface BottomNavProps {
   onAddClick: () => void;
@@ -35,7 +36,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
         <motion.button
           whileTap={{ scale: 0.85, rotate: -8 }}
           transition={{ type: "spring", stiffness: 500, damping: 25 }}
-          onClick={onAddClick}
+          onClick={() => { hapticMedium(); onAddClick(); }}
           className="relative -mt-7"
         >
           <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30">

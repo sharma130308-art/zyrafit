@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { hapticSuccess } from "@/lib/haptics";
 import { X, Plus, Search, Clock, ChevronRight, ScanBarcode, Sparkles } from "lucide-react";
 import type { MealType, FoodTemplate } from "@/lib/food-store";
 import { MEAL_LABELS, searchFoodHistory } from "@/lib/food-store";
@@ -86,6 +87,7 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !calories || saving) return;
+    hapticSuccess();
     setSaving(true);
     await onAdd({
       name,
