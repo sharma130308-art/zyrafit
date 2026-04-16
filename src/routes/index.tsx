@@ -165,6 +165,8 @@ function Dashboard() {
   };
 
   const handlePhotoCapture = async (file: File) => {
+    const abortController = new AbortController();
+    aiAbortRef.current = abortController;
     setAiLoading(true);
     setAiError(null);
     try {
