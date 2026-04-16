@@ -514,5 +514,6 @@ function Dashboard() {
         )}
       </AnimatePresence>
     </div>
+    </PullToRefresh>
   );
 }
