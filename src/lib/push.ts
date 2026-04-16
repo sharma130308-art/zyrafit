@@ -81,9 +81,11 @@ export async function subscribeToPush(): Promise<{
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
   if (!subscription) {
+    const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      // Cast to satisfy TS lib mismatch on Uint8Array<ArrayBufferLike>
+      applicationServerKey: key.buffer as ArrayBuffer,
     });
   }
 
