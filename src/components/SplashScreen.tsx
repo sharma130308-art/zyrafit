@@ -28,7 +28,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           {/* Subtle gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-transparent to-primary/[0.08]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/[0.02] via-transparent to-primary/[0.06]" />
 
           {/* Logo mark with orbiting sparkles */}
           <motion.div
@@ -111,7 +111,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
           {/* Tagline — letter-by-letter reveal */}
           <motion.p
-            className="text-[13px] text-white/60 mt-1 font-medium tracking-wide relative z-10 flex"
+            className="text-[13px] text-foreground/60 mt-1 font-medium tracking-wide relative z-10 flex"
             initial="hidden"
             animate="visible"
             transition={{ delayChildren: 0.55, staggerChildren: 0.025 }}
@@ -134,13 +134,13 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
           {/* Minimal loading bar */}
           <motion.div
-            className="mt-10 w-12 h-[3px] rounded-full bg-white/10 overflow-hidden relative z-10"
+            className="mt-10 w-12 h-[3px] rounded-full bg-foreground/10 overflow-hidden relative z-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
           >
             <motion.div
-              className="h-full bg-white/40 rounded-full"
+              className="h-full bg-foreground/40 rounded-full"
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ duration: 0.7, delay: 0.75, ease: [0.4, 0, 0.2, 1] }}
