@@ -224,7 +224,11 @@ function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) {
+      setProfileLoading(false);
+      return;
+    }
     // All 4 queries in parallel — single round-trip
     Promise.all([
       loadCalorieGoal(),
@@ -297,7 +301,7 @@ function ProfilePage() {
         /* ignore */
       }
     });
-  }, [user]);
+  }, [user, authLoading]);
 
   const startEditing = () => {
     setEditingProfile(true);
