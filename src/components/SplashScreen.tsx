@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import zyrafitLogo from "@/assets/zyrafit-logo.png";
+import zyrafitIcon from "@/assets/zyrafit-icon.png";
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -93,7 +93,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
               }}
             />
             <motion.div
-              className="w-48 h-32 relative flex items-center justify-center"
+              className="w-24 h-24 relative flex items-center justify-center"
               animate={{
                 filter: [
                   "drop-shadow(0 8px 24px rgba(61,160,224,0.25))",
@@ -103,7 +103,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
               }}
               transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
             >
-              <img src={zyrafitLogo} alt="ZyraFit" className="w-full h-full object-contain" />
+              <img src={zyrafitIcon} alt="ZyraFit" className="w-full h-full object-contain" />
             </motion.div>
           </motion.div>
 
