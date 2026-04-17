@@ -94,6 +94,23 @@ function RootComponent() {
 
   useEffect(() => {
     registerServiceWorker();
+
+    // Global native-like haptic on tap
+    const handleTap = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const tappable = target.closest(
+        'button, a, [role="button"], input[type="checkbox"], input[type="radio"], label[for]'
+      );
+      if (!tappable) return;
+      try {
+        navigator?.vibrate?.(8);
+      } catch {
+        // ignore
+      }
+    };
+    document.addEventListener("pointerdown", handleTap, { passive: true });
+    return () => document.removeEventListener("pointerdown", handleTap);
   }, []);
 
   return (
