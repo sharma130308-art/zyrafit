@@ -41,7 +41,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "ZyraFit" },
-      { name: "theme-color", content: "#1a1b2f" },
+      { name: "theme-color", content: "#ffffff" },
       { property: "og:title", content: "ZyraFit — Daily Calorie & Macro Tracker" },
       { property: "og:description", content: "Track your daily calories and macros with AI-powered food recognition." },
       { property: "og:type", content: "website" },
