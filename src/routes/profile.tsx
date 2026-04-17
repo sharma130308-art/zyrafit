@@ -300,6 +300,9 @@ function ProfilePage() {
       } catch {
         /* ignore */
       }
+    }).catch((err) => {
+      console.error("[profile] load failed:", err);
+      setProfileLoading(false);
     });
   }, [user, authLoading]);
 
