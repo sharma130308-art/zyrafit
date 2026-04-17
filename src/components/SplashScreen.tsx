@@ -22,7 +22,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       {visible && (
         <motion.div
           className="absolute inset-0 z-[100] flex flex-col items-center justify-center"
-          style={{ backgroundColor: "#1a1b2f" }}
+          style={{ backgroundColor: "#ffffff" }}
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.08 }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
