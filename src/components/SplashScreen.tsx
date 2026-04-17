@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import zyrafitIcon from "@/assets/zyrafit-icon.png";
+import zyrafitLogo from "@/assets/zyrafit-logo.png";
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -93,36 +93,21 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
               }}
             />
             <motion.div
-              className="w-20 h-20 rounded-[22px] overflow-hidden shadow-[0_8px_32px_-4px] shadow-primary/20 relative border border-white/10"
+              className="w-48 h-32 relative flex items-center justify-center"
               animate={{
-                boxShadow: [
-                  "0 8px 32px -4px rgba(61,160,224,0.25)",
-                  "0 12px 40px -2px rgba(61,160,224,0.55)",
-                  "0 8px 32px -4px rgba(61,160,224,0.25)",
+                filter: [
+                  "drop-shadow(0 8px 24px rgba(61,160,224,0.25))",
+                  "drop-shadow(0 12px 36px rgba(61,160,224,0.55))",
+                  "drop-shadow(0 8px 24px rgba(61,160,224,0.25))",
                 ],
               }}
               transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
             >
-              {/* Shimmer effect */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent z-10"
-                initial={{ x: "-100%" }}
-                animate={{ x: "200%" }}
-                transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
-              />
-              <img src={zyrafitIcon} alt="ZyraFit" className="w-full h-full object-cover" />
+              <img src={zyrafitLogo} alt="ZyraFit" className="w-full h-full object-contain" />
             </motion.div>
           </motion.div>
 
-          {/* App name */}
-          <motion.h1
-            className="text-[26px] font-black tracking-tight text-white relative z-10"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          >
-            ZyraFit
-          </motion.h1>
+          {/* App name removed — already part of the logo image */}
 
           {/* Tagline — letter-by-letter reveal */}
           <motion.p
