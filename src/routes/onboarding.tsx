@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -46,21 +46,47 @@ const OBSTACLES = [
   { value: "stress", label: "Stress & Emotional Eating", emoji: "😰" },
 ];
 
+const STORAGE_KEY = "zyrafit:onboarding-progress";
+
+type SavedProgress = {
+  currentStep: number;
+  gender: string;
+  age: string;
+  height: string;
+  weight: string;
+  workoutDays: number;
+  goal: string;
+  obstacles: string[];
+  appleHealth: boolean;
+};
+
+function loadProgress(): Partial<SavedProgress> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<SavedProgress>) : null;
+  } catch {
+    return null;
+  }
+}
+
 function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState(0);
+  const saved = useRef<Partial<SavedProgress> | null>(loadProgress()).current;
+
+  const [currentStep, setCurrentStep] = useState(saved?.currentStep ?? 0);
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [gender, setGender] = useState("");
-  const [age, setAge] = useState("");
-  const [height, setHeight] = useState("");
-  const [weight, setWeight] = useState("");
-  const [workoutDays, setWorkoutDays] = useState(3);
-  const [goal, setGoal] = useState("");
-  const [obstacles, setObstacles] = useState<string[]>([]);
-  const [appleHealth, setAppleHealth] = useState(false);
+  const [gender, setGender] = useState(saved?.gender ?? "");
+  const [age, setAge] = useState(saved?.age ?? "");
+  const [height, setHeight] = useState(saved?.height ?? "");
+  const [weight, setWeight] = useState(saved?.weight ?? "");
+  const [workoutDays, setWorkoutDays] = useState(saved?.workoutDays ?? 3);
+  const [goal, setGoal] = useState(saved?.goal ?? "");
+  const [obstacles, setObstacles] = useState<string[]>(saved?.obstacles ?? []);
+  const [appleHealth, setAppleHealth] = useState(saved?.appleHealth ?? false);
 
   // Auth state (for signup step)
   const [email, setEmail] = useState("");
@@ -72,6 +98,20 @@ function OnboardingPage() {
   const step = STEPS[currentStep];
   const totalSteps = STEPS.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
+
+  // Persist progress on every change (skip the final signup step — auth handles it)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const data: SavedProgress = {
+        currentStep, gender, age, height, weight, workoutDays, goal, obstacles, appleHealth,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch {
+      // ignore quota errors
+    }
+  }, [currentStep, gender, age, height, weight, workoutDays, goal, obstacles, appleHealth]);
+
 
   const canProceed = () => {
     switch (step) {
@@ -122,12 +162,19 @@ function OnboardingPage() {
     ]);
   };
 
+  const clearProgress = () => {
+    if (typeof window !== "undefined") {
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    }
+  };
+
   const handleNext = async () => {
     if (step === "health") {
       // If already authenticated, save and go home
       if (user) {
         setSaving(true);
         await saveProfile(user.id);
+        clearProgress();
         setSaving(false);
         navigate({ to: "/" });
         return;
@@ -171,6 +218,7 @@ function OnboardingPage() {
 
     if (data.user) {
       await saveProfile(data.user.id);
+      clearProgress();
       setAuthLoading(false);
       navigate({ to: "/" });
     } else {
