@@ -192,6 +192,7 @@ function OnboardingPage() {
   };
 
   const handleNext = async () => {
+    hapticMedium();
     if (step === "health") {
       // If already authenticated, save and go home
       if (user) {
@@ -210,12 +211,14 @@ function OnboardingPage() {
   };
 
   const handleBack = () => {
+    hapticLight();
     if (currentStep > 0) {
       setCurrentStep((s) => s - 1);
     }
   };
 
   const toggleObstacle = (value: string) => {
+    hapticLight();
     setObstacles((prev) =>
       prev.includes(value) ? prev.filter((o) => o !== value) : [...prev, value]
     );
