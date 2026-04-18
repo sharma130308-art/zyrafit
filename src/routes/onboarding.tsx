@@ -526,7 +526,7 @@ function OptionCard({
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => { hapticLight(); onClick(); }}
       className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
         wide ? "w-full" : ""
       } ${
