@@ -123,6 +123,7 @@ function RootComponent() {
         {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       </AnimatePresence>
       <SwipeBackGesture />
+      <SyncStatusBanner />
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
