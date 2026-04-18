@@ -1,7 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
-import { useState, useCallback, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { SplashScreen } from "@/components/SplashScreen";
+import { useEffect } from "react";
+import { motion } from "framer-motion";
 import { SyncStatusBanner } from "@/components/SyncStatusBanner";
 import { SyncQueueDebugPanel } from "@/components/SyncQueueDebugPanel";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
@@ -92,8 +91,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const [showSplash, setShowSplash] = useState(true);
-  const handleSplashFinish = useCallback(() => setShowSplash(false), []);
   const location = useLocation();
 
   useEffect(() => {
@@ -120,9 +117,6 @@ function RootComponent() {
 
   return (
     <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative overflow-hidden">
-      <AnimatePresence>
-        {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
-      </AnimatePresence>
       <SwipeBackGesture />
       <SyncStatusBanner />
       <SyncQueueDebugPanel />
