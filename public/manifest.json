@@ -10,6 +10,18 @@
   "lang": "en",
   "dir": "ltr",
   "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.zyrafit.app",
+      "url": "https://play.google.com/store/apps/details?id=com.zyrafit.app"
+    },
+    {
+      "platform": "itunes",
+      "id": "0000000000",
+      "url": "https://apps.apple.com/app/id0000000000"
+    }
+  ],
   "scope_extensions": [
     { "origin": "https://somfitapp.com" },
     { "origin": "https://www.somfitapp.com" },
