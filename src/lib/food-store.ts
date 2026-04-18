@@ -98,7 +98,7 @@ export async function addEntry(
   const userId = await getCurrentUserId();
   const localId = crypto.randomUUID();
 
-  if (userId) {
+  if (userId && (typeof navigator === "undefined" || navigator.onLine)) {
     const insertData: any = {
       user_id: userId,
       name: entry.name,
@@ -116,40 +116,44 @@ export async function addEntry(
       insertData.photo_url = entry.photoUrl;
     }
 
-    const { data, error } = await supabase
-      .from("food_entries")
-      .insert(insertData)
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("food_entries")
+        .insert(insertData)
+        .select()
+        .single();
 
-    if (!error && data) {
-      const newEntry: FoodEntry = {
-        id: data.id,
-        name: data.name,
-        calories: Number(data.calories),
-        protein: Number(data.protein),
-        carbs: Number(data.carbs),
-        fat: Number(data.fat),
-        quantity: data.quantity,
-        mealType: data.meal_type as MealType,
-        date: data.date,
-        barcode: data.barcode,
-        source: (data.source as FoodSource) || "manual",
-        photoUrl: (data as any).photo_url || null,
-      };
-      // Update local cache
-      const all = getLocalEntries();
-      all.push(newEntry);
-      setLocalEntries(all);
-      return newEntry;
+      if (!error && data) {
+        const newEntry: FoodEntry = {
+          id: data.id,
+          name: data.name,
+          calories: Number(data.calories),
+          protein: Number(data.protein),
+          carbs: Number(data.carbs),
+          fat: Number(data.fat),
+          quantity: data.quantity,
+          mealType: data.meal_type as MealType,
+          date: data.date,
+          barcode: data.barcode,
+          source: (data.source as FoodSource) || "manual",
+          photoUrl: (data as any).photo_url || null,
+        };
+        const all = getLocalEntries();
+        all.push(newEntry);
+        setLocalEntries(all);
+        return newEntry;
+      }
+    } catch {
+      // fall through to offline queue
     }
   }
 
-  // Offline fallback
+  // Offline (or insert failed): save locally + queue for sync if logged in
   const newEntry: FoodEntry = { ...entry, id: localId };
   const all = getLocalEntries();
   all.push(newEntry);
   setLocalEntries(all);
+  if (userId) enqueueEntry(entry, localId);
   return newEntry;
 }
 
