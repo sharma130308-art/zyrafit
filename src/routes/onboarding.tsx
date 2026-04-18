@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { calculateMacros, GOALS, GENDERS } from "@/lib/macro-calc";
 import zyrafitIcon from "@/assets/zyrafit-icon.png";
 import { StepContainer } from "@/components/onboarding/StepContainer";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
 import {
   ArrowRight,
   ArrowLeft,
