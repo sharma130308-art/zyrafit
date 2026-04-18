@@ -14,13 +14,18 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const [state, setState] = useState<"idle" | "refreshing" | "done">("idle");
   const pullY = useMotionValue(0);
   const isDragging = useRef(false);
+  const isTouch = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const spinnerOpacity = useTransform(pullY, [0, THRESHOLD * 0.5, THRESHOLD], [0, 0.5, 1]);
   const spinnerScale = useTransform(pullY, [0, THRESHOLD], [0.5, 1]);
   const spinnerRotate = useTransform(pullY, [0, THRESHOLD * 2], [0, 360]);
 
-  const handleDragStart = useCallback(() => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Only enable pull-to-refresh for touch input (mobile). Mouse on desktop
+    // should fall through to normal scrolling.
+    isTouch.current = e.pointerType === "touch";
+    if (!isTouch.current) return;
     const el = containerRef.current;
     if (el && el.scrollTop > 0) return;
     isDragging.current = true;
@@ -28,7 +33,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
 
   const handleDrag = useCallback(
     (_: any, info: { delta: { y: number } }) => {
-      if (!isDragging.current || state !== "idle") return;
+      if (!isTouch.current || !isDragging.current || state !== "idle") return;
       const el = containerRef.current;
       if (el && el.scrollTop > 0) return;
 
@@ -43,7 +48,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   );
 
   const handleDragEnd = useCallback(async () => {
-    if (!isDragging.current) return;
+    if (!isTouch.current || !isDragging.current) return;
     isDragging.current = false;
 
     if (pullY.get() >= THRESHOLD && state === "idle") {
@@ -52,11 +57,8 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       try {
         await onRefresh();
       } finally {
-        // Show checkmark
         setState("done");
         hapticSuccess();
-
-        // Hold checkmark for 800ms then dismiss
         setTimeout(() => {
           setState("idle");
           animate(pullY, 0, { type: "spring", stiffness: 300, damping: 30 });
@@ -111,7 +113,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       {/* Content */}
       <motion.div
         style={{ y: pullY }}
-        onPointerDown={handleDragStart}
+        onPointerDown={handlePointerDown}
         onPan={handleDrag}
         onPanEnd={handleDragEnd}
       >
