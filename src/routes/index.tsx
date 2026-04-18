@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,25 +20,26 @@ import {
   getLoggingStreak,
   restoreEntry,
 } from "@/lib/food-store";
-import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
-import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
+import type { ScannedFood } from "@/lib/barcode-api";
+import type { AIFoodItem } from "@/lib/food-ai";
 import { CalorieRing } from "@/components/CalorieRing";
 import { MacroBar } from "@/components/MacroBar";
 import { MealSection } from "@/components/MealSection";
-import { AddFoodDialog } from "@/components/AddFoodDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { ReminderPrompt } from "@/components/ReminderPrompt";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { FoodPreview } from "@/components/FoodPreview";
-
-import { AIFoodPreview } from "@/components/AIFoodPreview";
-import { QuickAddPicker } from "@/components/QuickAddPicker";
-import { WeeklyChart } from "@/components/WeeklyChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { StreakBadge } from "@/components/StreakBadge";
 import { UndoToast } from "@/components/UndoToast";
-import { EditEntrySheet } from "@/components/EditEntrySheet";
+
+// Heavy / on-demand components — lazy-loaded so they don't block first paint.
+const AddFoodDialog = lazy(() => import("@/components/AddFoodDialog").then(m => ({ default: m.AddFoodDialog })));
+const BarcodeScanner = lazy(() => import("@/components/BarcodeScanner").then(m => ({ default: m.BarcodeScanner })));
+const FoodPreview = lazy(() => import("@/components/FoodPreview").then(m => ({ default: m.FoodPreview })));
+const AIFoodPreview = lazy(() => import("@/components/AIFoodPreview").then(m => ({ default: m.AIFoodPreview })));
+const QuickAddPicker = lazy(() => import("@/components/QuickAddPicker").then(m => ({ default: m.QuickAddPicker })));
+const WeeklyChart = lazy(() => import("@/components/WeeklyChart").then(m => ({ default: m.WeeklyChart })));
+const EditEntrySheet = lazy(() => import("@/components/EditEntrySheet").then(m => ({ default: m.EditEntrySheet })));
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -191,6 +192,7 @@ function Dashboard() {
     setScanLoading(true);
     setScanError(null);
 
+    const { lookupBarcode } = await import("@/lib/barcode-api");
     const food = await lookupBarcode(barcode);
     setScanLoading(false);
 
@@ -226,6 +228,7 @@ function Dashboard() {
     setAiLoading(true);
     setAiError(null);
     try {
+      const { captureImageAsBase64, analyzePhoto } = await import("@/lib/food-ai");
       const base64 = await captureImageAsBase64(file);
       setAiImageUrl(base64);
 
@@ -341,7 +344,9 @@ function Dashboard() {
 
       {/* Weekly Chart */}
       <div className="px-6 mb-6">
-        <WeeklyChart data={weeklyData} goal={goal} />
+        <Suspense fallback={<div className="h-40 rounded-2xl bg-muted/40" />}>
+          <WeeklyChart data={weeklyData} goal={goal} />
+        </Suspense>
       </div>
 
       {/* Meal Sections */}
@@ -369,87 +374,89 @@ function Dashboard() {
       <ReminderPrompt isAuthenticated={!!user} />
 
       {/* Quick Add Picker */}
-      <QuickAddPicker
-        mealType={quickAddMeal}
-        onClose={() => setQuickAddMeal(null)}
-        onAiPhoto={() => {
-          const meal = quickAddMeal;
-          setQuickAddMeal(null);
-          if (meal) setDialogMealType(meal);
-          setTimeout(() => cameraInputRef.current?.click(), 100);
-        }}
-        onBarcodeScan={() => {
-          const meal = quickAddMeal;
-          setQuickAddMeal(null);
-          if (meal) setDialogMealType(meal);
-          setScannerOpen(true);
-        }}
-        onManual={() => {
-          const meal = quickAddMeal;
-          setQuickAddMeal(null);
-          if (meal) setDialogMealType(meal);
-          setDialogOpen(true);
-        }}
-      />
+      <Suspense fallback={null}>
+        <QuickAddPicker
+          mealType={quickAddMeal}
+          onClose={() => setQuickAddMeal(null)}
+          onAiPhoto={() => {
+            const meal = quickAddMeal;
+            setQuickAddMeal(null);
+            if (meal) setDialogMealType(meal);
+            setTimeout(() => cameraInputRef.current?.click(), 100);
+          }}
+          onBarcodeScan={() => {
+            const meal = quickAddMeal;
+            setQuickAddMeal(null);
+            if (meal) setDialogMealType(meal);
+            setScannerOpen(true);
+          }}
+          onManual={() => {
+            const meal = quickAddMeal;
+            setQuickAddMeal(null);
+            if (meal) setDialogMealType(meal);
+            setDialogOpen(true);
+          }}
+        />
 
-      <AddFoodDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onAdd={handleAdd}
-        initialMealType={dialogMealType}
-        onScanClick={() => {
-          setDialogOpen(false);
-          setScannerOpen(true);
-        }}
-        onAiClick={() => {
-          setDialogOpen(false);
-          setTimeout(() => cameraInputRef.current?.click(), 100);
-        }}
-      />
+        <AddFoodDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onAdd={handleAdd}
+          initialMealType={dialogMealType}
+          onScanClick={() => {
+            setDialogOpen(false);
+            setScannerOpen(true);
+          }}
+          onAiClick={() => {
+            setDialogOpen(false);
+            setTimeout(() => cameraInputRef.current?.click(), 100);
+          }}
+        />
 
-      {/* Barcode Scanner */}
-      <BarcodeScanner
-        open={scannerOpen}
-        onClose={() => setScannerOpen(false)}
-        onScan={handleBarcodeScan}
-      />
+        {/* Barcode Scanner */}
+        <BarcodeScanner
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={handleBarcodeScan}
+        />
 
-      {/* Scanned Food Preview */}
-      <AnimatePresence>
-        {scannedFood && (
-          <FoodPreview
-            food={scannedFood}
-            onAdd={handleAddFromScan}
-            onBack={() => setScannedFood(null)}
-          />
-        )}
-      </AnimatePresence>
+        {/* Scanned Food Preview */}
+        <AnimatePresence>
+          {scannedFood && (
+            <FoodPreview
+              food={scannedFood}
+              onAdd={handleAddFromScan}
+              onBack={() => setScannedFood(null)}
+            />
+          )}
+        </AnimatePresence>
 
-      {/* Hidden camera input for AI photo */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handlePhotoCapture(file);
-          e.target.value = "";
-        }}
-        className="hidden"
-      />
+        {/* Hidden camera input for AI photo */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handlePhotoCapture(file);
+            e.target.value = "";
+          }}
+          className="hidden"
+        />
 
-      {/* AI Food Preview */}
-      <AnimatePresence>
-        {aiItems && (
-          <AIFoodPreview
-            items={aiItems}
-            imageUrl={aiImageUrl}
-            onAdd={handleAddFromAi}
-            onBack={() => { setAiItems(null); setAiImageUrl(""); }}
-          />
-        )}
-      </AnimatePresence>
+        {/* AI Food Preview */}
+        <AnimatePresence>
+          {aiItems && (
+            <AIFoodPreview
+              items={aiItems}
+              imageUrl={aiImageUrl}
+              onAdd={handleAddFromAi}
+              onBack={() => { setAiItems(null); setAiImageUrl(""); }}
+            />
+          )}
+        </AnimatePresence>
+      </Suspense>
 
       {/* Scan/AI loading overlay */}
       <AnimatePresence>
@@ -573,14 +580,16 @@ function Dashboard() {
         onDismiss={() => setDeletedEntry(null)}
       />
 
-      <EditEntrySheet
-        entry={editingEntry}
-        onClose={() => setEditingEntry(null)}
-        onSave={async (id, patch) => {
-          await updateEntry(id, patch);
-          refresh();
-        }}
-      />
+      <Suspense fallback={null}>
+        <EditEntrySheet
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSave={async (id, patch) => {
+            await updateEntry(id, patch);
+            refresh();
+          }}
+        />
+      </Suspense>
     </div>
     </PullToRefresh>
   );
