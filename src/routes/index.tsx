@@ -7,6 +7,7 @@ import {
   getEntries,
   addEntry,
   deleteEntry,
+  updateEntry,
   getTodayDate,
   getDailyTotals,
   getEntriesByMeal,
@@ -37,6 +38,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { StreakBadge } from "@/components/StreakBadge";
 import { UndoToast } from "@/components/UndoToast";
+import { EditEntrySheet } from "@/components/EditEntrySheet";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -59,6 +61,7 @@ function Dashboard() {
   const [goal, setGoal] = useState(2000);
   const [loading, setLoading] = useState(true);
   const [deletedEntry, setDeletedEntry] = useState<FoodEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
 
   // Redirect unauthenticated users to login, new users to onboarding
   useEffect(() => {
@@ -337,6 +340,7 @@ function Dashboard() {
               entries={byMeal[type]}
               onDelete={handleDelete}
               onAdd={(meal) => setQuickAddMeal(meal)}
+              onEdit={(entry) => setEditingEntry(entry)}
             />
           </motion.div>
         ))}
@@ -549,6 +553,15 @@ function Dashboard() {
         entry={deletedEntry}
         onUndo={handleUndoDelete}
         onDismiss={() => setDeletedEntry(null)}
+      />
+
+      <EditEntrySheet
+        entry={editingEntry}
+        onClose={() => setEditingEntry(null)}
+        onSave={async (id, patch) => {
+          await updateEntry(id, patch);
+          refresh();
+        }}
       />
     </div>
     </PullToRefresh>
