@@ -1,7 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
-import { useState, useCallback, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { SplashScreen } from "@/components/SplashScreen";
+import { useEffect } from "react";
+import { motion } from "framer-motion";
 import { SyncStatusBanner } from "@/components/SyncStatusBanner";
 import { SyncQueueDebugPanel } from "@/components/SyncQueueDebugPanel";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
