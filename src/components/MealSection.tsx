@@ -11,9 +11,10 @@ interface MealSectionProps {
   entries: FoodEntry[];
   onDelete: (id: string) => void;
   onAdd?: (mealType: MealType) => void;
+  onEdit?: (entry: FoodEntry) => void;
 }
 
-export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionProps) {
+export function MealSection({ mealType, entries, onDelete, onAdd, onEdit }: MealSectionProps) {
   const totalCalories = entries.reduce((sum, e) => sum + e.calories * e.quantity, 0);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{ url: string; name: string } | null>(null);
 
