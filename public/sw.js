@@ -2,7 +2,8 @@
 // Caches the app shell and provides offline support.
 // Version is bumped on each deploy via the timestamp below.
 
-const CACHE_VERSION = "zyrafit-v2";
+const CACHE_VERSION = "zyrafit-v3";
+const SYNC_TAG = "zyrafit-sync-meals";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -155,4 +156,28 @@ self.addEventListener("notificationclick", (event) => {
       return self.clients.openWindow(url);
     }),
   );
+});
+
+// ---- Background Sync: ask any open page to flush its queue ----
+async function notifyClientsToFlush() {
+  const clientsList = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  for (const client of clientsList) {
+    client.postMessage({ type: "FLUSH_SYNC_QUEUE" });
+  }
+}
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(notifyClientsToFlush());
+  }
+});
+
+// Periodic Sync (Chrome only, requires permission) — also nudges the page to flush
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(notifyClientsToFlush());
+  }
 });

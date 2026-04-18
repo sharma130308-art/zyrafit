@@ -2,8 +2,10 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from
 import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SyncStatusBanner } from "@/components/SyncStatusBanner";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { registerServiceWorker } from "@/lib/register-sw";
+import { initSyncQueue } from "@/lib/sync-queue";
 
 import appCss from "../styles.css?url";
 
@@ -95,6 +97,7 @@ function RootComponent() {
 
   useEffect(() => {
     registerServiceWorker();
+    initSyncQueue();
 
     // Global native-like haptic on tap
     const handleTap = (e: Event) => {
@@ -120,6 +123,7 @@ function RootComponent() {
         {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       </AnimatePresence>
       <SwipeBackGesture />
+      <SyncStatusBanner />
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
