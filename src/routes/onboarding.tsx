@@ -162,12 +162,19 @@ function OnboardingPage() {
     ]);
   };
 
+  const clearProgress = () => {
+    if (typeof window !== "undefined") {
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    }
+  };
+
   const handleNext = async () => {
     if (step === "health") {
       // If already authenticated, save and go home
       if (user) {
         setSaving(true);
         await saveProfile(user.id);
+        clearProgress();
         setSaving(false);
         navigate({ to: "/" });
         return;
