@@ -6,10 +6,15 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "lang": "en",
   "dir": "ltr",
   "prefer_related_applications": false,
+  "scope_extensions": [
+    { "origin": "https://somfitapp.com" },
+    { "origin": "https://www.somfitapp.com" },
+    { "origin": "https://shad-ai.lovable.app" }
+  ],
   "background_color": "#1a1b2f",
   "theme_color": "#1a1b2f",
   "orientation": "portrait",
