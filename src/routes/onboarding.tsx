@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { calculateMacros, GOALS, GENDERS } from "@/lib/macro-calc";
 import zyrafitIcon from "@/assets/zyrafit-icon.png";
+import { StepContainer } from "@/components/onboarding/StepContainer";
 import {
   ArrowRight,
   ArrowLeft,
@@ -15,14 +15,15 @@ import {
   Dumbbell,
   Target,
   AlertCircle,
-  Heart,
   Check,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Sparkles,
 } from "lucide-react";
+
+// Lazy-load heavy/late steps so the first onboarding screen paints faster.
+// SignupStep pulls in supabase auth + lovable OAuth; ResultsStep + HealthStep
+// are only reached after several earlier steps.
+const HealthStep = lazy(() => import("@/components/onboarding/HealthStep").then(m => ({ default: m.HealthStep })));
+const ResultsStep = lazy(() => import("@/components/onboarding/ResultsStep").then(m => ({ default: m.ResultsStep })));
+const SignupStep = lazy(() => import("@/components/onboarding/SignupStep").then(m => ({ default: m.SignupStep })));
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
@@ -89,18 +90,11 @@ function OnboardingPage() {
   const [obstacles, setObstacles] = useState<string[]>(saved?.obstacles ?? []);
   const [appleHealth, setAppleHealth] = useState(saved?.appleHealth ?? false);
 
-  // Auth state (for signup step)
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
   const step = STEPS[currentStep];
   const totalSteps = STEPS.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
-  // Persist progress on every change (skip the final signup step — auth handles it)
+  // Persist progress on every change
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -125,22 +119,20 @@ function OnboardingPage() {
       case "obstacles": return obstacles.length > 0;
       case "health": return true;
       case "results": return true;
-      case "signup": return email !== "" && password.length >= 6;
+      case "signup": return true;
       default: return false;
     }
   };
 
-  const computeMacros = () => calculateMacros({
-    age: parseInt(age),
-    weight: parseFloat(weight),
-    height: parseFloat(height),
-    gender,
-    workoutDays,
-    goal,
-  });
-
   const saveProfile = async (userId: string) => {
-    const { calories, protein, carbs, fat } = computeMacros();
+    const { calories, protein, carbs, fat } = calculateMacros({
+      age: parseInt(age),
+      weight: parseFloat(weight),
+      height: parseFloat(height),
+      gender,
+      workoutDays,
+      goal,
+    });
     await Promise.all([
       supabase.from("user_profiles").upsert({
         user_id: userId,
@@ -189,7 +181,6 @@ function OnboardingPage() {
 
   const handleBack = () => {
     if (currentStep > 0) {
-      setAuthError(null);
       setCurrentStep((s) => s - 1);
     }
   };
@@ -200,52 +191,9 @@ function OnboardingPage() {
     );
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError(null);
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
-
-    if (error) {
-      setAuthError(error.message);
-      setAuthLoading(false);
-      return;
-    }
-
-    if (data.user) {
-      await saveProfile(data.user.id);
-      clearProgress();
-      setAuthLoading(false);
-      navigate({ to: "/" });
-    } else {
-      setAuthLoading(false);
-      setAuthError("Check your email to confirm, then sign in.");
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    setAuthError(null);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setAuthError(result.error instanceof Error ? result.error.message : "Google sign-in failed");
-    }
-  };
-
-  const handleAppleSignUp = async () => {
-    setAuthError(null);
-    const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setAuthError(result.error instanceof Error ? result.error.message : "Apple sign-in failed");
-    }
+  const handleAccountCreated = async (userId: string) => {
+    await saveProfile(userId);
+    clearProgress();
   };
 
   const slideVariants = {
@@ -466,194 +414,25 @@ function OnboardingPage() {
               </StepContainer>
             )}
 
-            {step === "health" && (
-              <StepContainer
-                icon={<Heart className="w-6 h-6" />}
-                title="Connect Apple Health?"
-                subtitle="Sync your activity and nutrition data"
-              >
-                <div className="space-y-4">
-                  <button
-                    onClick={() => setAppleHealth(!appleHealth)}
-                    className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all ${
-                      appleHealth
-                        ? "border-primary bg-primary/10"
-                        : "border-border/50 bg-card"
-                    }`}
-                  >
-                    <div className="text-3xl">🍎</div>
-                    <div className="text-left flex-1">
-                      <h3 className="font-semibold text-foreground">Apple Health</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Sync steps, workouts & more
-                      </p>
-                    </div>
-                    {appleHealth && (
-                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="w-4 h-4 text-primary-foreground" />
-                      </div>
-                    )}
-                  </button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    You can always connect it later in Settings
-                  </p>
-                </div>
-              </StepContainer>
-            )}
-
-            {step === "results" && (() => {
-              const macros = computeMacros();
-              const goalLabel = GOALS.find((g) => g.value === goal)?.label ?? "Your Goal";
-              return (
-                <StepContainer
-                  icon={<Sparkles className="w-6 h-6" />}
-                  title="Your Personalized Plan"
-                  subtitle={`Based on your profile — ${goalLabel}`}
-                >
-                  <div className="space-y-4">
-                    <div className="rounded-2xl bg-primary/10 border border-primary/20 p-5 text-center">
-                      <p className="text-sm text-muted-foreground mb-1">Daily Calories</p>
-                      <p className="text-5xl font-bold text-primary">{macros.calories}</p>
-                      <p className="text-xs text-muted-foreground mt-1">kcal / day</p>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-2xl bg-card border border-border/50 p-4 text-center">
-                        <p className="text-2xl font-bold text-foreground">{macros.protein}g</p>
-                        <p className="text-xs text-muted-foreground mt-1">Protein</p>
-                        <div className="w-full h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-500" style={{ width: "100%" }} />
-                        </div>
-                      </div>
-                      <div className="rounded-2xl bg-card border border-border/50 p-4 text-center">
-                        <p className="text-2xl font-bold text-foreground">{macros.carbs}g</p>
-                        <p className="text-xs text-muted-foreground mt-1">Carbs</p>
-                        <div className="w-full h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
-                          <div className="h-full rounded-full bg-amber-500" style={{ width: "100%" }} />
-                        </div>
-                      </div>
-                      <div className="rounded-2xl bg-card border border-border/50 p-4 text-center">
-                        <p className="text-2xl font-bold text-foreground">{macros.fat}g</p>
-                        <p className="text-xs text-muted-foreground mt-1">Fat</p>
-                        <div className="w-full h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
-                          <div className="h-full rounded-full bg-rose-500" style={{ width: "100%" }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                      {goal === "lose_weight" && "High protein preserves muscle while in a calorie deficit."}
-                      {goal === "muscle_gain" && "Extra protein & calories support muscle growth and recovery."}
-                      {goal === "gain_weight" && "A balanced surplus helps you gain weight steadily."}
-                      {goal === "maintain" && "A balanced split keeps you energized and healthy."}
-                      {" "}You can adjust these anytime in Settings.
-                    </p>
-                  </div>
-                </StepContainer>
-              );
-            })()}
-
-            {step === "signup" && (
-              <StepContainer
-                icon={<Mail className="w-6 h-6" />}
-                title="Create your account"
-                subtitle="Save your profile & sync across devices"
-              >
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="w-full pl-11 pr-11 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-
-                  {authError && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-sm text-destructive text-center bg-destructive/10 rounded-xl px-4 py-2"
-                    >
-                      {authError}
-                    </motion.p>
-                  )}
-
-                  <motion.button
-                    type="submit"
-                    disabled={authLoading || !canProceed()}
-                    whileTap={{ scale: 0.97 }}
-                    className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 disabled:opacity-40"
-                  >
-                    {authLoading ? (
-                      <motion.div
-                        className="w-5 h-5 rounded-full border-2 border-primary-foreground border-t-transparent"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      />
-                    ) : (
-                      <>
-                        Create Account
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </motion.button>
-                </form>
-
-                <div className="flex items-center gap-3 my-5">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground">or continue with</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-
-                <div className="flex gap-3">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleGoogleSignUp}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground font-medium hover:bg-accent transition-colors"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                    Google
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleAppleSignUp}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground font-medium hover:bg-accent transition-colors"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-                    Apple
-                  </motion.button>
-                </div>
-
-                <p className="text-center text-sm text-muted-foreground mt-5">
-                  Already have an account?{" "}
-                  <Link to="/login" className="text-primary font-medium">
-                    Sign In
-                  </Link>
-                </p>
-              </StepContainer>
+            {(step === "health" || step === "results" || step === "signup") && (
+              <Suspense fallback={<StepFallback />}>
+                {step === "health" && (
+                  <HealthStep appleHealth={appleHealth} setAppleHealth={setAppleHealth} />
+                )}
+                {step === "results" && (
+                  <ResultsStep
+                    age={age}
+                    weight={weight}
+                    height={height}
+                    gender={gender}
+                    workoutDays={workoutDays}
+                    goal={goal}
+                  />
+                )}
+                {step === "signup" && (
+                  <SignupStep onAccountCreated={handleAccountCreated} />
+                )}
+              </Suspense>
             )}
           </motion.div>
         </AnimatePresence>
@@ -687,29 +466,14 @@ function OnboardingPage() {
   );
 }
 
-function StepContainer({
-  icon,
-  title,
-  subtitle,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-}) {
+function StepFallback() {
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-          {icon}
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">{title}</h2>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
-        </div>
-      </div>
-      <div className="flex-1 flex flex-col justify-center py-6">{children}</div>
+    <div className="flex-1 flex items-center justify-center">
+      <motion.div
+        className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      />
     </div>
   );
 }
