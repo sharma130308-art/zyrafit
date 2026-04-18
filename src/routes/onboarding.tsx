@@ -94,6 +94,16 @@ function OnboardingPage() {
   const totalSteps = STEPS.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
+  // Prefetch lazy chunks ahead of time so later steps feel instant.
+  // When the user reaches "goal", warm up Health, Results, and Signup chunks.
+  useEffect(() => {
+    if (step === "goal") {
+      import("@/components/onboarding/HealthStep");
+      import("@/components/onboarding/ResultsStep");
+      import("@/components/onboarding/SignupStep");
+    }
+  }, [step]);
+
   // Persist progress on every change
   useEffect(() => {
     if (typeof window === "undefined") return;
