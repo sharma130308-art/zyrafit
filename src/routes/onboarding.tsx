@@ -74,6 +74,7 @@ function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const saved = useRef<Partial<SavedProgress> | null>(loadProgress()).current;
+  const hadSavedProgress = useRef(saved !== null && (saved.currentStep ?? 0) > 0).current;
 
   const [currentStep, setCurrentStep] = useState(saved?.currentStep ?? 0);
   const [saving, setSaving] = useState(false);
