@@ -218,6 +218,7 @@ function OnboardingPage() {
 
     if (data.user) {
       await saveProfile(data.user.id);
+      clearProgress();
       setAuthLoading(false);
       navigate({ to: "/" });
     } else {
