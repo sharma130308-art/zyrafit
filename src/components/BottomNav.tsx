@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Home, PlusCircle, User } from "lucide-react";
-import { hapticMedium } from "@/lib/haptics";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
 
 interface BottomNavProps {
   onAddClick: () => void;
@@ -17,6 +17,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
         <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
           <Link
             to="/"
+            onClick={() => hapticLight()}
             className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-colors ${
               path === "/" ? "text-nav-active" : "text-nav-foreground"
             }`}
@@ -47,6 +48,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
         <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
           <Link
             to="/profile"
+            onClick={() => hapticLight()}
             className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-colors ${
               path === "/profile" ? "text-nav-active" : "text-nav-foreground"
             }`}
