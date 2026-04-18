@@ -147,6 +147,24 @@
     scroll-behavior: smooth;
   }
 
+  /* Hide scrollbars (native-app feel) while keeping scroll functional */
+  html, body, .overflow-y-auto, .overflow-auto, .overflow-y-scroll, .overflow-scroll, main, [data-scroll] {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge legacy */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar,
+  .overflow-y-scroll::-webkit-scrollbar,
+  .overflow-scroll::-webkit-scrollbar,
+  main::-webkit-scrollbar,
+  [data-scroll]::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+    width: 0;
+    height: 0;
+  }
+
   /* iOS-style bounce prevention on fixed overlays */
   .fixed {
     -webkit-backface-visibility: hidden;
