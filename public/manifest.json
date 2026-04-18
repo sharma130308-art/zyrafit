@@ -43,14 +43,14 @@
   "screenshots": [
     {
       "src": "/screenshot-narrow.png",
-      "sizes": "1024x1024",
+      "sizes": "540x720",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "ZyraFit calorie tracking dashboard"
     },
     {
       "src": "/screenshot-wide.png",
-      "sizes": "1024x1024",
+      "sizes": "1024x593",
       "type": "image/png",
       "form_factor": "wide",
       "label": "ZyraFit desktop dashboard view"
