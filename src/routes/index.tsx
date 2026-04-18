@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,25 +20,26 @@ import {
   getLoggingStreak,
   restoreEntry,
 } from "@/lib/food-store";
-import { lookupBarcode, type ScannedFood } from "@/lib/barcode-api";
-import { analyzePhoto, captureImageAsBase64, type AIFoodItem } from "@/lib/food-ai";
+import type { ScannedFood } from "@/lib/barcode-api";
+import type { AIFoodItem } from "@/lib/food-ai";
 import { CalorieRing } from "@/components/CalorieRing";
 import { MacroBar } from "@/components/MacroBar";
 import { MealSection } from "@/components/MealSection";
-import { AddFoodDialog } from "@/components/AddFoodDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { ReminderPrompt } from "@/components/ReminderPrompt";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { FoodPreview } from "@/components/FoodPreview";
-
-import { AIFoodPreview } from "@/components/AIFoodPreview";
-import { QuickAddPicker } from "@/components/QuickAddPicker";
-import { WeeklyChart } from "@/components/WeeklyChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { StreakBadge } from "@/components/StreakBadge";
 import { UndoToast } from "@/components/UndoToast";
-import { EditEntrySheet } from "@/components/EditEntrySheet";
+
+// Heavy / on-demand components — lazy-loaded so they don't block first paint.
+const AddFoodDialog = lazy(() => import("@/components/AddFoodDialog").then(m => ({ default: m.AddFoodDialog })));
+const BarcodeScanner = lazy(() => import("@/components/BarcodeScanner").then(m => ({ default: m.BarcodeScanner })));
+const FoodPreview = lazy(() => import("@/components/FoodPreview").then(m => ({ default: m.FoodPreview })));
+const AIFoodPreview = lazy(() => import("@/components/AIFoodPreview").then(m => ({ default: m.AIFoodPreview })));
+const QuickAddPicker = lazy(() => import("@/components/QuickAddPicker").then(m => ({ default: m.QuickAddPicker })));
+const WeeklyChart = lazy(() => import("@/components/WeeklyChart").then(m => ({ default: m.WeeklyChart })));
+const EditEntrySheet = lazy(() => import("@/components/EditEntrySheet").then(m => ({ default: m.EditEntrySheet })));
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
