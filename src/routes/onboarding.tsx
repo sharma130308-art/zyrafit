@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { calculateMacros, GOALS, GENDERS } from "@/lib/macro-calc";
 import zyrafitIcon from "@/assets/zyrafit-icon.png";
 import { StepContainer } from "@/components/onboarding/StepContainer";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
 import {
   ArrowRight,
   ArrowLeft,
@@ -191,6 +192,7 @@ function OnboardingPage() {
   };
 
   const handleNext = async () => {
+    hapticMedium();
     if (step === "health") {
       // If already authenticated, save and go home
       if (user) {
@@ -209,12 +211,14 @@ function OnboardingPage() {
   };
 
   const handleBack = () => {
+    hapticLight();
     if (currentStep > 0) {
       setCurrentStep((s) => s - 1);
     }
   };
 
   const toggleObstacle = (value: string) => {
+    hapticLight();
     setObstacles((prev) =>
       prev.includes(value) ? prev.filter((o) => o !== value) : [...prev, value]
     );
@@ -522,7 +526,7 @@ function OptionCard({
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => { hapticLight(); onClick(); }}
       className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
         wide ? "w-full" : ""
       } ${
