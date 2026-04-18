@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { loadCalorieGoal, saveCalorieGoal } from "@/lib/food-store";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,10 +23,14 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { format, parseISO, subDays, subMonths } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
 import { RemindersToggle } from "@/components/RemindersToggle";
+
+// Lazy-load heavy chart (pulls in recharts) and the body-composition gauge card.
+// These are below-the-fold and only matter once the user has weight logs.
+const WeightChart = lazy(() => import("@/components/profile/WeightChart"));
+const BodyCompositionCard = lazy(() => import("@/components/profile/BodyCompositionCard"));
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
