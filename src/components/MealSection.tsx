@@ -11,9 +11,10 @@ interface MealSectionProps {
   entries: FoodEntry[];
   onDelete: (id: string) => void;
   onAdd?: (mealType: MealType) => void;
+  onEdit?: (entry: FoodEntry) => void;
 }
 
-export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionProps) {
+export function MealSection({ mealType, entries, onDelete, onAdd, onEdit }: MealSectionProps) {
   const totalCalories = entries.reduce((sum, e) => sum + e.calories * e.quantity, 0);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{ url: string; name: string } | null>(null);
 
@@ -71,11 +72,14 @@ export function MealSection({ mealType, entries, onDelete, onAdd }: MealSectionP
                   transition={{ duration: 0.25 }}
                 >
                   <SwipeToDelete onDelete={() => onDelete(entry.id)}>
-                    <div className="flex items-center justify-between py-2.5 border-t border-border/20 first:border-t-0 px-1">
+                    <div
+                      onClick={() => { hapticLight(); onEdit?.(entry); }}
+                      className="flex items-center justify-between py-2.5 border-t border-border/20 first:border-t-0 px-1 cursor-pointer active:bg-muted/30 transition-colors rounded-lg"
+                    >
                       {entry.photoUrl && (
                         <motion.button
                           whileTap={{ scale: 0.92 }}
-                          onClick={() => setFullscreenPhoto({ url: entry.photoUrl!, name: entry.name })}
+                          onClick={(e) => { e.stopPropagation(); setFullscreenPhoto({ url: entry.photoUrl!, name: entry.name }); }}
                           className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 mr-3 border border-border/30"
                         >
                           <img src={entry.photoUrl} alt={entry.name} className="w-full h-full object-cover" />
