@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { loadCalorieGoal, saveCalorieGoal } from "@/lib/food-store";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,10 +23,14 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { format, parseISO, subDays, subMonths } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
 import { RemindersToggle } from "@/components/RemindersToggle";
+
+// Lazy-load heavy chart (pulls in recharts) and the body-composition gauge card.
+// These are below-the-fold and only matter once the user has weight logs.
+const WeightChart = lazy(() => import("@/components/profile/WeightChart"));
+const BodyCompositionCard = lazy(() => import("@/components/profile/BodyCompositionCard"));
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -712,130 +716,10 @@ function ProfilePage() {
         {user && !profileLoading && weightLogs.length > 0 && (() => {
           const latest = weightLogs[weightLogs.length - 1];
           if (latest.bmi == null && latest.body_fat_percent == null) return null;
-
-          const bmi = latest.bmi;
-          const fat = latest.body_fat_percent;
-          const fatMass = latest.body_fat_mass_kg;
-          const leanMass = fatMass != null ? (latest.weight_kg - fatMass) : null;
-
-          // BMI ranges
-          const bmiCategory = bmi != null
-            ? bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal" : bmi < 30 ? "Overweight" : "Obese"
-            : null;
-          const bmiEmoji = bmi != null
-            ? bmi < 18.5 ? "🔵" : bmi < 25 ? "🟢" : bmi < 30 ? "🟡" : "🔴"
-            : "";
-          const bmiPercent = bmi != null ? Math.min(100, Math.max(0, ((bmi - 10) / 35) * 100)) : 0;
-
-          // Body fat ranges (male defaults; could be gender-aware)
-          const gender = profile?.gender;
-          const fatCategory = fat != null
-            ? gender === "female"
-              ? fat < 14 ? "Essential" : fat < 21 ? "Athletic" : fat < 25 ? "Fit" : fat < 32 ? "Average" : "Above Avg"
-              : fat < 6 ? "Essential" : fat < 14 ? "Athletic" : fat < 18 ? "Fit" : fat < 25 ? "Average" : "Above Avg"
-            : null;
-          const fatEmoji = fat != null
-            ? (gender === "female"
-              ? fat < 21 ? "🟢" : fat < 25 ? "🟡" : "🟠"
-              : fat < 14 ? "🟢" : fat < 18 ? "🟡" : "🟠")
-            : "";
-
           return (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.13 }}
-              className="rounded-2xl bg-card p-5 shadow-sm border border-border/50"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
-                  🏋️
-                </div>
-                <div>
-                  <h3 className="font-semibold text-card-foreground">Body Composition</h3>
-                  <p className="text-xs text-muted-foreground">Latest assessment · {format(parseISO(latest.logged_at), "MMM d, yyyy")}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {/* BMI gauge */}
-                {bmi != null && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-medium text-foreground">BMI</span>
-                      <span className="text-xs font-semibold text-foreground">{bmiEmoji} {bmi} — {bmiCategory}</span>
-                    </div>
-                    <div className="relative h-3 rounded-full overflow-hidden bg-gradient-to-r from-blue-400 via-green-400 via-50% via-yellow-400 to-red-500">
-                      <motion.div
-                        className="absolute top-0 w-3 h-3 rounded-full bg-white border-2 border-foreground shadow-md"
-                        style={{ left: `calc(${bmiPercent}% - 6px)` }}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.3, type: "spring" }}
-                      />
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-[9px] text-muted-foreground">Under 18.5</span>
-                      <span className="text-[9px] text-muted-foreground">Normal</span>
-                      <span className="text-[9px] text-muted-foreground">Over 25</span>
-                      <span className="text-[9px] text-muted-foreground">Obese 30+</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Body Fat */}
-                {fat != null && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-medium text-foreground">Body Fat</span>
-                      <span className="text-xs font-semibold text-foreground">{fatEmoji} {fat}% — {fatCategory}</span>
-                    </div>
-                    <div className="h-3 rounded-full overflow-hidden bg-muted">
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min(fat, 50)}%`,
-                          background: `linear-gradient(90deg, hsl(142, 70%, 45%), hsl(${Math.max(0, 142 - fat * 4)}, 70%, 50%))`,
-                        }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(fat * 2, 100)}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                      />
-                    </div>
-                    {gender === "male" && (
-                      <div className="flex justify-between mt-1">
-                        <span className="text-[9px] text-muted-foreground">Athletic &lt;14%</span>
-                        <span className="text-[9px] text-muted-foreground">Fit 14-18%</span>
-                        <span className="text-[9px] text-muted-foreground">Avg 18-25%</span>
-                      </div>
-                    )}
-                    {gender === "female" && (
-                      <div className="flex justify-between mt-1">
-                        <span className="text-[9px] text-muted-foreground">Athletic &lt;21%</span>
-                        <span className="text-[9px] text-muted-foreground">Fit 21-25%</span>
-                        <span className="text-[9px] text-muted-foreground">Avg 25-32%</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Lean vs Fat Mass */}
-                {leanMass != null && fatMass != null && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-xl bg-primary/10 border border-primary/20 p-3 text-center">
-                      <p className="text-lg font-bold text-primary">{leanMass.toFixed(1)}</p>
-                      <p className="text-[10px] text-muted-foreground">Lean Mass (kg)</p>
-                      <p className="text-[10px] font-medium text-primary mt-0.5">{((leanMass / latest.weight_kg) * 100).toFixed(0)}%</p>
-                    </div>
-                    <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-center">
-                      <p className="text-lg font-bold text-rose-600">{fatMass.toFixed(1)}</p>
-                      <p className="text-[10px] text-muted-foreground">Fat Mass (kg)</p>
-                      <p className="text-[10px] font-medium text-rose-600 mt-0.5">{((fatMass / latest.weight_kg) * 100).toFixed(0)}%</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
+            <Suspense fallback={null}>
+              <BodyCompositionCard latest={latest} gender={profile?.gender} />
+            </Suspense>
           );
         })()}
 
@@ -1041,128 +925,9 @@ function ProfilePage() {
                   );
                 })()}
 
-                <div className="h-52 -mx-2 rounded-xl overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={filteredLogs.map((l) => ({
-                        date: format(parseISO(l.logged_at), "MMM d"),
-                        weight: l.weight_kg,
-                        bmi: l.bmi,
-                        bodyfat: l.body_fat_percent,
-                      }))}
-                      margin={{ top: 12, right: 16, bottom: 4, left: -4 }}
-                    >
-                      <defs>
-                        <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="bmiGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(210, 80%, 55%)" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="hsl(210, 80%, 55%)" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval="preserveStartEnd"
-                      />
-                      <YAxis
-                        domain={["dataMin - 2", "dataMax + 2"]}
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={38}
-                        tickFormatter={(v: number) => {
-                          if (activeChart === "bodyfat") return `${v}%`;
-                          if (activeChart === "weight") return `${v}`;
-                          return `${v}`;
-                        }}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          background: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "14px",
-                          fontSize: "12px",
-                          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                          padding: "10px 14px",
-                        }}
-                        formatter={(value: number) => {
-                          if (activeChart === "weight") return [`${value} kg`, "Weight"];
-                          if (activeChart === "bmi") return [value.toFixed(1), "BMI"];
-                          return [`${value}%`, "Body Fat"];
-                        }}
-                        labelStyle={{ fontWeight: 700, marginBottom: 4, fontSize: 11 }}
-                        cursor={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1, strokeDasharray: "4 4" }}
-                      />
-                      {activeChart === "weight" && profile?.target_weight_kg && (
-                        <ReferenceLine
-                          y={Number(profile.target_weight_kg)}
-                          stroke="hsl(var(--primary))"
-                          strokeDasharray="8 4"
-                          strokeOpacity={0.5}
-                          label={{ value: `Target ${profile.target_weight_kg}kg`, position: "insideTopRight", fontSize: 9, fill: "hsl(var(--primary))" }}
-                        />
-                      )}
-                      {activeChart === "bmi" && (
-                        <>
-                          <ReferenceLine y={18.5} stroke="hsl(210, 70%, 60%)" strokeDasharray="4 4" strokeOpacity={0.25} label={{ value: "18.5", position: "insideBottomLeft", fontSize: 8, fill: "hsl(210, 70%, 60%)" }} />
-                          <ReferenceLine y={25} stroke="hsl(var(--destructive))" strokeDasharray="6 4" strokeOpacity={0.4} label={{ value: "25 Overweight", position: "insideTopRight", fontSize: 8, fill: "hsl(var(--destructive))" }} />
-                          <ReferenceLine y={30} stroke="hsl(0, 70%, 50%)" strokeDasharray="4 4" strokeOpacity={0.25} label={{ value: "30 Obese", position: "insideTopRight", fontSize: 8, fill: "hsl(0, 70%, 50%)" }} />
-                        </>
-                      )}
-                      {activeChart === "bmi" && profile?.target_bmi && (
-                        <ReferenceLine
-                          y={Number(profile.target_bmi)}
-                          stroke="hsl(210, 80%, 55%)"
-                          strokeDasharray="8 4"
-                          strokeOpacity={0.6}
-                          label={{ value: `🎯 ${profile.target_bmi}`, position: "insideTopLeft", fontSize: 9, fill: "hsl(210, 80%, 55%)" }}
-                        />
-                      )}
-                      {activeChart === "bodyfat" && profile?.target_body_fat_percent && (
-                        <ReferenceLine
-                          y={Number(profile.target_body_fat_percent)}
-                          stroke="hsl(340, 80%, 55%)"
-                          strokeDasharray="8 4"
-                          strokeOpacity={0.6}
-                          label={{ value: `🎯 ${profile.target_body_fat_percent}%`, position: "insideTopLeft", fontSize: 9, fill: "hsl(340, 80%, 55%)" }}
-                        />
-                      )}
-                      <Line
-                        type="monotone"
-                        dataKey={activeChart === "bodyfat" ? "bodyfat" : activeChart}
-                        stroke={activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)"}
-                        strokeWidth={2.5}
-                        dot={(props: Record<string, unknown>) => {
-                          const { cx, cy, index } = props as { cx: number; cy: number; index: number };
-                          const isLast = index === filteredLogs.length - 1;
-                          const color = activeChart === "weight" ? "hsl(var(--primary))" : activeChart === "bmi" ? "hsl(210, 80%, 55%)" : "hsl(340, 80%, 55%)";
-                          return (
-                            <circle
-                              key={index}
-                              cx={cx}
-                              cy={cy}
-                              r={isLast ? 6 : 3.5}
-                              fill={isLast ? color : "hsl(var(--card))"}
-                              stroke={color}
-                              strokeWidth={isLast ? 3 : 2}
-                            />
-                          );
-                        }}
-                        activeDot={{ r: 7, strokeWidth: 2.5 }}
-                        connectNulls
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                <Suspense fallback={<div className="h-52 flex items-center justify-center"><Loader2 className="w-5 h-5 text-muted-foreground animate-spin" /></div>}>
+                  <WeightChart filteredLogs={filteredLogs} activeChart={activeChart} profile={profile} />
+                </Suspense>
 
                 {/* Legend */}
                 <div className="flex items-center justify-center gap-3 mt-2 pb-1">
