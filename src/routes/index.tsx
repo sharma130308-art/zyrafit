@@ -344,7 +344,9 @@ function Dashboard() {
 
       {/* Weekly Chart */}
       <div className="px-6 mb-6">
-        <WeeklyChart data={weeklyData} goal={goal} />
+        <Suspense fallback={<div className="h-40 rounded-2xl bg-muted/40" />}>
+          <WeeklyChart data={weeklyData} goal={goal} />
+        </Suspense>
       </div>
 
       {/* Meal Sections */}
@@ -372,87 +374,89 @@ function Dashboard() {
       <ReminderPrompt isAuthenticated={!!user} />
 
       {/* Quick Add Picker */}
-      <QuickAddPicker
-        mealType={quickAddMeal}
-        onClose={() => setQuickAddMeal(null)}
-        onAiPhoto={() => {
-          const meal = quickAddMeal;
-          setQuickAddMeal(null);
-          if (meal) setDialogMealType(meal);
-          setTimeout(() => cameraInputRef.current?.click(), 100);
-        }}
-        onBarcodeScan={() => {
-          const meal = quickAddMeal;
-          setQuickAddMeal(null);
-          if (meal) setDialogMealType(meal);
-          setScannerOpen(true);
-        }}
-        onManual={() => {
-          const meal = quickAddMeal;
-          setQuickAddMeal(null);
-          if (meal) setDialogMealType(meal);
-          setDialogOpen(true);
-        }}
-      />
+      <Suspense fallback={null}>
+        <QuickAddPicker
+          mealType={quickAddMeal}
+          onClose={() => setQuickAddMeal(null)}
+          onAiPhoto={() => {
+            const meal = quickAddMeal;
+            setQuickAddMeal(null);
+            if (meal) setDialogMealType(meal);
+            setTimeout(() => cameraInputRef.current?.click(), 100);
+          }}
+          onBarcodeScan={() => {
+            const meal = quickAddMeal;
+            setQuickAddMeal(null);
+            if (meal) setDialogMealType(meal);
+            setScannerOpen(true);
+          }}
+          onManual={() => {
+            const meal = quickAddMeal;
+            setQuickAddMeal(null);
+            if (meal) setDialogMealType(meal);
+            setDialogOpen(true);
+          }}
+        />
 
-      <AddFoodDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onAdd={handleAdd}
-        initialMealType={dialogMealType}
-        onScanClick={() => {
-          setDialogOpen(false);
-          setScannerOpen(true);
-        }}
-        onAiClick={() => {
-          setDialogOpen(false);
-          setTimeout(() => cameraInputRef.current?.click(), 100);
-        }}
-      />
+        <AddFoodDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onAdd={handleAdd}
+          initialMealType={dialogMealType}
+          onScanClick={() => {
+            setDialogOpen(false);
+            setScannerOpen(true);
+          }}
+          onAiClick={() => {
+            setDialogOpen(false);
+            setTimeout(() => cameraInputRef.current?.click(), 100);
+          }}
+        />
 
-      {/* Barcode Scanner */}
-      <BarcodeScanner
-        open={scannerOpen}
-        onClose={() => setScannerOpen(false)}
-        onScan={handleBarcodeScan}
-      />
+        {/* Barcode Scanner */}
+        <BarcodeScanner
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={handleBarcodeScan}
+        />
 
-      {/* Scanned Food Preview */}
-      <AnimatePresence>
-        {scannedFood && (
-          <FoodPreview
-            food={scannedFood}
-            onAdd={handleAddFromScan}
-            onBack={() => setScannedFood(null)}
-          />
-        )}
-      </AnimatePresence>
+        {/* Scanned Food Preview */}
+        <AnimatePresence>
+          {scannedFood && (
+            <FoodPreview
+              food={scannedFood}
+              onAdd={handleAddFromScan}
+              onBack={() => setScannedFood(null)}
+            />
+          )}
+        </AnimatePresence>
 
-      {/* Hidden camera input for AI photo */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handlePhotoCapture(file);
-          e.target.value = "";
-        }}
-        className="hidden"
-      />
+        {/* Hidden camera input for AI photo */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handlePhotoCapture(file);
+            e.target.value = "";
+          }}
+          className="hidden"
+        />
 
-      {/* AI Food Preview */}
-      <AnimatePresence>
-        {aiItems && (
-          <AIFoodPreview
-            items={aiItems}
-            imageUrl={aiImageUrl}
-            onAdd={handleAddFromAi}
-            onBack={() => { setAiItems(null); setAiImageUrl(""); }}
-          />
-        )}
-      </AnimatePresence>
+        {/* AI Food Preview */}
+        <AnimatePresence>
+          {aiItems && (
+            <AIFoodPreview
+              items={aiItems}
+              imageUrl={aiImageUrl}
+              onAdd={handleAddFromAi}
+              onBack={() => { setAiItems(null); setAiImageUrl(""); }}
+            />
+          )}
+        </AnimatePresence>
+      </Suspense>
 
       {/* Scan/AI loading overlay */}
       <AnimatePresence>
