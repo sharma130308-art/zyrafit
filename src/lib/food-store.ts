@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { enqueueEntry } from "./sync-queue";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 export type FoodSource = "manual" | "barcode" | "ai";
