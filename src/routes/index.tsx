@@ -105,6 +105,7 @@ function Dashboard() {
 
   const refresh = useCallback(async () => {
     // Instant render from localStorage cache — no waiting for network
+    let hadCache = false;
     if (typeof window !== "undefined") {
       try {
         const cached = localStorage.getItem("zyrafit_entries");
@@ -112,9 +113,13 @@ function Dashboard() {
         if (cached) {
           const all = JSON.parse(cached) as FoodEntry[];
           setEntries(all.filter((e) => e.date === today));
+          hadCache = true;
         }
         if (cachedGoal) setGoal(parseInt(cachedGoal, 10));
-        setLoading(false);
+        if (hadCache) {
+          setLoading(false);
+          setRefreshing(true);
+        }
       } catch {
         /* ignore */
       }
@@ -131,6 +136,7 @@ function Dashboard() {
     setWeeklyData(fetchedWeekly);
     setStreak(fetchedStreak);
     setLoading(false);
+    setRefreshing(false);
   }, [today]);
 
   useEffect(() => {
