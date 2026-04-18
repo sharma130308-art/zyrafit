@@ -20,11 +20,6 @@ function WelcomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <img src={zyrafitIcon} alt="ZyraFit" className="w-20 h-20 rounded-[22px] mx-auto mb-4" />
-        <h1 className="text-4xl font-bold text-foreground mb-2">ZyraFit</h1>
-        <p className="text-muted-foreground text-sm mb-10">
-          Track your calories & macros with ease. Let's personalize your experience.
-        </p>
 
         <div className="space-y-3">
           <Link to="/onboarding">
