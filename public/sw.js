@@ -157,3 +157,27 @@ self.addEventListener("notificationclick", (event) => {
     }),
   );
 });
+
+// ---- Background Sync: ask any open page to flush its queue ----
+async function notifyClientsToFlush() {
+  const clientsList = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  for (const client of clientsList) {
+    client.postMessage({ type: "FLUSH_SYNC_QUEUE" });
+  }
+}
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(notifyClientsToFlush());
+  }
+});
+
+// Periodic Sync (Chrome only, requires permission) — also nudges the page to flush
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(notifyClientsToFlush());
+  }
+});
