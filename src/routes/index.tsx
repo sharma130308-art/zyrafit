@@ -192,6 +192,7 @@ function Dashboard() {
     setScanLoading(true);
     setScanError(null);
 
+    const { lookupBarcode } = await import("@/lib/barcode-api");
     const food = await lookupBarcode(barcode);
     setScanLoading(false);
 
@@ -227,6 +228,7 @@ function Dashboard() {
     setAiLoading(true);
     setAiError(null);
     try {
+      const { captureImageAsBase64, analyzePhoto } = await import("@/lib/food-ai");
       const base64 = await captureImageAsBase64(file);
       setAiImageUrl(base64);
 
