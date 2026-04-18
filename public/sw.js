@@ -2,13 +2,15 @@
 // Caches the app shell and provides offline support.
 // Version is bumped on each deploy via the timestamp below.
 
-const CACHE_VERSION = "zyrafit-v1";
+const CACHE_VERSION = "zyrafit-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
 // Minimal app shell — kept short on purpose so install never fails on a missing file.
+const OFFLINE_URL = "/offline.html";
 const APP_SHELL = [
   "/",
+  "/offline.html",
   "/manifest.json",
   "/icon-192.png",
   "/icon-512.png",
@@ -59,7 +61,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation requests → network-first with offline fallback to cached "/"
+  // Navigation requests → network-first, fall back to cached page, then branded offline page
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -69,7 +71,15 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match("/")),
+          caches
+            .match(request)
+            .then(
+              (cached) =>
+                cached ||
+                caches.match("/") ||
+                caches.match(OFFLINE_URL),
+            )
+            .then((res) => res || caches.match(OFFLINE_URL)),
         ),
     );
     return;
