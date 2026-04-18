@@ -314,6 +314,26 @@ function OnboardingPage() {
                     />
                   ))}
                 </div>
+                {hadSavedProgress && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearProgress();
+                      setGender("");
+                      setAge("");
+                      setHeight("");
+                      setWeight("");
+                      setWorkoutDays(3);
+                      setGoal("");
+                      setObstacles([]);
+                      setAppleHealth(false);
+                      setCurrentStep(0);
+                    }}
+                    className="mt-6 mx-auto block text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                  >
+                    Start over
+                  </button>
+                )}
               </StepContainer>
             )}
 
