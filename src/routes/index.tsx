@@ -580,14 +580,16 @@ function Dashboard() {
         onDismiss={() => setDeletedEntry(null)}
       />
 
-      <EditEntrySheet
-        entry={editingEntry}
-        onClose={() => setEditingEntry(null)}
-        onSave={async (id, patch) => {
-          await updateEntry(id, patch);
-          refresh();
-        }}
-      />
+      <Suspense fallback={null}>
+        <EditEntrySheet
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSave={async (id, patch) => {
+            await updateEntry(id, patch);
+            refresh();
+          }}
+        />
+      </Suspense>
     </div>
     </PullToRefresh>
   );
