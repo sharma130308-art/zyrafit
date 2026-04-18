@@ -302,7 +302,28 @@ function Dashboard() {
       <div className="px-6 pt-14 pb-2">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Today</p>
+            <div className="flex items-center gap-2 h-5">
+              <p className="text-sm text-muted-foreground">Today</p>
+              <AnimatePresence>
+                {refreshing && (
+                  <motion.div
+                    key="refreshing"
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -4 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80"
+                  >
+                    <motion.span
+                      className="inline-block w-2.5 h-2.5 rounded-full border-[1.5px] border-primary border-t-transparent"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                    />
+                    <span>Refreshing…</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           </div>
           <StreakBadge streak={streak} />
