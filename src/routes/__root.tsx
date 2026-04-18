@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from
 import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SyncStatusBanner } from "@/components/SyncStatusBanner";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { initSyncQueue } from "@/lib/sync-queue";
