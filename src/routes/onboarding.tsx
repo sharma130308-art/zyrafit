@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -74,21 +74,39 @@ function loadProgress(): Partial<SavedProgress> | null {
 function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const saved = useRef<Partial<SavedProgress> | null>(loadProgress()).current;
-  const hadSavedProgress = useRef(saved !== null && (saved.currentStep ?? 0) > 0).current;
 
-  const [currentStep, setCurrentStep] = useState(saved?.currentStep ?? 0);
+  const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [hadSavedProgress, setHadSavedProgress] = useState(false);
 
   // Form state
-  const [gender, setGender] = useState(saved?.gender ?? "");
-  const [age, setAge] = useState(saved?.age ?? "");
-  const [height, setHeight] = useState(saved?.height ?? "");
-  const [weight, setWeight] = useState(saved?.weight ?? "");
-  const [workoutDays, setWorkoutDays] = useState(saved?.workoutDays ?? 3);
-  const [goal, setGoal] = useState(saved?.goal ?? "");
-  const [obstacles, setObstacles] = useState<string[]>(saved?.obstacles ?? []);
-  const [appleHealth, setAppleHealth] = useState(saved?.appleHealth ?? false);
+  const [gender, setGender] = useState("");
+  const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [workoutDays, setWorkoutDays] = useState(3);
+  const [goal, setGoal] = useState("");
+  const [obstacles, setObstacles] = useState<string[]>([]);
+  const [appleHealth, setAppleHealth] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Hydrate from localStorage after mount to avoid SSR/client mismatch
+  useEffect(() => {
+    const saved = loadProgress();
+    if (saved) {
+      if (typeof saved.currentStep === "number") setCurrentStep(saved.currentStep);
+      if (saved.gender) setGender(saved.gender);
+      if (saved.age) setAge(saved.age);
+      if (saved.height) setHeight(saved.height);
+      if (saved.weight) setWeight(saved.weight);
+      if (typeof saved.workoutDays === "number") setWorkoutDays(saved.workoutDays);
+      if (saved.goal) setGoal(saved.goal);
+      if (saved.obstacles) setObstacles(saved.obstacles);
+      if (typeof saved.appleHealth === "boolean") setAppleHealth(saved.appleHealth);
+      setHadSavedProgress((saved.currentStep ?? 0) > 0);
+    }
+    setHydrated(true);
+  }, []);
 
   const step = STEPS[currentStep];
   const totalSteps = STEPS.length;
@@ -104,8 +122,9 @@ function OnboardingPage() {
     }
   }, [step]);
 
-  // Persist progress on every change
+  // Persist progress on every change (after hydration)
   useEffect(() => {
+    if (!hydrated) return;
     if (typeof window === "undefined") return;
     try {
       const data: SavedProgress = {
@@ -115,7 +134,7 @@ function OnboardingPage() {
     } catch {
       // ignore quota errors
     }
-  }, [currentStep, gender, age, height, weight, workoutDays, goal, obstacles, appleHealth]);
+  }, [hydrated, currentStep, gender, age, height, weight, workoutDays, goal, obstacles, appleHealth]);
 
 
   const canProceed = () => {
