@@ -4,7 +4,12 @@
   "short_name": "ZyraFit",
   "description": "Track your daily calories and macros with AI-powered food recognition.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "background_color": "#1a1b2f",
   "theme_color": "#1a1b2f",
   "orientation": "portrait",
@@ -38,14 +43,14 @@
   "screenshots": [
     {
       "src": "/screenshot-narrow.png",
-      "sizes": "1024x1024",
+      "sizes": "540x720",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "ZyraFit calorie tracking dashboard"
     },
     {
       "src": "/screenshot-wide.png",
-      "sizes": "1024x1024",
+      "sizes": "1024x593",
       "type": "image/png",
       "form_factor": "wide",
       "label": "ZyraFit desktop dashboard view"
