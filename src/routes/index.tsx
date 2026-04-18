@@ -54,12 +54,30 @@ function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const today = getTodayDate();
-  const [entries, setEntries] = useState<FoodEntry[]>([]);
+
+  // Hydrate from localStorage synchronously so cached users skip the skeleton entirely.
+  const initialCache = (() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const cached = localStorage.getItem("zyrafit_entries");
+      const cachedGoal = localStorage.getItem("zyrafit_goal");
+      const all = cached ? (JSON.parse(cached) as FoodEntry[]) : null;
+      return {
+        entries: all ? all.filter((e) => e.date === getTodayDate()) : null,
+        goal: cachedGoal ? parseInt(cachedGoal, 10) : null,
+      };
+    } catch {
+      return null;
+    }
+  })();
+
+  const [entries, setEntries] = useState<FoodEntry[]>(initialCache?.entries ?? []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMealType, setDialogMealType] = useState<MealType>("breakfast");
   const [quickAddMeal, setQuickAddMeal] = useState<MealType | null>(null);
-  const [goal, setGoal] = useState(2000);
-  const [loading, setLoading] = useState(true);
+  const [goal, setGoal] = useState(initialCache?.goal ?? 2000);
+  // Only show skeleton on the very first visit (no cache available).
+  const [loading, setLoading] = useState(initialCache?.entries === null);
   const [deletedEntry, setDeletedEntry] = useState<FoodEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
 
