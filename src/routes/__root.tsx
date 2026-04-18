@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from
 import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { registerServiceWorker } from "@/lib/register-sw";
 
 import appCss from "../styles.css?url";
@@ -118,6 +119,7 @@ function RootComponent() {
       <AnimatePresence>
         {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
       </AnimatePresence>
+      <SwipeBackGesture />
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
