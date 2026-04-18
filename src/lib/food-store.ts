@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { enqueueEntry } from "./sync-queue";
+import { enqueueEntry, enqueueDelete, enqueueUpdate } from "./sync-queue";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 export type FoodSource = "manual" | "barcode" | "ai";
@@ -160,70 +160,130 @@ export async function addEntry(
 
 export async function deleteEntry(id: string): Promise<FoodEntry | null> {
   const userId = await getCurrentUserId();
+  const online = typeof navigator === "undefined" || navigator.onLine;
 
   // Find the entry before deleting (for undo)
   const all = getLocalEntries();
   const deleted = all.find((e) => e.id === id) || null;
 
-  if (userId) {
-    // Fetch from DB if not in local cache
-    if (!deleted) {
-      const { data } = await supabase
-        .from("food_entries")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-      if (data) {
-        const entry: FoodEntry = {
-          id: data.id,
-          name: data.name,
-          calories: Number(data.calories),
-          protein: Number(data.protein),
-          carbs: Number(data.carbs),
-          fat: Number(data.fat),
-          quantity: data.quantity,
-          mealType: data.meal_type as MealType,
-          date: data.date,
-          barcode: data.barcode,
-          source: (data.source as FoodSource) || "manual",
-          photoUrl: (data as any).photo_url || null,
-        };
-        await supabase.from("food_entries").delete().eq("id", id);
-        setLocalEntries(all.filter((e) => e.id !== id));
-        return entry;
+  if (userId && online) {
+    try {
+      // Fetch from DB if not in local cache
+      if (!deleted) {
+        const { data } = await supabase
+          .from("food_entries")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        if (data) {
+          const entry: FoodEntry = {
+            id: data.id,
+            name: data.name,
+            calories: Number(data.calories),
+            protein: Number(data.protein),
+            carbs: Number(data.carbs),
+            fat: Number(data.fat),
+            quantity: data.quantity,
+            mealType: data.meal_type as MealType,
+            date: data.date,
+            barcode: data.barcode,
+            source: (data.source as FoodSource) || "manual",
+            photoUrl: (data as any).photo_url || null,
+          };
+          await supabase.from("food_entries").delete().eq("id", id);
+          setLocalEntries(all.filter((e) => e.id !== id));
+          return entry;
+        }
       }
+      await supabase.from("food_entries").delete().eq("id", id);
+      setLocalEntries(all.filter((e) => e.id !== id));
+      return deleted;
+    } catch {
+      // network failed mid-flight → fall through to queue
     }
-    await supabase.from("food_entries").delete().eq("id", id);
   }
 
+  // Offline (or failed): remove locally + queue delete if logged in
   setLocalEntries(all.filter((e) => e.id !== id));
+  if (userId) enqueueDelete(id);
   return deleted;
+}
+
+export async function updateEntry(
+  id: string,
+  patch: Partial<Omit<FoodEntry, "id">>,
+): Promise<void> {
+  const userId = await getCurrentUserId();
+  const online = typeof navigator === "undefined" || navigator.onLine;
+
+  // Update local cache immediately
+  const all = getLocalEntries();
+  const updated = all.map((e) => (e.id === id ? { ...e, ...patch } : e));
+  setLocalEntries(updated);
+
+  if (userId && online) {
+    try {
+      const row: any = {};
+      if (patch.name !== undefined) row.name = patch.name;
+      if (patch.calories !== undefined) row.calories = patch.calories;
+      if (patch.protein !== undefined) row.protein = patch.protein;
+      if (patch.carbs !== undefined) row.carbs = patch.carbs;
+      if (patch.fat !== undefined) row.fat = patch.fat;
+      if (patch.quantity !== undefined) row.quantity = patch.quantity;
+      if (patch.mealType !== undefined) row.meal_type = patch.mealType;
+      if (patch.date !== undefined) row.date = patch.date;
+      if (patch.barcode !== undefined) row.barcode = patch.barcode || null;
+      if (patch.source !== undefined) row.source = patch.source;
+      if (patch.photoUrl !== undefined) row.photo_url = patch.photoUrl || null;
+
+      const { error } = await supabase
+        .from("food_entries")
+        .update(row)
+        .eq("id", id);
+      if (!error) return;
+    } catch {
+      // fall through to queue
+    }
+  }
+
+  if (userId) enqueueUpdate(id, patch);
 }
 
 export async function restoreEntry(entry: FoodEntry): Promise<void> {
   const userId = await getCurrentUserId();
-
-  if (userId) {
-    await supabase.from("food_entries").insert({
-      id: entry.id,
-      user_id: userId,
-      name: entry.name,
-      calories: entry.calories,
-      protein: entry.protein,
-      carbs: entry.carbs,
-      fat: entry.fat,
-      quantity: entry.quantity,
-      meal_type: entry.mealType,
-      date: entry.date,
-      barcode: entry.barcode || null,
-      source: entry.source,
-      photo_url: entry.photoUrl || null,
-    });
-  }
+  const online = typeof navigator === "undefined" || navigator.onLine;
 
   const all = getLocalEntries();
   all.push(entry);
   setLocalEntries(all);
+
+  if (userId && online) {
+    try {
+      const { error } = await supabase.from("food_entries").insert({
+        id: entry.id,
+        user_id: userId,
+        name: entry.name,
+        calories: entry.calories,
+        protein: entry.protein,
+        carbs: entry.carbs,
+        fat: entry.fat,
+        quantity: entry.quantity,
+        meal_type: entry.mealType,
+        date: entry.date,
+        barcode: entry.barcode || null,
+        source: entry.source,
+        photo_url: entry.photoUrl || null,
+      });
+      if (!error) return;
+    } catch {
+      // fall through
+    }
+  }
+  // Offline restore: re-queue as create using the existing id as localId
+  if (userId) {
+    const { id, ...rest } = entry;
+    enqueueEntry(rest, id);
+  }
 }
 
 // ── Settings (goal) ───────────────────────────────────────────
