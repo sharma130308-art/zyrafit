@@ -122,8 +122,9 @@ function OnboardingPage() {
     }
   }, [step]);
 
-  // Persist progress on every change
+  // Persist progress on every change (after hydration)
   useEffect(() => {
+    if (!hydrated) return;
     if (typeof window === "undefined") return;
     try {
       const data: SavedProgress = {
@@ -133,7 +134,7 @@ function OnboardingPage() {
     } catch {
       // ignore quota errors
     }
-  }, [currentStep, gender, age, height, weight, workoutDays, goal, obstacles, appleHealth]);
+  }, [hydrated, currentStep, gender, age, height, weight, workoutDays, goal, obstacles, appleHealth]);
 
 
   const canProceed = () => {
