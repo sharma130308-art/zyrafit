@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, LogIn } from "lucide-react";
-import zyrafitIcon from "@/assets/zyrafit-icon.png";
 
 export const Route = createFileRoute("/welcome")({
   component: WelcomePage,
