@@ -2,7 +2,8 @@
 // Caches the app shell and provides offline support.
 // Version is bumped on each deploy via the timestamp below.
 
-const CACHE_VERSION = "zyrafit-v2";
+const CACHE_VERSION = "zyrafit-v3";
+const SYNC_TAG = "zyrafit-sync-meals";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
