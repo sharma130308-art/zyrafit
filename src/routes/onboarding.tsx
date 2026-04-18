@@ -74,6 +74,7 @@ function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const saved = useRef<Partial<SavedProgress> | null>(loadProgress()).current;
+  const hadSavedProgress = useRef(saved !== null && (saved.currentStep ?? 0) > 0).current;
 
   const [currentStep, setCurrentStep] = useState(saved?.currentStep ?? 0);
   const [saving, setSaving] = useState(false);
@@ -313,6 +314,26 @@ function OnboardingPage() {
                     />
                   ))}
                 </div>
+                {hadSavedProgress && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearProgress();
+                      setGender("");
+                      setAge("");
+                      setHeight("");
+                      setWeight("");
+                      setWorkoutDays(3);
+                      setGoal("");
+                      setObstacles([]);
+                      setAppleHealth(false);
+                      setCurrentStep(0);
+                    }}
+                    className="mt-6 mx-auto block text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                  >
+                    Start over
+                  </button>
+                )}
               </StepContainer>
             )}
 
