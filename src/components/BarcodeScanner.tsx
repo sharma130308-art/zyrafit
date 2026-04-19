@@ -30,6 +30,23 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
   const nativeActiveRef = useRef(false);
 
   const stopScanner = useCallback(async () => {
+    // Native (Capacitor) cleanup
+    if (nativeActiveRef.current) {
+      try {
+        const { BarcodeScanner: MLKit } = await import(
+          "@capacitor-mlkit/barcode-scanning"
+        );
+        try { await MLKit.stopScan(); } catch { /* ignore */ }
+        try { await MLKit.removeAllListeners(); } catch { /* ignore */ }
+      } catch {
+        // ignore
+      }
+      // Restore page chrome — ML Kit hides body during scan
+      document.documentElement.classList.remove("barcode-scanner-active");
+      document.body.classList.remove("barcode-scanner-active");
+      nativeActiveRef.current = false;
+    }
+
     if (html5QrCodeRef.current) {
       try {
         const state = html5QrCodeRef.current.getState();
@@ -53,8 +70,78 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
     }
   }, []);
 
+  const startNativeScanner = useCallback(async () => {
+    try {
+      const { BarcodeScanner: MLKit, BarcodeFormat } = await import(
+        "@capacitor-mlkit/barcode-scanning"
+      );
+
+      // ML Kit module install (Android only) + permission
+      try {
+        const { available } = await MLKit.isGoogleBarcodeScannerModuleAvailable();
+        if (!available) {
+          await MLKit.installGoogleBarcodeScannerModule();
+        }
+      } catch {
+        // iOS doesn't need install; ignore on other failures
+      }
+
+      const perm = await MLKit.requestPermissions();
+      if (perm.camera !== "granted" && perm.camera !== "limited") {
+        setError("Camera permission denied. Please allow camera access.");
+        return;
+      }
+
+      hasScannedRef.current = false;
+      nativeActiveRef.current = true;
+
+      // The native preview renders BEHIND the webview. Make the page transparent
+      // so the camera feed is visible behind our overlay UI.
+      document.documentElement.classList.add("barcode-scanner-active");
+      document.body.classList.add("barcode-scanner-active");
+
+      const listener = await MLKit.addListener("barcodeScanned", async (result) => {
+        if (hasScannedRef.current) return;
+        hasScannedRef.current = true;
+        if (navigator.vibrate) navigator.vibrate(100);
+        try { listener.remove(); } catch { /* ignore */ }
+        onScan(result.barcode.rawValue);
+      });
+
+      await MLKit.startScan({
+        formats: [
+          BarcodeFormat.Ean13,
+          BarcodeFormat.Ean8,
+          BarcodeFormat.UpcA,
+          BarcodeFormat.UpcE,
+          BarcodeFormat.Code128,
+          BarcodeFormat.Code39,
+          BarcodeFormat.Code93,
+          BarcodeFormat.Itf,
+        ],
+      });
+
+      setScanning(true);
+      setError(null);
+    } catch (err: any) {
+      console.error("Native scanner error:", err);
+      nativeActiveRef.current = false;
+      document.documentElement.classList.remove("barcode-scanner-active");
+      document.body.classList.remove("barcode-scanner-active");
+      setError("Native scanner failed. Try manual entry.");
+      setShowManualInput(true);
+    }
+  }, [onScan]);
+
   const startScanner = useCallback(async () => {
-    if (!scannerRef.current || html5QrCodeRef.current) return;
+    if (nativeActiveRef.current || html5QrCodeRef.current) return;
+
+    // Use ML Kit on native iOS/Android (Capacitor shell)
+    if (isNative) {
+      return startNativeScanner();
+    }
+
+    if (!scannerRef.current) return;
     hasScannedRef.current = false;
 
     // Generate a fresh ID each time to avoid stale DOM conflicts
@@ -93,7 +180,6 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
       } as any);
       html5QrCodeRef.current = scanner;
 
-      // Compute a wide qrbox sized to viewport — 1D barcodes need a WIDE box.
       const viewportWidth = scannerRef.current?.clientWidth || window.innerWidth;
       const viewportHeight = scannerRef.current?.clientHeight || window.innerHeight;
       const boxWidth = Math.min(Math.floor(viewportWidth * 0.85), 480);
@@ -104,10 +190,7 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
         {
           fps: 15,
           qrbox: { width: boxWidth, height: boxHeight },
-          // Don't constrain aspectRatio — let the camera pick its native ratio
-          // so the preview isn't letterboxed and decoding has full resolution.
           disableFlip: true,
-          // BarCodeDetector is much faster on Chrome/Android; falls back to ZXing.
           experimentalFeatures: { useBarCodeDetectorIfSupported: true },
           videoConstraints: {
             facingMode: { ideal: "environment" },
@@ -147,7 +230,7 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
         setShowManualInput(true);
       }
     }
-  }, [onScan]);
+  }, [onScan, startNativeScanner]);
 
   useEffect(() => {
     if (open) {
