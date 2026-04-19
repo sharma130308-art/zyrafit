@@ -1111,6 +1111,7 @@ function ProfilePage() {
 
         {/* Notifications */}
         {user && <RemindersToggle />}
+        {user && <MealReminderTimes />}
 
         {/* Auth action */}
         {!authLoading && (
