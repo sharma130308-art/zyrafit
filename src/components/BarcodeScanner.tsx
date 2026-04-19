@@ -58,23 +58,53 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
     }
 
     try {
-      const { Html5Qrcode } = await import("html5-qrcode");
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
 
       const div = document.createElement("div");
       div.id = scannerId;
       scannerRef.current.appendChild(div);
 
-      const scanner = new Html5Qrcode(scannerId);
+      // Restrict to 1D product barcode formats — much faster + more reliable
+      // than letting the lib try every QR/2D format on every frame.
+      const formatsToSupport = [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.ITF,
+      ];
+
+      const scanner = new Html5Qrcode(scannerId, {
+        formatsToSupport,
+        verbose: false,
+      } as any);
       html5QrCodeRef.current = scanner;
+
+      // Compute a wide qrbox sized to viewport — 1D barcodes need a WIDE box.
+      const viewportWidth = scannerRef.current?.clientWidth || window.innerWidth;
+      const viewportHeight = scannerRef.current?.clientHeight || window.innerHeight;
+      const boxWidth = Math.min(Math.floor(viewportWidth * 0.85), 480);
+      const boxHeight = Math.min(Math.floor(viewportHeight * 0.30), 200);
 
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          qrbox: { width: 280, height: 160 },
-          aspectRatio: 1.0,
-          disableFlip: false,
-        },
+          fps: 15,
+          qrbox: { width: boxWidth, height: boxHeight },
+          // Don't constrain aspectRatio — let the camera pick its native ratio
+          // so the preview isn't letterboxed and decoding has full resolution.
+          disableFlip: true,
+          // BarCodeDetector is much faster on Chrome/Android; falls back to ZXing.
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+          videoConstraints: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        } as any,
         (decodedText: string) => {
           if (hasScannedRef.current) return;
           hasScannedRef.current = true;
@@ -94,11 +124,14 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
       setError(null);
     } catch (err: any) {
       console.error("Scanner error:", err);
-      if (err?.message?.includes("Permission")) {
+      const msg = String(err?.message || err || "");
+      if (msg.includes("Permission") || msg.includes("NotAllowed")) {
         setError("Camera permission denied. Please allow camera access.");
-      } else if (err?.message?.includes("NotFound") || err?.message?.includes("Requested device not found")) {
+      } else if (msg.includes("NotFound") || msg.includes("Requested device not found")) {
         setError("No camera found. Use manual entry below.");
         setShowManualInput(true);
+      } else if (msg.includes("NotReadable") || msg.includes("in use")) {
+        setError("Camera is in use by another app. Close it and retry.");
       } else {
         setError("Unable to start camera. Try manual entry.");
         setShowManualInput(true);
