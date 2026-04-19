@@ -1,6 +1,8 @@
 // Send daily meal reminders via Web Push.
-// Triggered by cron 3x/day; only sends to users with reminders_enabled=true
-// who have NOT logged any food today.
+// Cron triggers this hourly. For each user with reminders_enabled=true, we
+// look at their per-meal times (breakfast/lunch/dinner/snack) and only fire
+// when the user's local hour matches a meal hour AND that meal hasn't been
+// logged today. Snack only fires if snack_reminder_enabled = true.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -14,7 +16,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MESSAGES: Record<string, { title: string; body: string }> = {
+type Meal = "breakfast" | "lunch" | "dinner" | "snack";
+
+const MESSAGES: Record<Meal, { title: string; body: string }> = {
   breakfast: {
     title: "Good morning! 🌅",
     body: "Don't forget to log your breakfast in ZyraFit.",
@@ -27,11 +31,38 @@ const MESSAGES: Record<string, { title: string; body: string }> = {
     title: "Dinner check-in 🌙",
     body: "Wrap up your day by logging dinner in ZyraFit.",
   },
-  default: {
-    title: "ZyraFit reminder",
-    body: "Don't forget to log your meals today.",
+  snack: {
+    title: "Snack break 🍎",
+    body: "Log your snack so your daily totals stay accurate.",
   },
 };
+
+function parseHour(t: string | null | undefined): number {
+  if (!t) return -1;
+  const h = parseInt(t.slice(0, 2), 10);
+  return isNaN(h) ? -1 : h;
+}
+
+function getLocalHourAndDate(tz: string): { hour: number; date: string } {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false,
+    });
+    const parts = fmt.formatToParts(new Date());
+    const get = (t: string) => parts.find((p) => p.type === t)?.value || "";
+    const hour = parseInt(get("hour"), 10);
+    const date = `${get("year")}-${get("month")}-${get("day")}`;
+    return { hour: isNaN(hour) ? -1 : hour, date };
+  } catch {
+    const now = new Date();
+    return { hour: now.getUTCHours(), date: now.toISOString().slice(0, 10) };
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -58,35 +89,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Determine current local hour for each user's timezone
-    // Cron invokes this hourly; we send reminders when local hour is 8, 13, or 19
-    const MEAL_BY_HOUR: Record<number, string> = { 8: "breakfast", 13: "lunch", 19: "dinner" };
-
-    function getLocalHourAndDate(tz: string): { hour: number; date: string } {
-      try {
-        const fmt = new Intl.DateTimeFormat("en-CA", {
-          timeZone: tz,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          hour12: false,
-        });
-        const parts = fmt.formatToParts(new Date());
-        const get = (t: string) => parts.find((p) => p.type === t)?.value || "";
-        const hour = parseInt(get("hour"), 10);
-        const date = `${get("year")}-${get("month")}-${get("day")}`;
-        return { hour: isNaN(hour) ? -1 : hour, date };
-      } catch {
-        const now = new Date();
-        return { hour: now.getUTCHours(), date: now.toISOString().slice(0, 10) };
-      }
-    }
-
-    // Get all users with reminders enabled + their timezone
     const { data: enabledUsers, error: usersErr } = await supabase
       .from("user_settings")
-      .select("user_id, timezone")
+      .select(
+        "user_id, timezone, breakfast_time, lunch_time, dinner_time, snack_time, snack_reminder_enabled",
+      )
       .eq("reminders_enabled", true);
 
     if (usersErr) throw usersErr;
@@ -96,14 +103,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Group users by (meal, localDate) — only those whose local hour matches a meal slot
-    type Target = { userId: string; meal: string; localDate: string };
+    type Target = { userId: string; meal: Meal; localDate: string };
     const targets: Target[] = [];
-    for (const u of enabledUsers) {
-      const tz = (u as any).timezone || "UTC";
+    for (const u of enabledUsers as any[]) {
+      const tz = u.timezone || "UTC";
       const { hour, date } = getLocalHourAndDate(tz);
-      const meal = MEAL_BY_HOUR[hour];
-      if (meal) targets.push({ userId: u.user_id, meal, localDate: date });
+      const slots: Array<{ meal: Meal; hour: number; on: boolean }> = [
+        { meal: "breakfast", hour: parseHour(u.breakfast_time), on: true },
+        { meal: "lunch", hour: parseHour(u.lunch_time), on: true },
+        { meal: "dinner", hour: parseHour(u.dinner_time), on: true },
+        { meal: "snack", hour: parseHour(u.snack_time), on: !!u.snack_reminder_enabled },
+      ];
+      for (const s of slots) {
+        if (s.on && s.hour === hour) {
+          targets.push({ userId: u.user_id, meal: s.meal, localDate: date });
+        }
+      }
     }
 
     if (targets.length === 0) {
@@ -113,17 +128,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Skip users who already logged today (in their local date)
+    // Skip users who already logged THIS meal_type today
     const uniqueDates = [...new Set(targets.map((t) => t.localDate))];
+    const userIds = [...new Set(targets.map((t) => t.userId))];
     const { data: loggedRows } = await supabase
       .from("food_entries")
-      .select("user_id, date")
+      .select("user_id, date, meal_type")
       .in("date", uniqueDates)
-      .in("user_id", targets.map((t) => t.userId));
+      .in("user_id", userIds);
 
-    const loggedSet = new Set((loggedRows || []).map((r) => `${r.user_id}|${r.date}`));
+    const loggedSet = new Set(
+      (loggedRows || []).map((r: any) => `${r.user_id}|${r.date}|${r.meal_type}`),
+    );
     const finalTargets = targets.filter(
-      (t) => !loggedSet.has(`${t.userId}|${t.localDate}`),
+      (t) => !loggedSet.has(`${t.userId}|${t.localDate}|${t.meal}`),
     );
 
     if (finalTargets.length === 0) {
@@ -133,31 +151,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch push subscriptions for target users
-    const userIds = [...new Set(finalTargets.map((t) => t.userId))];
+    const targetUserIds = [...new Set(finalTargets.map((t) => t.userId))];
     const { data: subs, error: subsErr } = await supabase
       .from("push_subscriptions")
       .select("id, user_id, endpoint, p256dh, auth")
-      .in("user_id", userIds);
+      .in("user_id", targetUserIds);
 
     if (subsErr) throw subsErr;
     if (!subs || subs.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, skipped: userIds.length }), {
+      return new Response(JSON.stringify({ sent: 0, skipped: targetUserIds.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Map userId -> meal
-    const mealByUser = new Map(finalTargets.map((t) => [t.userId, t.meal]));
+    // userId -> meal (one meal per user per hour by construction)
+    const mealByUser = new Map<string, Meal>(finalTargets.map((t) => [t.userId, t.meal]));
 
     let sent = 0;
     let failed = 0;
     const staleIds: string[] = [];
 
     await Promise.all(
-      subs.map(async (s) => {
-        const meal = mealByUser.get(s.user_id) || "default";
-        const message = MESSAGES[meal] || MESSAGES.default;
+      subs.map(async (s: any) => {
+        const meal = (mealByUser.get(s.user_id) || "breakfast") as Meal;
+        const message = MESSAGES[meal];
         const payload = JSON.stringify({
           title: message.title,
           body: message.body,
@@ -166,21 +183,15 @@ Deno.serve(async (req) => {
         });
         try {
           await webpush.sendNotification(
-            {
-              endpoint: s.endpoint,
-              keys: { p256dh: s.p256dh, auth: s.auth },
-            },
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
             payload,
             { TTL: 60 * 60 },
           );
           sent++;
         } catch (err: any) {
           failed++;
-          // 404/410 = subscription gone, remove from DB
           const status = err?.statusCode;
-          if (status === 404 || status === 410) {
-            staleIds.push(s.id);
-          }
+          if (status === 404 || status === 410) staleIds.push(s.id);
           console.error("Push failed:", status, err?.body || err?.message);
         }
       }),
