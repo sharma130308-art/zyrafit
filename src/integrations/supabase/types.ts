@@ -154,37 +154,52 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          breakfast_time: string
           carbs_goal: number
           created_at: string
           daily_calorie_goal: number
+          dinner_time: string
           fat_goal: number
           id: string
+          lunch_time: string
           protein_goal: number
           reminders_enabled: boolean
+          snack_reminder_enabled: boolean
+          snack_time: string
           timezone: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          breakfast_time?: string
           carbs_goal?: number
           created_at?: string
           daily_calorie_goal?: number
+          dinner_time?: string
           fat_goal?: number
           id?: string
+          lunch_time?: string
           protein_goal?: number
           reminders_enabled?: boolean
+          snack_reminder_enabled?: boolean
+          snack_time?: string
           timezone?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          breakfast_time?: string
           carbs_goal?: number
           created_at?: string
           daily_calorie_goal?: number
+          dinner_time?: string
           fat_goal?: number
           id?: string
+          lunch_time?: string
           protein_goal?: number
           reminders_enabled?: boolean
+          snack_reminder_enabled?: boolean
+          snack_time?: string
           timezone?: string
           updated_at?: string
           user_id?: string

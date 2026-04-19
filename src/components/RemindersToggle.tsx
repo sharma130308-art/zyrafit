@@ -9,6 +9,12 @@ import {
   subscribeToPush,
   unsubscribeFromPush,
 } from "@/lib/push";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  cancelMealReminders,
+  ensureLocalNotificationPermission,
+  scheduleMealReminders,
+} from "@/lib/local-notifications";
 
 export function RemindersToggle() {
   const [enabled, setEnabled] = useState(false);
@@ -32,17 +38,48 @@ export function RemindersToggle() {
       const { ok, error } = await unsubscribeFromPush();
       if (ok) {
         setEnabled(false);
+        await cancelMealReminders();
         toast.success("Reminders turned off");
       } else {
         toast.error(error || "Failed to disable");
       }
     } else {
-      const { ok, error } = await subscribeToPush();
-      if (ok) {
+      // Try web push (works in browsers / installed PWA)
+      const webRes = preview ? { ok: false, error: "preview" } : await subscribeToPush();
+      // Try native local notifications (no-op on web)
+      const nativeGranted = await ensureLocalNotificationPermission();
+
+      if (nativeGranted) {
+        // Pull the user's saved meal times and schedule on-device
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) {
+          const { data } = await (supabase.from("user_settings") as any)
+            .select(
+              "breakfast_time, lunch_time, dinner_time, snack_time, snack_reminder_enabled, timezone",
+            )
+            .eq("user_id", u.user.id)
+            .maybeSingle();
+          await scheduleMealReminders({
+            breakfast: (data?.breakfast_time || "08:00:00").slice(0, 5),
+            lunch: (data?.lunch_time || "13:00:00").slice(0, 5),
+            dinner: (data?.dinner_time || "19:00:00").slice(0, 5),
+            snack: (data?.snack_time || "16:00:00").slice(0, 5),
+            snackEnabled: !!data?.snack_reminder_enabled,
+          });
+          // Also flip the DB flag if web push didn't already do it
+          if (!webRes.ok) {
+            await (supabase.from("user_settings") as any)
+              .update({ reminders_enabled: true })
+              .eq("user_id", u.user.id);
+          }
+        }
+      }
+
+      if (webRes.ok || nativeGranted) {
         setEnabled(true);
         toast.success("Reminders enabled — you'll get a daily nudge");
       } else {
-        toast.error(error || "Failed to enable");
+        toast.error(webRes.error || "Failed to enable");
       }
     }
     setBusy(false);
