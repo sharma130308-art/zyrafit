@@ -30,20 +30,16 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
   const nativeActiveRef = useRef(false);
 
   const stopScanner = useCallback(async () => {
-    // Native (Capacitor) cleanup
+    // Native (Capacitor) cleanup — close ML Kit's modal scanner if still open
     if (nativeActiveRef.current) {
       try {
         const { BarcodeScanner: MLKit } = await import(
           "@capacitor-mlkit/barcode-scanning"
         );
         try { await MLKit.stopScan(); } catch { /* ignore */ }
-        try { await MLKit.removeAllListeners(); } catch { /* ignore */ }
       } catch {
         // ignore
       }
-      // Restore page chrome — ML Kit hides body during scan
-      document.documentElement.classList.remove("barcode-scanner-active");
-      document.body.classList.remove("barcode-scanner-active");
       nativeActiveRef.current = false;
     }
 
@@ -63,7 +59,6 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
       }
       html5QrCodeRef.current = null;
     }
-    // Clean up DOM element
     if (scannerRef.current) {
       const el = scannerRef.current.querySelector(`#${scannerIdRef.current}`);
       if (el) el.remove();
