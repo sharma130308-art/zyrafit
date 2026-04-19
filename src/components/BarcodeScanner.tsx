@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, ZapOff, ScanBarcode, Keyboard, RotateCcw } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 
 interface BarcodeScannerProps {
   open: boolean;
   onClose: () => void;
   onScan: (barcode: string) => void;
 }
+
+const isNative = (() => {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+})();
 
 export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
   const scannerRef = useRef<HTMLDivElement>(null);
@@ -18,6 +27,7 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
   const [manualBarcode, setManualBarcode] = useState("");
   const hasScannedRef = useRef(false);
   const scannerIdRef = useRef(`barcode-scanner-${Date.now()}`);
+  const nativeActiveRef = useRef(false);
 
   const stopScanner = useCallback(async () => {
     if (html5QrCodeRef.current) {
