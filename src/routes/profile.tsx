@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, subDays, subMonths } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
 import { RemindersToggle } from "@/components/RemindersToggle";
+import { MealReminderTimes } from "@/components/MealReminderTimes";
 
 // Lazy-load heavy chart (pulls in recharts) and the body-composition gauge card.
 // These are below-the-fold and only matter once the user has weight logs.
