@@ -95,20 +95,9 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
       hasScannedRef.current = false;
       nativeActiveRef.current = true;
 
-      // The native preview renders BEHIND the webview. Make the page transparent
-      // so the camera feed is visible behind our overlay UI.
-      document.documentElement.classList.add("barcode-scanner-active");
-      document.body.classList.add("barcode-scanner-active");
-
-      const listener = await MLKit.addListener("barcodeScanned", async (result) => {
-        if (hasScannedRef.current) return;
-        hasScannedRef.current = true;
-        if (navigator.vibrate) navigator.vibrate(100);
-        try { listener.remove(); } catch { /* ignore */ }
-        onScan(result.barcode.rawValue);
-      });
-
-      await MLKit.startScan({
+      // scan() opens ML Kit's full-screen native scanner UI and resolves
+      // with the detected barcodes. Much simpler than the live-preview API.
+      const result = await MLKit.scan({
         formats: [
           BarcodeFormat.Ean13,
           BarcodeFormat.Ean8,
@@ -121,17 +110,23 @@ export function BarcodeScanner({ open, onClose, onScan }: BarcodeScannerProps) {
         ],
       });
 
-      setScanning(true);
-      setError(null);
+      nativeActiveRef.current = false;
+      const code = result.barcodes?.[0]?.rawValue;
+      if (code) {
+        if (navigator.vibrate) navigator.vibrate(100);
+        hasScannedRef.current = true;
+        onScan(code);
+      } else {
+        // User cancelled the native scanner
+        onClose();
+      }
     } catch (err: any) {
       console.error("Native scanner error:", err);
       nativeActiveRef.current = false;
-      document.documentElement.classList.remove("barcode-scanner-active");
-      document.body.classList.remove("barcode-scanner-active");
       setError("Native scanner failed. Try manual entry.");
       setShowManualInput(true);
     }
-  }, [onScan]);
+  }, [onScan, onClose]);
 
   const startScanner = useCallback(async () => {
     if (nativeActiveRef.current || html5QrCodeRef.current) return;
