@@ -51,6 +51,8 @@ export const Route = createRootRoute({
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "ZyraFit — Daily Calorie & Macro Tracker" },
       { name: "twitter:description", content: "Track your daily calories and macros with AI-powered food recognition." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4d7ae14c-a791-4ccf-bf3d-149f555bf01d/id-preview-1bfeeffa--26243190-be17-49c7-ac1c-6de0c51231ee.lovable.app-1776644464271.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4d7ae14c-a791-4ccf-bf3d-149f555bf01d/id-preview-1bfeeffa--26243190-be17-49c7-ac1c-6de0c51231ee.lovable.app-1776644464271.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
