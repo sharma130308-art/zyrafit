@@ -174,6 +174,11 @@ function ProfilePage() {
         });
 
         if (error) throw error;
+        if (data?.ok === false) {
+          alert(data.error || "Scan failed. Please try again.");
+          setScanning(false);
+          return;
+        }
         if (!data?.found) {
           alert("Could not find body stats in this image. Try a clearer photo.");
           setScanning(false);
