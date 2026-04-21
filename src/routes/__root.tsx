@@ -6,6 +6,7 @@ import { SyncQueueDebugPanel } from "@/components/SyncQueueDebugPanel";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { initSyncQueue } from "@/lib/sync-queue";
+import { initAIScanQueue } from "@/lib/ai-scan-queue";
 
 import appCss from "../styles.css?url";
 
@@ -98,6 +99,7 @@ function RootComponent() {
   useEffect(() => {
     registerServiceWorker();
     initSyncQueue();
+    initAIScanQueue();
 
     // Global native-like haptic on tap
     const handleTap = (e: Event) => {
