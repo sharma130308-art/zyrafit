@@ -7,8 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const DAILY_LIMIT = 3;
 const FEATURE = "body_scan";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -28,27 +28,9 @@ serve(async (req) => {
       });
     }
     const userId = userData.user.id;
-
     const today = new Date().toISOString().slice(0, 10);
-    const { count } = await admin
-      .from("ai_usage")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("feature", FEATURE)
-      .eq("used_on", today);
 
-    if ((count ?? 0) >= DAILY_LIMIT) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: `Daily limit reached (${DAILY_LIMIT} body scans). Try again tomorrow.`,
-          limit_reached: true,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+    const MAX_BYTES = 5 * 1024 * 1024;
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (contentLength > MAX_BYTES) {
       return new Response(JSON.stringify({ ok: false, error: "Image too large (max 5MB)" }), {
@@ -58,14 +40,8 @@ serve(async (req) => {
     }
 
     const { imageBase64 } = await req.json();
-    if (!imageBase64 || typeof imageBase64 !== "string") {
-      return new Response(JSON.stringify({ ok: false, error: "No image provided" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (!imageBase64.startsWith("data:image/")) {
-      return new Response(JSON.stringify({ ok: false, error: "Invalid image format" }), {
+    if (!imageBase64 || typeof imageBase64 !== "string" || !imageBase64.startsWith("data:image/")) {
+      return new Response(JSON.stringify({ ok: false, error: "Invalid image" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -77,65 +53,79 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a body composition data extraction expert. You read gym receipts, body scan printouts, and similar documents to extract body stats. Always respond by calling the extract_body_stats function. Extract all available data from the image. Convert units if needed (stones/lbs to kg, feet/inches to meters).`,
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Extract body composition data from this gym receipt or body scan printout. Get weight, height, BMI, body fat percentage, and body fat mass if available." },
-              { type: "image_url", image_url: { url: imageBase64 } },
+    const match = imageBase64.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+    if (!match) {
+      return new Response(JSON.stringify({ ok: false, error: "Invalid image format" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const mimeType = match[1];
+    const rawBase64 = match[2];
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [
+              {
+                text: `You are a body composition data extraction expert. You read gym receipts, body scan printouts, and similar documents. Extract all available data. Convert units if needed (stones/lbs to kg, feet/inches to meters). Always call the extract_body_stats function.`,
+              },
             ],
           },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_body_stats",
-              description: "Extract body composition stats from the image",
-              parameters: {
-                type: "object",
-                properties: {
-                  found: { type: "boolean", description: "Whether body stats were found in the image" },
-                  weight_kg: { type: "number", description: "Weight in kilograms" },
-                  height_m: { type: "number", description: "Height in meters" },
-                  bmi: { type: "number", description: "BMI value" },
-                  body_fat_percent: { type: "number", description: "Body fat percentage" },
-                  body_fat_mass_kg: { type: "number", description: "Body fat mass in kg" },
-                  date: { type: "string", description: "Date from the receipt in YYYY-MM-DD format if available" },
-                  age: { type: "number", description: "Age if shown" },
-                  gender: { type: "string", description: "Gender if shown (male/female)" },
-                },
-                required: ["found"],
-                additionalProperties: false,
-              },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: "Extract body composition data from this gym receipt or body scan printout. Get weight, height, BMI, body fat percentage, and body fat mass if available." },
+                { inlineData: { mimeType, data: rawBase64 } },
+              ],
             },
+          ],
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: "extract_body_stats",
+                  description: "Extract body composition stats from the image",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      found: { type: "BOOLEAN" },
+                      weight_kg: { type: "NUMBER" },
+                      height_m: { type: "NUMBER" },
+                      bmi: { type: "NUMBER" },
+                      body_fat_percent: { type: "NUMBER" },
+                      body_fat_mass_kg: { type: "NUMBER" },
+                      date: { type: "STRING", description: "YYYY-MM-DD if available" },
+                      age: { type: "NUMBER" },
+                      gender: { type: "STRING" },
+                    },
+                    required: ["found"],
+                  },
+                },
+              ],
+            },
+          ],
+          toolConfig: {
+            functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["extract_body_stats"] },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_body_stats" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("Gemini error:", response.status, t);
       let error = "AI analysis failed";
-      if (response.status === 429) error = "Rate limited, please try again shortly.";
-      else if (response.status === 402) error = "AI credits exhausted. Please add funds.";
+      if (response.status === 429) error = "Gemini rate limit reached. Try again shortly.";
+      else if (response.status === 401 || response.status === 403) error = "Gemini API key invalid.";
       return new Response(JSON.stringify({ ok: false, error, status: response.status }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -143,21 +133,20 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const fnCall = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
 
-    if (!toolCall) {
+    if (!fnCall?.args) {
       return new Response(JSON.stringify({ ok: false, error: "No analysis returned" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = JSON.parse(toolCall.function.arguments);
+    const result = fnCall.args;
 
-    await admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today });
+    admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today }).then();
 
-    const remaining = Math.max(0, DAILY_LIMIT - ((count ?? 0) + 1));
-    return new Response(JSON.stringify({ ok: true, remaining, ...result }), {
+    return new Response(JSON.stringify({ ok: true, ...result }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
