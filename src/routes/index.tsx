@@ -99,6 +99,8 @@ function Dashboard() {
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiErrorRetryable, setAiErrorRetryable] = useState(false);
+  const lastPhotoFileRef = useRef<File | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
   const [streak, setStreak] = useState(0);
@@ -213,7 +215,22 @@ function Dashboard() {
     setScannedFood(null);
   };
 
+  const classifyAiError = (msg: string): { friendly: string; retryable: boolean } => {
+    const m = msg.toLowerCase();
+    if (m.includes("rate limit") || m.includes("429") || m.includes("too many")) {
+      return { friendly: "Gemini is rate-limited right now. Please try again in a moment.", retryable: true };
+    }
+    if (m.includes("api key") || m.includes("401") || m.includes("403") || m.includes("unauthorized")) {
+      return { friendly: "AI service unavailable (API key issue). Please try again or contact support.", retryable: true };
+    }
+    if (m.includes("network") || m.includes("fetch") || m.includes("failed to fetch")) {
+      return { friendly: "Network error reaching AI. Tap retry to try again.", retryable: true };
+    }
+    return { friendly: msg, retryable: true };
+  };
+
   const handlePhotoCapture = async (file: File) => {
+    lastPhotoFileRef.current = file;
     // ── Offline path: queue the scan and show a placeholder entry immediately
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       try {
@@ -246,7 +263,7 @@ function Dashboard() {
         refresh();
       } catch (err) {
         setAiError(err instanceof Error ? err.message : "Couldn't queue photo");
-        setTimeout(() => setAiError(null), 3000);
+        setAiErrorRetryable(true);
       }
       return;
     }
@@ -255,6 +272,7 @@ function Dashboard() {
     aiAbortRef.current = abortController;
     setAiLoading(true);
     setAiError(null);
+    setAiErrorRetryable(false);
     try {
       const { captureImageAsBase64, analyzePhoto } = await import("@/lib/food-ai");
       const base64 = await captureImageAsBase64(file);
@@ -269,11 +287,9 @@ function Dashboard() {
           .from("food-photos")
           .upload(fileName, file, { contentType: file.type });
         if (!uploadError) {
-          // Bucket is private — store the storage path; generate signed URLs on demand when displaying.
           uploadedPhotoUrl = fileName;
         }
       }
-      // Store the uploaded URL for use when adding, fallback to base64
       uploadedPhotoUrlRef.current = uploadedPhotoUrl || base64;
 
       if (abortController.signal.aborted) return;
@@ -281,7 +297,6 @@ function Dashboard() {
       try {
         result = await analyzePhoto(base64);
       } catch (analyzeErr) {
-        // Network failed mid-flight → queue with placeholder and bail out cleanly
         if (!navigator.onLine) {
           const { enqueueFoodScan } = await import("@/lib/ai-scan-queue");
           const { toast } = await import("sonner");
@@ -315,6 +330,7 @@ function Dashboard() {
       setAiLoading(false);
       if (!result.is_food || result.items.length === 0) {
         setAiError("No food detected in this photo. Try again with a clearer shot.");
+        setAiErrorRetryable(false);
         setTimeout(() => setAiError(null), 3000);
       } else {
         setAiItems(result.items);
@@ -322,9 +338,25 @@ function Dashboard() {
     } catch (err) {
       if (abortController.signal.aborted) return;
       setAiLoading(false);
-      setAiError(err instanceof Error ? err.message : "AI analysis failed");
-      setTimeout(() => setAiError(null), 3000);
+      setAiImageUrl("");
+      const raw = err instanceof Error ? err.message : "AI analysis failed";
+      const { friendly, retryable } = classifyAiError(raw);
+      setAiError(friendly);
+      setAiErrorRetryable(retryable);
+      if (!retryable) setTimeout(() => setAiError(null), 3000);
     }
+  };
+
+  const handleRetryAiPhoto = () => {
+    const file = lastPhotoFileRef.current;
+    setAiError(null);
+    setAiErrorRetryable(false);
+    if (file) handlePhotoCapture(file);
+  };
+
+  const handleDismissAiError = () => {
+    setAiError(null);
+    setAiErrorRetryable(false);
   };
 
   const handleCancelAiAnalysis = useCallback(() => {
@@ -643,13 +675,29 @@ function Dashboard() {
       <AnimatePresence>
         {(scanError || aiError) && (
           <motion.div
-            className="fixed top-16 inset-x-6 z-50 bg-destructive text-destructive-foreground rounded-2xl p-4 text-center shadow-lg"
+            className="fixed top-16 inset-x-6 z-50 bg-destructive text-destructive-foreground rounded-2xl p-4 shadow-lg"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <p className="font-medium text-sm">{scanError || aiError}</p>
-            {scanError && <p className="text-xs mt-1 opacity-80">Opening manual entry...</p>}
+            <p className="font-medium text-sm text-center">{scanError || aiError}</p>
+            {scanError && <p className="text-xs mt-1 opacity-80 text-center">Opening manual entry...</p>}
+            {aiError && aiErrorRetryable && (
+              <div className="flex gap-2 mt-3 justify-center">
+                <button
+                  onClick={handleRetryAiPhoto}
+                  className="px-4 py-2 rounded-xl bg-destructive-foreground text-destructive text-sm font-semibold active:opacity-80"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={handleDismissAiError}
+                  className="px-4 py-2 rounded-xl bg-destructive-foreground/20 text-destructive-foreground text-sm font-medium active:opacity-80"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
