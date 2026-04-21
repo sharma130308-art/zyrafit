@@ -232,10 +232,8 @@ function Dashboard() {
           .from("food-photos")
           .upload(fileName, file, { contentType: file.type });
         if (!uploadError) {
-          const { data: urlData } = supabase.storage
-            .from("food-photos")
-            .getPublicUrl(fileName);
-          uploadedPhotoUrl = urlData.publicUrl;
+          // Bucket is private — store the storage path; generate signed URLs on demand when displaying.
+          uploadedPhotoUrl = fileName;
         }
       }
       // Store the uploaded URL for use when adding, fallback to base64

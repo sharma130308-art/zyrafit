@@ -156,7 +156,7 @@ If the image doesn't contain food, set is_food to false. Identify each distinct 
   } catch (e) {
     console.error("analyze-food error:", e);
     return new Response(
-      JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ ok: false, error: "An internal error occurred. Please try again." }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
