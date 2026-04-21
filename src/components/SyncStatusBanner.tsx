@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CloudOff, RefreshCw, Check, AlertCircle } from "lucide-react";
+import { CloudOff, RefreshCw, Check, AlertCircle, Sparkles } from "lucide-react";
 import { onQueueChange, flushQueue } from "@/lib/sync-queue";
+import { onAIQueueChange, flushAIQueue } from "@/lib/ai-scan-queue";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 
 /**
- * Floating banner that appears when meals are queued offline.
- * Auto-hides briefly after a successful sync. Tap to manually retry.
+ * Floating banner that appears when meals OR AI scans are queued offline.
+ * Auto-hides briefly after a successful sync. Tap to manually retry both queues.
  */
 export function SyncStatusBanner() {
-  const [count, setCount] = useState(0);
+  const [mealCount, setMealCount] = useState(0);
+  const [aiCount, setAiCount] = useState(0);
   const [online, setOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
@@ -17,10 +19,23 @@ export function SyncStatusBanner() {
   const [syncing, setSyncing] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
+  const total = mealCount + aiCount;
+
   useEffect(() => {
-    const unsub = onQueueChange((n) => {
-      setCount((prev) => {
-        if (prev > 0 && n === 0) {
+    const unsubMeals = onQueueChange((n) => {
+      setMealCount((prev) => {
+        // Treat overall queue going to 0 as "synced" pulse
+        if (prev + aiCount > 0 && n + aiCount === 0) {
+          setJustSynced(true);
+          setLastError(null);
+          window.setTimeout(() => setJustSynced(false), 2200);
+        }
+        return n;
+      });
+    });
+    const unsubAI = onAIQueueChange((n) => {
+      setAiCount((prev) => {
+        if (prev + mealCount > 0 && n + mealCount === 0) {
           setJustSynced(true);
           setLastError(null);
           window.setTimeout(() => setJustSynced(false), 2200);
@@ -33,10 +48,12 @@ export function SyncStatusBanner() {
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
     return () => {
-      unsub();
+      unsubMeals();
+      unsubAI();
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRetry = async () => {
@@ -49,9 +66,11 @@ export function SyncStatusBanner() {
     setSyncing(true);
     setLastError(null);
     try {
-      const result = await flushQueue();
-      if (result.failed > 0 && result.synced === 0) {
-        setLastError(`Couldn't sync ${result.failed} item${result.failed > 1 ? "s" : ""}`);
+      const [mealResult, aiResult] = await Promise.all([flushQueue(), flushAIQueue()]);
+      const totalFailed = mealResult.failed + aiResult.failed;
+      const totalSynced = mealResult.synced + aiResult.synced;
+      if (totalFailed > 0 && totalSynced === 0) {
+        setLastError(`Couldn't sync ${totalFailed} item${totalFailed > 1 ? "s" : ""}`);
         window.setTimeout(() => setLastError(null), 3500);
       }
     } catch (e) {
@@ -62,7 +81,7 @@ export function SyncStatusBanner() {
     }
   };
 
-  const visible = count > 0 || justSynced;
+  const visible = total > 0 || justSynced;
 
   return (
     <AnimatePresence>
@@ -94,17 +113,23 @@ export function SyncStatusBanner() {
                 <CloudOff className="w-4 h-4" />
               ) : lastError ? (
                 <AlertCircle className="w-4 h-4" />
+              ) : aiCount > 0 ? (
+                <Sparkles className={`w-4 h-4 ${syncing ? "animate-pulse" : ""}`} />
               ) : (
                 <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
               )}
               <span className="text-[13px]">
                 {!online
-                  ? `${count} pending — offline`
+                  ? `${total} pending — offline`
                   : lastError
                     ? lastError
                     : syncing
                       ? "Syncing…"
-                      : `${count} pending`}
+                      : aiCount > 0 && mealCount > 0
+                        ? `${aiCount} scan${aiCount > 1 ? "s" : ""} · ${mealCount} meal${mealCount > 1 ? "s" : ""}`
+                        : aiCount > 0
+                          ? `${aiCount} scan${aiCount > 1 ? "s" : ""} pending`
+                          : `${mealCount} pending`}
               </span>
               {online && !syncing && (
                 <span
