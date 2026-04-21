@@ -143,7 +143,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("scan-body-stats error:", e);
     return new Response(
-      JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ ok: false, error: "An internal error occurred. Please try again." }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

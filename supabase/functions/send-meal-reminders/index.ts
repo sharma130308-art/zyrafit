@@ -70,6 +70,24 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Require a shared secret so only the cron job (or trusted callers) can trigger this.
+    const expectedSecret = Deno.env.get("CRON_SECRET");
+    if (!expectedSecret) {
+      console.error("CRON_SECRET not configured");
+      return new Response(JSON.stringify({ error: "Server not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const providedSecret =
+      req.headers.get("x-cron-secret") ?? req.headers.get("X-Cron-Secret");
+    if (providedSecret !== expectedSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
     if (!privateKey) {
       return new Response(JSON.stringify({ error: "VAPID_PRIVATE_KEY not configured" }), {
@@ -207,7 +225,7 @@ Deno.serve(async (req) => {
     );
   } catch (err: any) {
     console.error("send-meal-reminders error:", err);
-    return new Response(JSON.stringify({ error: err?.message || String(err) }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
