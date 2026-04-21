@@ -99,6 +99,8 @@ function Dashboard() {
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiErrorRetryable, setAiErrorRetryable] = useState(false);
+  const lastPhotoFileRef = useRef<File | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
   const [streak, setStreak] = useState(0);
