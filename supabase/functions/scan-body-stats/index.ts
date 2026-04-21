@@ -48,10 +48,31 @@ serve(async (req) => {
       );
     }
 
+    const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > MAX_BYTES) {
+      return new Response(JSON.stringify({ ok: false, error: "Image too large (max 5MB)" }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { imageBase64 } = await req.json();
-    if (!imageBase64) {
+    if (!imageBase64 || typeof imageBase64 !== "string") {
       return new Response(JSON.stringify({ ok: false, error: "No image provided" }), {
         status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!imageBase64.startsWith("data:image/")) {
+      return new Response(JSON.stringify({ ok: false, error: "Invalid image format" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (imageBase64.length > MAX_BYTES) {
+      return new Response(JSON.stringify({ ok: false, error: "Image too large (max 5MB)" }), {
+        status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
