@@ -675,13 +675,29 @@ function Dashboard() {
       <AnimatePresence>
         {(scanError || aiError) && (
           <motion.div
-            className="fixed top-16 inset-x-6 z-50 bg-destructive text-destructive-foreground rounded-2xl p-4 text-center shadow-lg"
+            className="fixed top-16 inset-x-6 z-50 bg-destructive text-destructive-foreground rounded-2xl p-4 shadow-lg"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <p className="font-medium text-sm">{scanError || aiError}</p>
-            {scanError && <p className="text-xs mt-1 opacity-80">Opening manual entry...</p>}
+            <p className="font-medium text-sm text-center">{scanError || aiError}</p>
+            {scanError && <p className="text-xs mt-1 opacity-80 text-center">Opening manual entry...</p>}
+            {aiError && aiErrorRetryable && (
+              <div className="flex gap-2 mt-3 justify-center">
+                <button
+                  onClick={handleRetryAiPhoto}
+                  className="px-4 py-2 rounded-xl bg-destructive-foreground text-destructive text-sm font-semibold active:opacity-80"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={handleDismissAiError}
+                  className="px-4 py-2 rounded-xl bg-destructive-foreground/20 text-destructive-foreground text-sm font-medium active:opacity-80"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
