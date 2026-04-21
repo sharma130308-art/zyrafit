@@ -214,6 +214,43 @@ function Dashboard() {
   };
 
   const handlePhotoCapture = async (file: File) => {
+    // ── Offline path: queue the scan and show a placeholder entry immediately
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      try {
+        const { captureImageAsBase64 } = await import("@/lib/food-ai");
+        const { enqueueFoodScan } = await import("@/lib/ai-scan-queue");
+        const { toast } = await import("sonner");
+        const base64 = await captureImageAsBase64(file);
+
+        const placeholder = await addEntry({
+          name: "Analyzing photo…",
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          quantity: 1,
+          mealType: dialogMealType,
+          date: today,
+          source: "ai",
+          photoUrl: base64,
+        });
+        await enqueueFoodScan({
+          imageBase64: base64,
+          mealType: dialogMealType,
+          date: today,
+          placeholderEntryId: placeholder.id,
+        });
+        toast("Photo queued — will analyze when back online", {
+          description: "Added a placeholder to your meal log.",
+        });
+        refresh();
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : "Couldn't queue photo");
+        setTimeout(() => setAiError(null), 3000);
+      }
+      return;
+    }
+
     const abortController = new AbortController();
     aiAbortRef.current = abortController;
     setAiLoading(true);
@@ -240,7 +277,40 @@ function Dashboard() {
       uploadedPhotoUrlRef.current = uploadedPhotoUrl || base64;
 
       if (abortController.signal.aborted) return;
-      const result = await analyzePhoto(base64);
+      let result;
+      try {
+        result = await analyzePhoto(base64);
+      } catch (analyzeErr) {
+        // Network failed mid-flight → queue with placeholder and bail out cleanly
+        if (!navigator.onLine) {
+          const { enqueueFoodScan } = await import("@/lib/ai-scan-queue");
+          const { toast } = await import("sonner");
+          const placeholder = await addEntry({
+            name: "Analyzing photo…",
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            quantity: 1,
+            mealType: dialogMealType,
+            date: today,
+            source: "ai",
+            photoUrl: uploadedPhotoUrlRef.current || base64,
+          });
+          await enqueueFoodScan({
+            imageBase64: base64,
+            mealType: dialogMealType,
+            date: today,
+            placeholderEntryId: placeholder.id,
+          });
+          toast("Photo queued — will analyze when back online");
+          setAiLoading(false);
+          setAiImageUrl("");
+          refresh();
+          return;
+        }
+        throw analyzeErr;
+      }
       if (abortController.signal.aborted) return;
       setAiLoading(false);
       if (!result.is_food || result.items.length === 0) {
