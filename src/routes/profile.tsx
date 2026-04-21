@@ -161,19 +161,40 @@ function ProfilePage() {
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file || !user) return;
+
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      // Offline → queue and bail out
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const { enqueueBodyScan } = await import("@/lib/ai-scan-queue");
+        const { toast } = await import("sonner");
+        await enqueueBodyScan(base64);
+        toast("Body scan queued — will read when back online");
+        return;
+      }
+
       setScanning(true);
       try {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-
         const { data, error } = await supabase.functions.invoke("scan-body-stats", {
           body: { imageBase64: base64 },
         });
 
-        if (error) throw error;
+        if (error) {
+          // Treat network failure as "queue and try later" if we just lost connection
+          if (typeof navigator !== "undefined" && !navigator.onLine) {
+            const { enqueueBodyScan } = await import("@/lib/ai-scan-queue");
+            const { toast } = await import("sonner");
+            await enqueueBodyScan(base64);
+            toast("Body scan queued — will read when back online");
+            setScanning(false);
+            return;
+          }
+          throw error;
+        }
         if (data?.ok === false) {
           alert(data.error || "Scan failed. Please try again.");
           setScanning(false);
