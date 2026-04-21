@@ -7,14 +7,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const DAILY_LIMIT = 10;
 const FEATURE = "photo_scan";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Identify the user from the bearer token
+    // Identify the user (still required so we know who's calling)
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -29,26 +29,7 @@ serve(async (req) => {
       });
     }
     const userId = userData.user.id;
-
-    // Check today's usage
     const today = new Date().toISOString().slice(0, 10);
-    const { count } = await admin
-      .from("ai_usage")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("feature", FEATURE)
-      .eq("used_on", today);
-
-    if ((count ?? 0) >= DAILY_LIMIT) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: `Daily limit reached (${DAILY_LIMIT} photo scans). Try again tomorrow.`,
-          limit_reached: true,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
     const contentLength = Number(req.headers.get("content-length") ?? 0);
@@ -60,14 +41,8 @@ serve(async (req) => {
     }
 
     const { imageBase64 } = await req.json();
-    if (!imageBase64 || typeof imageBase64 !== "string") {
-      return new Response(JSON.stringify({ ok: false, error: "No image provided" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (!imageBase64.startsWith("data:image/")) {
-      return new Response(JSON.stringify({ ok: false, error: "Invalid image format" }), {
+    if (!imageBase64 || typeof imageBase64 !== "string" || !imageBase64.startsWith("data:image/")) {
+      return new Response(JSON.stringify({ ok: false, error: "Invalid image" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -79,75 +54,87 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a nutrition analysis expert. Analyze food photos and estimate calories and macronutrients.
-Always respond by calling the analyze_food function. Be as accurate as possible with your estimates.
-If the image doesn't contain food, set is_food to false. Identify each distinct food item visible.`,
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Analyze this food photo. Identify all food items and estimate their nutritional content per typical serving shown in the image." },
-              { type: "image_url", image_url: { url: imageBase64 } },
+    // Strip the data URL prefix → mime type + raw base64
+    const match = imageBase64.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+    if (!match) {
+      return new Response(JSON.stringify({ ok: false, error: "Invalid image format" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const mimeType = match[1];
+    const rawBase64 = match[2];
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [
+              {
+                text: `You are a nutrition analysis expert. Analyze food photos and estimate calories and macronutrients per typical serving shown. If the image doesn't contain food, set is_food to false. Identify each distinct food item visible. Always call the analyze_food function.`,
+              },
             ],
           },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "analyze_food",
-              description: "Return nutritional analysis of food items in the photo",
-              parameters: {
-                type: "object",
-                properties: {
-                  is_food: { type: "boolean", description: "Whether the image contains food" },
-                  items: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string", description: "Name of the food item" },
-                        calories: { type: "number", description: "Estimated calories" },
-                        protein: { type: "number", description: "Estimated protein in grams" },
-                        carbs: { type: "number", description: "Estimated carbs in grams" },
-                        fat: { type: "number", description: "Estimated fat in grams" },
-                        confidence: { type: "string", enum: ["high", "medium", "low"] },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: "Analyze this food photo. Identify all food items and estimate their nutritional content per typical serving shown." },
+                { inlineData: { mimeType, data: rawBase64 } },
+              ],
+            },
+          ],
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: "analyze_food",
+                  description: "Return nutritional analysis of food items in the photo",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      is_food: { type: "BOOLEAN", description: "Whether the image contains food" },
+                      items: {
+                        type: "ARRAY",
+                        items: {
+                          type: "OBJECT",
+                          properties: {
+                            name: { type: "STRING" },
+                            calories: { type: "NUMBER" },
+                            protein: { type: "NUMBER" },
+                            carbs: { type: "NUMBER" },
+                            fat: { type: "NUMBER" },
+                            confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+                          },
+                          required: ["name", "calories", "protein", "carbs", "fat", "confidence"],
+                        },
                       },
-                      required: ["name", "calories", "protein", "carbs", "fat", "confidence"],
-                      additionalProperties: false,
                     },
+                    required: ["is_food", "items"],
                   },
                 },
-                required: ["is_food", "items"],
-                additionalProperties: false,
-              },
+              ],
             },
+          ],
+          toolConfig: {
+            functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["analyze_food"] },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "analyze_food" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("Gemini error:", response.status, t);
       let error = "AI analysis failed";
-      if (response.status === 429) error = "Rate limited, please try again shortly.";
-      else if (response.status === 402) error = "AI credits exhausted. Please add funds.";
+      if (response.status === 429) error = "Gemini rate limit reached. Try again shortly.";
+      else if (response.status === 401 || response.status === 403) error = "Gemini API key invalid.";
       return new Response(JSON.stringify({ ok: false, error, status: response.status }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -155,22 +142,21 @@ If the image doesn't contain food, set is_food to false. Identify each distinct 
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const fnCall = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
 
-    if (!toolCall) {
+    if (!fnCall?.args) {
       return new Response(JSON.stringify({ ok: false, error: "No analysis returned" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = JSON.parse(toolCall.function.arguments);
+    const result = fnCall.args;
 
-    // Record successful usage (best-effort, don't fail the request)
-    await admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today });
+    // Best-effort usage logging (no limit enforced)
+    admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today }).then();
 
-    const remaining = Math.max(0, DAILY_LIMIT - ((count ?? 0) + 1));
-    return new Response(JSON.stringify({ ok: true, remaining, ...result }), {
+    return new Response(JSON.stringify({ ok: true, ...result }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
