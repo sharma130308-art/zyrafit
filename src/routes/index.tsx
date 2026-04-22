@@ -278,19 +278,18 @@ function Dashboard() {
       const base64 = await captureImageAsBase64(file);
       setAiImageUrl(base64);
 
-      // Upload photo to storage
-      let uploadedPhotoUrl: string | null = null;
+      // Backup upload to private storage (best-effort, non-blocking).
+      // For the visible thumbnail we use the base64 data URL so it always renders
+      // — the bucket is private so a raw path wouldn't display.
       const userId = user?.id;
       if (userId) {
         const fileName = `${userId}/${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage
+        supabase.storage
           .from("food-photos")
-          .upload(fileName, file, { contentType: file.type });
-        if (!uploadError) {
-          uploadedPhotoUrl = fileName;
-        }
+          .upload(fileName, file, { contentType: file.type })
+          .then(() => {});
       }
-      uploadedPhotoUrlRef.current = uploadedPhotoUrl || base64;
+      uploadedPhotoUrlRef.current = base64;
 
       if (abortController.signal.aborted) return;
       let result;
