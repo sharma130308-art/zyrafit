@@ -485,6 +485,20 @@ function Dashboard() {
 
       <ReminderPrompt isAuthenticated={!!user} />
 
+      {/* Hidden camera input for AI photo — kept OUTSIDE Suspense so the ref is always mounted */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoCapture(file);
+          e.target.value = "";
+        }}
+        className="hidden"
+      />
+
       {/* Quick Add Picker */}
       <Suspense fallback={null}>
         <QuickAddPicker
@@ -494,7 +508,8 @@ function Dashboard() {
             const meal = quickAddMeal;
             setQuickAddMeal(null);
             if (meal) setDialogMealType(meal);
-            setTimeout(() => cameraInputRef.current?.click(), 100);
+            // ref is always mounted now — click on next tick
+            requestAnimationFrame(() => cameraInputRef.current?.click());
           }}
           onBarcodeScan={() => {
             const meal = quickAddMeal;
@@ -509,7 +524,9 @@ function Dashboard() {
             setDialogOpen(true);
           }}
         />
+      </Suspense>
 
+      <Suspense fallback={null}>
         <AddFoodDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
@@ -521,18 +538,24 @@ function Dashboard() {
           }}
           onAiClick={() => {
             setDialogOpen(false);
-            setTimeout(() => cameraInputRef.current?.click(), 100);
+            requestAnimationFrame(() => cameraInputRef.current?.click());
           }}
         />
+      </Suspense>
 
-        {/* Barcode Scanner */}
-        <BarcodeScanner
-          open={scannerOpen}
-          onClose={() => setScannerOpen(false)}
-          onScan={handleBarcodeScan}
-        />
+      {/* Barcode Scanner — only mount when open to avoid camera permission issues */}
+      {scannerOpen && (
+        <Suspense fallback={null}>
+          <BarcodeScanner
+            open={scannerOpen}
+            onClose={() => setScannerOpen(false)}
+            onScan={handleBarcodeScan}
+          />
+        </Suspense>
+      )}
 
-        {/* Scanned Food Preview */}
+      {/* Scanned Food Preview */}
+      <Suspense fallback={null}>
         <AnimatePresence>
           {scannedFood && (
             <FoodPreview
@@ -542,22 +565,10 @@ function Dashboard() {
             />
           )}
         </AnimatePresence>
+      </Suspense>
 
-        {/* Hidden camera input for AI photo */}
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handlePhotoCapture(file);
-            e.target.value = "";
-          }}
-          className="hidden"
-        />
-
-        {/* AI Food Preview */}
+      {/* AI Food Preview */}
+      <Suspense fallback={null}>
         <AnimatePresence>
           {aiItems && (
             <AIFoodPreview
