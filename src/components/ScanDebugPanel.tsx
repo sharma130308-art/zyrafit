@@ -176,6 +176,41 @@ export function ScanDebugPanel() {
               </button>
             </div>
           </div>
+          {hint && !hintDismissed && (
+            <div className="border-b bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-[11px] leading-snug">
+              <div className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-amber-900 dark:text-amber-200">
+                    {hint.title}
+                  </div>
+                  <div className="mt-1 text-amber-900/80 dark:text-amber-200/80">
+                    Likely causes:
+                    <ul className="list-disc pl-4 mt-0.5 space-y-0.5">
+                      {hint.causes.map((c) => (
+                        <li key={c}>{c}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-1.5 text-amber-900/80 dark:text-amber-200/80">
+                    Try next:
+                    <ul className="list-disc pl-4 mt-0.5 space-y-0.5">
+                      {hint.next.map((n) => (
+                        <li key={n}>{n}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setHintDismissed(true)}
+                  className="rounded p-0.5 text-amber-700/70 hover:bg-amber-100 dark:hover:bg-amber-900"
+                  aria-label="Dismiss hint"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
           <div className="max-h-[50vh] overflow-y-auto p-2 space-y-1">
             {entries.length === 0 ? (
               <div className="p-3 text-xs text-muted-foreground">
