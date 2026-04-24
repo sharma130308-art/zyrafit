@@ -1,10 +1,95 @@
-import { useEffect, useState } from "react";
-import { Bug, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bug, Trash2, X, ChevronDown, ChevronUp, Info } from "lucide-react";
 import {
   subscribeScanDebug,
   clearScanDebug,
   type ScanDebugEntry,
 } from "@/lib/scan-debug";
+
+/**
+ * Inspect recent debug entries and, if they look like a CORS / preflight /
+ * network-layer failure, return a human-readable hint. Returns null when the
+ * log doesn't match a known pattern so we don't show noise.
+ */
+function diagnoseEntries(entries: ScanDebugEntry[]): {
+  title: string;
+  causes: string[];
+  next: string[];
+} | null {
+  if (entries.length === 0) return null;
+  const recent = entries.slice(0, 8);
+  const blob = recent
+    .map((e) => `${e.step} ${e.status} ${e.detail ?? ""}`)
+    .join("\n")
+    .toLowerCase();
+
+  const hasNetworkErr =
+    blob.includes("failed to fetch") ||
+    blob.includes("network error") ||
+    blob.includes("networkerror") ||
+    blob.includes("load failed") ||
+    blob.includes("failed to send a request") ||
+    blob.includes("direct fetch network error") ||
+    blob.includes("invoke threw");
+
+  const hasCors =
+    blob.includes("cors") ||
+    blob.includes("preflight") ||
+    blob.includes("access-control") ||
+    blob.includes("blocked by");
+
+  const httpStatusMatch = blob.match(/responded (\d{3})|http error.*?(\d{3})/);
+  const status = httpStatusMatch
+    ? Number(httpStatusMatch[1] || httpStatusMatch[2])
+    : null;
+
+  if (status === 401 || status === 403) {
+    return {
+      title: "Auth rejected by the AI service",
+      causes: [
+        "Your session token is missing or expired.",
+        "The edge function is requiring a signed-in user.",
+      ],
+      next: [
+        "Sign out and sign back in, then retry the scan.",
+        "Confirm the Scan debug shows an auth session before invoke.",
+      ],
+    };
+  }
+
+  if (status === 413 || blob.includes("payload too large")) {
+    return {
+      title: "Photo too large for the AI service",
+      causes: [
+        "The image is bigger than the 5 MB edge function limit.",
+        "Downscale step may have failed on this device.",
+      ],
+      next: [
+        "Try a different photo or retake at lower resolution.",
+        "Check the 'downscale ok' line — size should be < 1500 KB.",
+      ],
+    };
+  }
+
+  if (hasCors || (hasNetworkErr && !status)) {
+    return {
+      title: "Request blocked before reaching the AI service",
+      causes: [
+        "Browser blocked the CORS preflight (OPTIONS) — common in embedded previews and strict corporate networks.",
+        "The edge function URL is unreachable from this network (VPN, firewall, or offline).",
+        "A browser extension (ad/privacy blocker) is intercepting the request.",
+      ],
+      next: [
+        "Open the published app URL in a normal tab and retry — the preview iframe is the most common culprit.",
+        "Disable ad/privacy extensions for this site, or try a private window.",
+        "Switch network (e.g. off VPN / off corporate Wi‑Fi) and retry.",
+        "In DevTools → Network, look for the failed POST to /functions/v1/analyze-food and check its Status / CORS columns.",
+      ],
+    };
+  }
+
+  return null;
+}
 
 const STORAGE_KEY = "zyrafit:scan-debug-visible";
 
