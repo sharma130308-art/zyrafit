@@ -97,6 +97,8 @@ export function ScanDebugPanel() {
   const [entries, setEntries] = useState<ScanDebugEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(false);
+  const hint = useMemo(() => diagnoseEntries(entries), [entries]);
 
   useEffect(() => {
     if (typeof localStorage !== "undefined") {
