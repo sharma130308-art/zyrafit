@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { SyncStatusBanner } from "@/components/SyncStatusBanner";
 import { SyncQueueDebugPanel } from "@/components/SyncQueueDebugPanel";
+import { ScanDebugPanel } from "@/components/ScanDebugPanel";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { registerServiceWorker } from "@/lib/register-sw";
 import { initSyncQueue } from "@/lib/sync-queue";
@@ -124,6 +125,7 @@ function RootComponent() {
       <SwipeBackGesture />
       <SyncStatusBanner />
       <SyncQueueDebugPanel />
+      <ScanDebugPanel />
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
