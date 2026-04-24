@@ -133,6 +133,12 @@ export function ScanDebugPanel() {
         >
           <Bug className="h-3.5 w-3.5" />
           Scan debug ({entries.length})
+          {hint && (
+            <span
+              className="inline-block h-2 w-2 rounded-full bg-amber-400"
+              aria-label="Diagnostic hint available"
+            />
+          )}
           <ChevronUp className="h-3.5 w-3.5" />
         </button>
       ) : (
