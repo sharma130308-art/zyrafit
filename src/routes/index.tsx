@@ -274,6 +274,8 @@ function Dashboard() {
     setAiError(null);
     setAiErrorRetryable(false);
     try {
+      const { logScan } = await import("@/lib/scan-debug");
+      logScan("scan started", "info", `online=${navigator.onLine} user=${user?.id ? "yes" : "no"}`);
       const { captureImageAsBase64, analyzePhoto } = await import("@/lib/food-ai");
       const base64 = await captureImageAsBase64(file);
       setAiImageUrl(base64);
@@ -339,6 +341,8 @@ function Dashboard() {
       setAiLoading(false);
       setAiImageUrl("");
       const raw = err instanceof Error ? err.message : "AI analysis failed";
+      const { logScan } = await import("@/lib/scan-debug");
+      logScan("scan failed (caught)", "error", raw);
       const { friendly, retryable } = classifyAiError(raw);
       setAiError(friendly);
       setAiErrorRetryable(retryable);
