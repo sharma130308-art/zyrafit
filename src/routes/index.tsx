@@ -489,7 +489,9 @@ function Dashboard() {
         ref={cameraInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        {...(typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+          ? { capture: "environment" as const }
+          : {})}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handlePhotoCapture(file);
