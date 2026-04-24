@@ -20,41 +20,111 @@ export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
   const started = performance.now();
   logScan("invoke analyze-food", "info", `payload ~${sizeKb} KB`);
 
-  let data: any = null;
-  let error: any = null;
+  // Try the supabase-js invoke first.
   try {
     const res = await supabase.functions.invoke("analyze-food", {
       body: { imageBase64 },
     });
-    data = res.data;
-    error = res.error;
+    const ms = Math.round(performance.now() - started);
+
+    if (res.error) {
+      logScan("invoke returned error — falling back to fetch", "error", `${ms}ms — ${res.error.message || JSON.stringify(res.error)}`);
+      return await analyzeViaFetch(imageBase64, started);
+    }
+    const data = res.data as any;
+    if (!data) {
+      logScan("invoke empty — falling back to fetch", "error", `${ms}ms`);
+      return await analyzeViaFetch(imageBase64, started);
+    }
+    if (data.ok === false || data.error) {
+      logScan("analyze-food rejected", "error", `${ms}ms — ${data.error || "unknown"}`);
+      throw new Error(data.error || "Analysis failed");
+    }
+    const itemCount = Array.isArray(data.items) ? data.items.length : 0;
+    logScan("analyze-food ok (invoke)", "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
+    return data as AIFoodResult;
   } catch (networkErr) {
     const ms = Math.round(performance.now() - started);
     logScan(
-      "analyze-food network error",
+      "invoke threw — trying direct fetch",
       "error",
       `${ms}ms — ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`,
     );
-    throw networkErr;
+    return await analyzeViaFetch(imageBase64, started);
+  }
+}
+
+/**
+ * Direct fetch fallback. Bypasses supabase-js so we can see the real HTTP
+ * status code and surface useful error messages instead of the opaque
+ * "Failed to send a request to the Edge Function".
+ */
+async function analyzeViaFetch(imageBase64: string, started: number): Promise<AIFoodResult> {
+  const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+  const ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  if (!SUPABASE_URL || !ANON_KEY) {
+    logScan("missing supabase env", "error", `url=${!!SUPABASE_URL} key=${!!ANON_KEY}`);
+    throw new Error("Backend not configured");
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) {
+    logScan("no auth session for fetch", "error");
+    throw new Error("Sign in to use AI photo scan.");
+  }
+
+  const url = `${SUPABASE_URL}/functions/v1/analyze-food`;
+  logScan("direct fetch", "info", url);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        apikey: ANON_KEY,
+      },
+      body: JSON.stringify({ imageBase64 }),
+    });
+  } catch (e) {
+    const ms = Math.round(performance.now() - started);
+    const msg = e instanceof Error ? e.message : String(e);
+    logScan("direct fetch network error", "error", `${ms}ms — ${msg}`);
+    throw new Error(
+      `Couldn't reach the AI service (${msg}). Try the published app URL or check your connection.`,
+    );
   }
 
   const ms = Math.round(performance.now() - started);
+  let bodyText = "";
+  try {
+    bodyText = await res.text();
+  } catch {
+    // ignore
+  }
 
-  if (error) {
-    logScan("analyze-food returned error", "error", `${ms}ms — ${error.message || JSON.stringify(error)}`);
-    throw new Error(error.message || "Analysis failed");
+  if (!res.ok) {
+    logScan("direct fetch HTTP error", "error", `${ms}ms — ${res.status} ${res.statusText} — ${bodyText.slice(0, 300)}`);
+    throw new Error(`AI service responded ${res.status}: ${bodyText.slice(0, 200) || res.statusText}`);
   }
-  if (!data) {
-    logScan("analyze-food empty response", "error", `${ms}ms`);
-    throw new Error("No response from analysis service");
+
+  let data: any = null;
+  try {
+    data = bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    logScan("direct fetch invalid JSON", "error", `${ms}ms — ${bodyText.slice(0, 300)}`);
+    throw new Error("AI service returned an invalid response");
   }
-  if (data.ok === false || data.error) {
-    logScan("analyze-food rejected", "error", `${ms}ms — ${data.error || "unknown"}`);
-    throw new Error(data.error || "Analysis failed");
+
+  if (!data || data.ok === false || data.error) {
+    logScan("direct fetch rejected", "error", `${ms}ms — ${data?.error || "unknown"}`);
+    throw new Error(data?.error || "Analysis failed");
   }
 
   const itemCount = Array.isArray(data.items) ? data.items.length : 0;
-  logScan("analyze-food ok", "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
+  logScan("analyze-food ok (fetch)", "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
   return data as AIFoodResult;
 }
 
