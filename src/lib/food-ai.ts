@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logScan } from "@/lib/scan-debug";
 
 export interface AIFoodItem {
   name: string;
@@ -15,15 +16,45 @@ export interface AIFoodResult {
 }
 
 export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
-  const { data, error } = await supabase.functions.invoke("analyze-food", {
-    body: { imageBase64 },
-  });
+  const sizeKb = Math.round((imageBase64.length * 3) / 4 / 1024);
+  const started = performance.now();
+  logScan("invoke analyze-food", "info", `payload ~${sizeKb} KB`);
 
-  if (error) throw new Error(error.message || "Analysis failed");
-  if (!data) throw new Error("No response from analysis service");
-  if (data.ok === false) throw new Error(data.error || "Analysis failed");
-  if (data.error) throw new Error(data.error);
+  let data: any = null;
+  let error: any = null;
+  try {
+    const res = await supabase.functions.invoke("analyze-food", {
+      body: { imageBase64 },
+    });
+    data = res.data;
+    error = res.error;
+  } catch (networkErr) {
+    const ms = Math.round(performance.now() - started);
+    logScan(
+      "analyze-food network error",
+      "error",
+      `${ms}ms — ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`,
+    );
+    throw networkErr;
+  }
 
+  const ms = Math.round(performance.now() - started);
+
+  if (error) {
+    logScan("analyze-food returned error", "error", `${ms}ms — ${error.message || JSON.stringify(error)}`);
+    throw new Error(error.message || "Analysis failed");
+  }
+  if (!data) {
+    logScan("analyze-food empty response", "error", `${ms}ms`);
+    throw new Error("No response from analysis service");
+  }
+  if (data.ok === false || data.error) {
+    logScan("analyze-food rejected", "error", `${ms}ms — ${data.error || "unknown"}`);
+    throw new Error(data.error || "Analysis failed");
+  }
+
+  const itemCount = Array.isArray(data.items) ? data.items.length : 0;
+  logScan("analyze-food ok", "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
   return data as AIFoodResult;
 }
 
@@ -33,10 +64,14 @@ export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
  * and upload quickly. Falls back to the raw base64 if anything goes wrong.
  */
 export async function captureImageAsBase64(file: File): Promise<string> {
+  logScan("capture file", "info", `${file.name || "(no name)"} • ${file.type || "?"} • ${Math.round(file.size / 1024)} KB`);
   const raw = await readFileAsDataUrl(file);
   try {
-    return await downscaleDataUrl(raw, 1280, 0.82);
-  } catch {
+    const out = await downscaleDataUrl(raw, 1280, 0.82);
+    logScan("downscale ok", "ok", `${Math.round((out.length * 3) / 4 / 1024)} KB`);
+    return out;
+  } catch (e) {
+    logScan("downscale failed — using raw", "error", e instanceof Error ? e.message : String(e));
     return raw;
   }
 }
