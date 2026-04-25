@@ -78,6 +78,8 @@ async function analyzeViaFetch(imageBase64: string, started: number): Promise<AI
   logScan("direct fetch", "info", url);
 
   let res: Response;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
   try {
     res = await fetch(url, {
       method: "POST",
@@ -87,14 +89,20 @@ async function analyzeViaFetch(imageBase64: string, started: number): Promise<AI
         apikey: ANON_KEY,
       },
       body: JSON.stringify({ imageBase64 }),
+      signal: controller.signal,
     });
   } catch (e) {
     const ms = Math.round(performance.now() - started);
-    const msg = e instanceof Error ? e.message : String(e);
+    const aborted = (e as any)?.name === "AbortError";
+    const msg = aborted
+      ? "AI service took too long (over 60s) — try a smaller / clearer photo."
+      : e instanceof Error ? e.message : String(e);
     logScan("direct fetch network error", "error", `${ms}ms — ${msg}`);
     throw new Error(
-      `Couldn't reach the AI service (${msg}). Try the published app URL or check your connection.`,
+      aborted ? msg : `Couldn't reach the AI service (${msg}). Try the published app URL or check your connection.`,
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const ms = Math.round(performance.now() - started);
