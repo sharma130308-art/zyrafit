@@ -137,7 +137,7 @@ export async function captureImageAsBase64(file: File): Promise<string> {
   logScan("capture file", "info", `${file.name || "(no name)"} • ${file.type || "?"} • ${Math.round(file.size / 1024)} KB`);
   const raw = await readFileAsDataUrl(file);
   try {
-    const out = await downscaleDataUrl(raw, 1280, 0.82);
+    const out = await downscaleDataUrl(raw, 896, 0.72);
     logScan("downscale ok", "ok", `${Math.round((out.length * 3) / 4 / 1024)} KB`);
     return out;
   } catch (e) {
