@@ -12,18 +12,21 @@ import {
   getDailyTotals,
   getEntriesByMeal,
   loadCalorieGoal,
+  loadMacroGoals,
+  getMacroGoalsLocal,
   getWeeklyHistory,
   type FoodEntry,
   type MealType,
   type FoodSource,
   type DaySummary,
+  type MacroGoals,
   getLoggingStreak,
   restoreEntry,
 } from "@/lib/food-store";
 import type { ScannedFood } from "@/lib/barcode-api";
 import type { AIFoodItem } from "@/lib/food-ai";
 import { CalorieRing } from "@/components/CalorieRing";
-import { MacroBar } from "@/components/MacroBar";
+import { MacroCard } from "@/components/MacroCard";
 import { MealSection } from "@/components/MealSection";
 import { BottomNav } from "@/components/BottomNav";
 import { ReminderPrompt } from "@/components/ReminderPrompt";
@@ -61,6 +64,7 @@ function Dashboard() {
   const [dialogMealType, setDialogMealType] = useState<MealType>("breakfast");
   const [quickAddMeal, setQuickAddMeal] = useState<MealType | null>(null);
   const [goal, setGoal] = useState(2000);
+  const [macroGoals, setMacroGoals] = useState<MacroGoals>(() => getMacroGoalsLocal());
   const [loading, setLoading] = useState(true);
   // Background refresh: cached data is on screen but a network fetch is in flight.
   const [refreshing, setRefreshing] = useState(false);
@@ -127,16 +131,18 @@ function Dashboard() {
       }
     }
 
-    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak] = await Promise.all([
+    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak, fetchedMacros] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
       getWeeklyHistory(),
       getLoggingStreak(),
+      loadMacroGoals(),
     ]);
     setEntries(fetchedEntries);
     setGoal(fetchedGoal);
     setWeeklyData(fetchedWeekly);
     setStreak(fetchedStreak);
+    setMacroGoals(fetchedMacros);
     setLoading(false);
     setRefreshing(false);
   }, [today]);
@@ -443,18 +449,16 @@ function Dashboard() {
         <CalorieRing consumed={totals.calories} goal={goal} />
       </motion.div>
 
-      {/* Macros */}
+      {/* Macros — premium summary cards */}
       <motion.div
-        className="px-6 mb-6"
+        className="px-6 mb-6 grid grid-cols-3 gap-2.5"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <div className="rounded-2xl bg-card p-4 shadow-sm border border-border/50 flex gap-4">
-          <MacroBar label="Protein" current={totals.protein} color="var(--color-protein)" />
-          <MacroBar label="Carbs" current={totals.carbs} color="var(--color-carbs)" />
-          <MacroBar label="Fat" current={totals.fat} color="var(--color-fat)" />
-        </div>
+        <MacroCard label="Protein" symbol="P" current={totals.protein} goal={macroGoals.protein} color="var(--color-protein)" />
+        <MacroCard label="Carbs" symbol="C" current={totals.carbs} goal={macroGoals.carbs} color="var(--color-carbs)" />
+        <MacroCard label="Fat" symbol="F" current={totals.fat} goal={macroGoals.fat} color="var(--color-fat)" />
       </motion.div>
 
       {/* Weekly Chart */}
