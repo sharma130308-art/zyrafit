@@ -6,7 +6,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import webpush from "npm:web-push@3.6.7";
+import webpush from "https://esm.sh/web-push@3.6.7";
 
 const VAPID_PUBLIC_KEY =
   "BN1t3lLwP1qB1UU-OlEyupcjA-JX2HPjaEAv3IjX3J9pCanVLsEGn3Wo7wB9DWkKqN0-Dt4Ls3AJZ-d4vVAxpC8";
