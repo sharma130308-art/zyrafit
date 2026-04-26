@@ -288,6 +288,50 @@ export async function restoreEntry(entry: FoodEntry): Promise<void> {
 
 // ── Settings (goal) ───────────────────────────────────────────
 
+export interface MacroGoals {
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+const MACRO_GOALS_KEY = "zyrafit_macro_goals";
+
+export function getMacroGoalsLocal(): MacroGoals {
+  if (typeof window === "undefined") return { protein: 0, carbs: 0, fat: 0 };
+  try {
+    const stored = localStorage.getItem(MACRO_GOALS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    /* ignore */
+  }
+  return { protein: 0, carbs: 0, fat: 0 };
+}
+
+function setMacroGoalsLocal(goals: MacroGoals) {
+  localStorage.setItem(MACRO_GOALS_KEY, JSON.stringify(goals));
+}
+
+export async function loadMacroGoals(): Promise<MacroGoals> {
+  const userId = await getCurrentUserId();
+  if (userId) {
+    const { data } = await supabase
+      .from("user_settings")
+      .select("protein_goal, carbs_goal, fat_goal")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data) {
+      const goals: MacroGoals = {
+        protein: data.protein_goal || 0,
+        carbs: data.carbs_goal || 0,
+        fat: data.fat_goal || 0,
+      };
+      setMacroGoalsLocal(goals);
+      return goals;
+    }
+  }
+  return getMacroGoalsLocal();
+}
+
 export async function loadCalorieGoal(): Promise<number> {
   const userId = await getCurrentUserId();
 
