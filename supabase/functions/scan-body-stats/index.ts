@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const FEATURE = "body_scan";
-const GEMINI_MODEL = "gemini-2.5-flash";
+const MODEL = "google/gemini-2.5-flash";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -53,79 +53,72 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const match = imageBase64.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-    if (!match) {
-      return new Response(JSON.stringify({ ok: false, error: "Invalid image format" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const mimeType = match[1];
-    const rawBase64 = match[2];
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a body composition data extraction expert. You read gym receipts, body scan printouts, and similar documents. Extract all available data. Convert units if needed (stones/lbs to kg, feet/inches to meters). Always call the extract_body_stats tool.",
+          },
+          {
+            role: "user",
+            content: [
               {
-                text: `You are a body composition data extraction expert. You read gym receipts, body scan printouts, and similar documents. Extract all available data. Convert units if needed (stones/lbs to kg, feet/inches to meters). Always call the extract_body_stats function.`,
+                type: "text",
+                text: "Extract body composition data from this gym receipt or body scan printout. Get weight, height, BMI, body fat percentage, and body fat mass if available.",
               },
+              { type: "image_url", image_url: { url: imageBase64 } },
             ],
           },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: "Extract body composition data from this gym receipt or body scan printout. Get weight, height, BMI, body fat percentage, and body fat mass if available." },
-                { inlineData: { mimeType, data: rawBase64 } },
-              ],
-            },
-          ],
-          tools: [
-            {
-              functionDeclarations: [
-                {
-                  name: "extract_body_stats",
-                  description: "Extract body composition stats from the image",
-                  parameters: {
-                    type: "OBJECT",
-                    properties: {
-                      found: { type: "BOOLEAN" },
-                      weight_kg: { type: "NUMBER" },
-                      height_m: { type: "NUMBER" },
-                      bmi: { type: "NUMBER" },
-                      body_fat_percent: { type: "NUMBER" },
-                      body_fat_mass_kg: { type: "NUMBER" },
-                      date: { type: "STRING", description: "YYYY-MM-DD if available" },
-                      age: { type: "NUMBER" },
-                      gender: { type: "STRING" },
-                    },
-                    required: ["found"],
-                  },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_body_stats",
+              description: "Extract body composition stats from the image",
+              parameters: {
+                type: "object",
+                properties: {
+                  found: { type: "boolean" },
+                  weight_kg: { type: "number" },
+                  height_m: { type: "number" },
+                  bmi: { type: "number" },
+                  body_fat_percent: { type: "number" },
+                  body_fat_mass_kg: { type: "number" },
+                  date: { type: "string", description: "YYYY-MM-DD if available" },
+                  age: { type: "number" },
+                  gender: { type: "string" },
                 },
-              ],
+                required: ["found"],
+                additionalProperties: false,
+              },
             },
-          ],
-          toolConfig: {
-            functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["extract_body_stats"] },
           },
-        }),
-      }
-    );
+        ],
+        tool_choice: { type: "function", function: { name: "extract_body_stats" } },
+      }),
+    });
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("Gemini error:", response.status, t);
+      console.error("Lovable AI error:", response.status, t);
       let error = "AI analysis failed";
-      if (response.status === 429) error = "Gemini rate limit reached. Try again shortly.";
-      else if (response.status === 401 || response.status === 403) error = "Gemini API key invalid.";
+      if (response.status === 429) error = "Rate limit reached. Please try again shortly.";
+      else if (response.status === 402)
+        error = "AI credits exhausted. Add funds in Lovable workspace settings.";
+      else if (response.status === 401 || response.status === 403)
+        error = "AI service auth error.";
       return new Response(JSON.stringify({ ok: false, error, status: response.status }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -133,16 +126,27 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const fnCall = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
+    const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+    const argsStr = toolCall?.function?.arguments;
 
-    if (!fnCall?.args) {
+    if (!argsStr) {
+      console.error("No tool call in response:", JSON.stringify(data).slice(0, 500));
       return new Response(JSON.stringify({ ok: false, error: "No analysis returned" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = fnCall.args;
+    let result: any;
+    try {
+      result = typeof argsStr === "string" ? JSON.parse(argsStr) : argsStr;
+    } catch (e) {
+      console.error("Failed to parse tool args:", argsStr);
+      return new Response(JSON.stringify({ ok: false, error: "Invalid AI response format" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today }).then();
 
