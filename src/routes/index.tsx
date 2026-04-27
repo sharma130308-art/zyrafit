@@ -186,10 +186,11 @@ function Dashboard() {
 
   const handleUndoDelete = useCallback(async () => {
     if (!deletedEntry) return;
-    const restored = await restoreEntry(deletedEntry);
-    setEntries((prev) => [...prev, restored ?? deletedEntry]);
+    await restoreEntry(deletedEntry);
+    setEntries((prev) => [...prev, deletedEntry]);
     setDeletedEntry(null);
   }, [deletedEntry]);
+
 
 
   const handleBarcodeScan = async (barcode: string) => {
