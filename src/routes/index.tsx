@@ -163,28 +163,35 @@ function Dashboard() {
     source?: FoodSource;
     photoUrl?: string;
   }) => {
-    await addEntry({
+    // Optimistic: addEntry returns the persisted entry instantly from the
+    // local store (sync to Supabase happens in the background via the queue).
+    const created = await addEntry({
       ...food,
       date: today,
       source: food.source || "manual",
       barcode: food.barcode || null,
       photoUrl: food.photoUrl || null,
     });
-    refresh();
+    // Update local list immediately — no need to refetch the whole day.
+    setEntries((prev) => [...prev, created]);
   };
 
   const handleDelete = async (id: string) => {
+    // Optimistic: yank from UI first, then ask the store to delete.
+    setEntries((prev) => prev.filter((e) => e.id !== id));
     const entry = await deleteEntry(id);
     if (entry) setDeletedEntry(entry);
-    refresh();
   };
+
 
   const handleUndoDelete = useCallback(async () => {
     if (!deletedEntry) return;
     await restoreEntry(deletedEntry);
+    setEntries((prev) => [...prev, deletedEntry]);
     setDeletedEntry(null);
-    refresh();
-  }, [deletedEntry, refresh]);
+  }, [deletedEntry]);
+
+
 
   const handleBarcodeScan = async (barcode: string) => {
     setScannerOpen(false);
