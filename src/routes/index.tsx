@@ -178,11 +178,11 @@ function Dashboard() {
 
   const handleDelete = async (id: string) => {
     // Optimistic: yank from UI first, then ask the store to delete.
-    const toRemove = entries.find((e) => e.id === id) ?? null;
     setEntries((prev) => prev.filter((e) => e.id !== id));
     const entry = await deleteEntry(id);
     if (entry) setDeletedEntry(entry);
   };
+
 
   const handleUndoDelete = useCallback(async () => {
     if (!deletedEntry) return;
