@@ -65,6 +65,10 @@ export const Route = createRootRoute({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.json" },
+      // Speed up the very first auth + data round-trip by warming the TLS
+      // connection to Lovable Cloud during HTML parse.
+      { rel: "preconnect", href: "https://kmoxjqrkcdrwvqnlyalf.supabase.co", crossOrigin: "anonymous" },
+      { rel: "dns-prefetch", href: "https://kmoxjqrkcdrwvqnlyalf.supabase.co" },
       { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
       { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16.png" },
