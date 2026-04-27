@@ -39,14 +39,19 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" },
       { title: "ZyraFit — Daily Calorie & Macro Tracker" },
       { name: "description", content: "Track your daily calories and macros with AI-powered food recognition." },
       { name: "author", content: "ZyraFit" },
+      // PWA / native shell — keep both apple- and modern mobile-web-app-capable to satisfy iOS and Lighthouse.
       { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "ZyraFit" },
-      { name: "theme-color", content: "#ffffff" },
+      { name: "format-detection", content: "telephone=no" },
+      // Match manifest background so iOS/Android status bar doesn't flash white on launch.
+      { name: "theme-color", content: "#1a1b2f" },
+      { name: "color-scheme", content: "light dark" },
       { property: "og:title", content: "ZyraFit — Daily Calorie & Macro Tracker" },
       { property: "og:description", content: "Track your daily calories and macros with AI-powered food recognition." },
       { property: "og:type", content: "website" },
@@ -56,6 +61,7 @@ export const Route = createRootRoute({
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4d7ae14c-a791-4ccf-bf3d-149f555bf01d/id-preview-1bfeeffa--26243190-be17-49c7-ac1c-6de0c51231ee.lovable.app-1776644464271.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4d7ae14c-a791-4ccf-bf3d-149f555bf01d/id-preview-1bfeeffa--26243190-be17-49c7-ac1c-6de0c51231ee.lovable.app-1776644464271.png" },
     ],
+
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.json" },
