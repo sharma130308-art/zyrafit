@@ -224,16 +224,24 @@ function Dashboard() {
   const classifyAiError = (msg: string): { friendly: string; retryable: boolean } => {
     const m = msg.toLowerCase();
     if (m.includes("rate limit") || m.includes("429") || m.includes("too many")) {
-      return { friendly: "Gemini is rate-limited right now. Please try again in a moment.", retryable: true };
+      return { friendly: "We're a little busy right now. Please try again in a moment.", retryable: true };
     }
     if (m.includes("api key") || m.includes("401") || m.includes("403") || m.includes("unauthorized")) {
-      return { friendly: "AI service unavailable (API key issue). Please try again or contact support.", retryable: true };
+      return { friendly: "Photo scanning is temporarily unavailable. Please try again shortly.", retryable: true };
     }
-    if (m.includes("network") || m.includes("fetch") || m.includes("failed to fetch")) {
-      return { friendly: "Network error reaching AI. Tap retry to try again.", retryable: true };
+    if (m.includes("network") || m.includes("fetch") || m.includes("failed to fetch") || m.includes("offline")) {
+      return { friendly: "Couldn't reach our servers. Check your connection and tap retry.", retryable: true };
     }
-    return { friendly: msg, retryable: true };
+    if (m.includes("timeout") || m.includes("timed out")) {
+      return { friendly: "That took too long. Tap retry to try again.", retryable: true };
+    }
+    if (m.includes("no food")) {
+      return { friendly: "No food detected in this photo. Try a clearer shot.", retryable: false };
+    }
+    // Default: never expose raw error text to users.
+    return { friendly: "Couldn't analyze this photo. Please try again.", retryable: true };
   };
+
 
   const handlePhotoCapture = async (file: File) => {
     lastPhotoFileRef.current = file;
