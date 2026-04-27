@@ -124,8 +124,8 @@ function RootComponent() {
     <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative overflow-hidden">
       <SwipeBackGesture />
       <SyncStatusBanner />
-      <SyncQueueDebugPanel />
-      <ScanDebugPanel />
+      {import.meta.env.DEV && <SyncQueueDebugPanel />}
+      {import.meta.env.DEV && <ScanDebugPanel />}
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
