@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { hapticSuccess, hapticImpact } from "@/lib/haptics";
+import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { X, Plus, Search, Clock, ChevronRight, ScanBarcode, Sparkles, Wand2, Loader2 } from "lucide-react";
 import type { MealType, FoodTemplate } from "@/lib/food-store";
 import { MEAL_LABELS, searchFoodHistory } from "@/lib/food-store";
