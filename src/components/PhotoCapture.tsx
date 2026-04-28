@@ -117,7 +117,7 @@ export function PhotoCapture({ open, onClose, onCapture }: PhotoCaptureProps) {
         }
       },
       "image/jpeg",
-      0.92
+      0.75 // lower quality = faster upload; downscaler will recompress anyway
     );
   };
 

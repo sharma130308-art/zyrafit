@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const FEATURE = "body_scan";
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-2.5-flash-lite";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
