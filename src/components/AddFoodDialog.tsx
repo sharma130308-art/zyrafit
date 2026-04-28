@@ -319,6 +319,54 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
                     transition={{ duration: 0.15 }}
                   >
                     <form onSubmit={handleSubmit} className="space-y-4">
+                      {/* AI Quick Fill */}
+                      <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3.5">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Wand2 className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-[12px] font-semibold text-primary uppercase tracking-wide">
+                            Quick Fill with AI
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={nlInput}
+                            onChange={(e) => { setNlInput(e.target.value); setParseError(null); }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); handleParseNL(); }
+                            }}
+                            placeholder="e.g. 2 eggs and toast"
+                            disabled={parsing}
+                            className="flex-1 px-3.5 py-2.5 rounded-xl bg-card text-foreground placeholder:text-muted-foreground/50 border border-border/40 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all text-[14px] disabled:opacity-60"
+                          />
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.94 }}
+                            onClick={handleParseNL}
+                            disabled={parsing || !nlInput.trim()}
+                            className="px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-[13px] flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-md shadow-primary/20 min-w-[80px]"
+                          >
+                            {parsing ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5" />
+                                Fill
+                              </>
+                            )}
+                          </motion.button>
+                        </div>
+                        {parseError && (
+                          <p className="text-[12px] text-destructive mt-2">{parseError}</p>
+                        )}
+                        {parsedConfidence && !parseError && (
+                          <p className="text-[12px] text-muted-foreground mt-2">
+                            ✨ Filled in below — review and adjust if needed
+                            {parsedConfidence === "low" && " (low confidence)"}
+                          </p>
+                        )}
+                      </div>
+
                       <div>
                         <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wide">
                           Food Name
@@ -330,7 +378,6 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
                           placeholder="e.g. Grilled Chicken"
                           className={inputClass}
                           required
-                          autoFocus
                         />
                       </div>
 
