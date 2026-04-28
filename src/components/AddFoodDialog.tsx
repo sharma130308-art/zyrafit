@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { hapticSuccess } from "@/lib/haptics";
-import { X, Plus, Search, Clock, ChevronRight, ScanBarcode, Sparkles } from "lucide-react";
+import { hapticSuccess, hapticLight } from "@/lib/haptics";
+import { X, Plus, Search, Clock, ChevronRight, ScanBarcode, Sparkles, Wand2, Loader2 } from "lucide-react";
 import type { MealType, FoodTemplate } from "@/lib/food-store";
 import { MEAL_LABELS, searchFoodHistory } from "@/lib/food-store";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddFoodDialogProps {
   open: boolean;
@@ -34,7 +35,41 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
   const [quantity, setQuantity] = useState("1");
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [saving, setSaving] = useState(false);
+  const [nlInput, setNlInput] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [parsedConfidence, setParsedConfidence] = useState<"high" | "medium" | "low" | null>(null);
 
+  const handleParseNL = async () => {
+    const text = nlInput.trim();
+    if (!text || parsing) return;
+    setParsing(true);
+    setParseError(null);
+    hapticLight();
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-food-text", {
+        body: { text },
+      });
+      if (error) throw error;
+      if (!data?.ok) {
+        setParseError(data?.error ?? "Couldn't parse that. Try again.");
+        return;
+      }
+      setName(data.name ?? text);
+      setCalories(String(Math.round(data.calories ?? 0)));
+      setProtein(String(Math.round(data.protein ?? 0)));
+      setCarbs(String(Math.round(data.carbs ?? 0)));
+      setFat(String(Math.round(data.fat ?? 0)));
+      setQuantity("1");
+      setParsedConfidence(data.confidence ?? null);
+      hapticSuccess();
+    } catch (e) {
+      console.error("parse-food-text failed", e);
+      setParseError("Network error. Please try again.");
+    } finally {
+      setParsing(false);
+    }
+  };
   // Sync initial meal type when dialog opens
   useEffect(() => {
     if (open && initialMealType) {
@@ -72,6 +107,9 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
     setMealType("breakfast");
     setSearchQuery("");
     setMode("history");
+    setNlInput("");
+    setParseError(null);
+    setParsedConfidence(null);
   };
 
   const handleSelectFromHistory = (food: FoodTemplate) => {
@@ -281,6 +319,54 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
                     transition={{ duration: 0.15 }}
                   >
                     <form onSubmit={handleSubmit} className="space-y-4">
+                      {/* AI Quick Fill */}
+                      <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3.5">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Wand2 className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-[12px] font-semibold text-primary uppercase tracking-wide">
+                            Quick Fill with AI
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={nlInput}
+                            onChange={(e) => { setNlInput(e.target.value); setParseError(null); }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); handleParseNL(); }
+                            }}
+                            placeholder="e.g. 2 eggs and toast"
+                            disabled={parsing}
+                            className="flex-1 px-3.5 py-2.5 rounded-xl bg-card text-foreground placeholder:text-muted-foreground/50 border border-border/40 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all text-[14px] disabled:opacity-60"
+                          />
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.94 }}
+                            onClick={handleParseNL}
+                            disabled={parsing || !nlInput.trim()}
+                            className="px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-[13px] flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-md shadow-primary/20 min-w-[80px]"
+                          >
+                            {parsing ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5" />
+                                Fill
+                              </>
+                            )}
+                          </motion.button>
+                        </div>
+                        {parseError && (
+                          <p className="text-[12px] text-destructive mt-2">{parseError}</p>
+                        )}
+                        {parsedConfidence && !parseError && (
+                          <p className="text-[12px] text-muted-foreground mt-2">
+                            ✨ Filled in below — review and adjust if needed
+                            {parsedConfidence === "low" && " (low confidence)"}
+                          </p>
+                        )}
+                      </div>
+
                       <div>
                         <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wide">
                           Food Name
@@ -292,7 +378,6 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
                           placeholder="e.g. Grilled Chicken"
                           className={inputClass}
                           required
-                          autoFocus
                         />
                       </div>
 
