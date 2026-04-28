@@ -134,8 +134,16 @@ function RootComponent() {
     <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative overflow-hidden">
       <SwipeBackGesture />
       <SyncStatusBanner />
-      {import.meta.env.DEV && <SyncQueueDebugPanel />}
-      {import.meta.env.DEV && <ScanDebugPanel />}
+      {/* Debug panels: dev build AND localhost only — never visible in
+          preview, staging, published, or native builds. */}
+      {import.meta.env.DEV &&
+        typeof window !== "undefined" &&
+        /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname) && (
+          <>
+            <SyncQueueDebugPanel />
+            <ScanDebugPanel />
+          </>
+        )}
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
