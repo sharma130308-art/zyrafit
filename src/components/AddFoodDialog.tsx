@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { hapticSuccess } from "@/lib/haptics";
-import { X, Plus, Search, Clock, ChevronRight, ScanBarcode, Sparkles } from "lucide-react";
+import { hapticSuccess, hapticImpact } from "@/lib/haptics";
+import { X, Plus, Search, Clock, ChevronRight, ScanBarcode, Sparkles, Wand2, Loader2 } from "lucide-react";
 import type { MealType, FoodTemplate } from "@/lib/food-store";
 import { MEAL_LABELS, searchFoodHistory } from "@/lib/food-store";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddFoodDialogProps {
   open: boolean;
