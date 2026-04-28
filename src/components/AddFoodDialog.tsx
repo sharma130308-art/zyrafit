@@ -35,7 +35,41 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
   const [quantity, setQuantity] = useState("1");
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [saving, setSaving] = useState(false);
+  const [nlInput, setNlInput] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [parsedConfidence, setParsedConfidence] = useState<"high" | "medium" | "low" | null>(null);
 
+  const handleParseNL = async () => {
+    const text = nlInput.trim();
+    if (!text || parsing) return;
+    setParsing(true);
+    setParseError(null);
+    hapticLight();
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-food-text", {
+        body: { text },
+      });
+      if (error) throw error;
+      if (!data?.ok) {
+        setParseError(data?.error ?? "Couldn't parse that. Try again.");
+        return;
+      }
+      setName(data.name ?? text);
+      setCalories(String(Math.round(data.calories ?? 0)));
+      setProtein(String(Math.round(data.protein ?? 0)));
+      setCarbs(String(Math.round(data.carbs ?? 0)));
+      setFat(String(Math.round(data.fat ?? 0)));
+      setQuantity("1");
+      setParsedConfidence(data.confidence ?? null);
+      hapticSuccess();
+    } catch (e) {
+      console.error("parse-food-text failed", e);
+      setParseError("Network error. Please try again.");
+    } finally {
+      setParsing(false);
+    }
+  };
   // Sync initial meal type when dialog opens
   useEffect(() => {
     if (open && initialMealType) {
