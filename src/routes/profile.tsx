@@ -162,11 +162,10 @@ function ProfilePage() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file || !user) return;
 
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      // Downscale before sending — body scan receipts are mostly text,
+      // so we need legible resolution but not full-camera megapixels.
+      const { captureImageAsBase64 } = await import("@/lib/food-ai");
+      const base64 = await captureImageAsBase64(file);
 
       // Offline → queue and bail out
       if (typeof navigator !== "undefined" && !navigator.onLine) {
