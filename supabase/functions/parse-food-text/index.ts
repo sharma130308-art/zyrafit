@@ -30,6 +30,24 @@ serve(async (req) => {
     const userId = userData.user.id;
     const today = new Date().toISOString().slice(0, 10);
 
+    // Daily AI scan limit (10/day across all AI features)
+    const DAILY_LIMIT = 10;
+    const { count: usedToday } = await admin
+      .from("ai_usage")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("used_on", today);
+    if ((usedToday ?? 0) >= DAILY_LIMIT) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: `Daily AI limit reached (${DAILY_LIMIT}/day). Try again tomorrow.`,
+          limit_reached: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { text } = await req.json();
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(JSON.stringify({ ok: false, error: "Please describe what you ate." }), {
