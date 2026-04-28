@@ -145,11 +145,30 @@ export async function captureImageAsBase64(file: File): Promise<string> {
   logScan("capture file", "info", `${file.name || "(no name)"} • ${file.type || "?"} • ${Math.round(file.size / 1024)} KB`);
   const raw = await readFileAsDataUrl(file);
   try {
-    const out = await downscaleDataUrl(raw, 896, 0.72);
+    // Aggressive downscale for speed: 768px is plenty for vision models to
+    // identify food, and ~0.6 quality cuts payload by ~3× vs 0.9.
+    const out = await downscaleDataUrl(raw, 768, 0.6);
     logScan("downscale ok", "ok", `${Math.round((out.length * 3) / 4 / 1024)} KB`);
     return out;
   } catch (e) {
     logScan("downscale failed — using raw", "error", e instanceof Error ? e.message : String(e));
+    return raw;
+  }
+}
+
+/**
+ * Higher-resolution variant for receipts / body scan printouts where
+ * text legibility matters. Still well under the 5 MB ceiling.
+ */
+export async function captureReceiptAsBase64(file: File): Promise<string> {
+  logScan("capture receipt", "info", `${file.name || "(no name)"} • ${Math.round(file.size / 1024)} KB`);
+  const raw = await readFileAsDataUrl(file);
+  try {
+    const out = await downscaleDataUrl(raw, 1280, 0.78);
+    logScan("downscale receipt ok", "ok", `${Math.round((out.length * 3) / 4 / 1024)} KB`);
+    return out;
+  } catch (e) {
+    logScan("downscale receipt failed — using raw", "error", e instanceof Error ? e.message : String(e));
     return raw;
   }
 }
