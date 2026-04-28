@@ -107,6 +107,9 @@ export function AddFoodDialog({ open, onClose, onAdd, onScanClick, onAiClick, in
     setMealType("breakfast");
     setSearchQuery("");
     setMode("history");
+    setNlInput("");
+    setParseError(null);
+    setParsedConfidence(null);
   };
 
   const handleSelectFromHistory = (food: FoodTemplate) => {
