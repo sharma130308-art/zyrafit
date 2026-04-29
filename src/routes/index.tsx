@@ -329,7 +329,7 @@ function Dashboard() {
       if (abortController.signal.aborted) return;
       let result;
       try {
-        result = await analyzePhoto(base64);
+        result = await analyzePhoto(base64, { fast });
       } catch (analyzeErr) {
         if (!navigator.onLine) {
           const { enqueueFoodScan } = await import("@/lib/ai-scan-queue");
