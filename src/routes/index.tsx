@@ -70,6 +70,17 @@ function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [deletedEntry, setDeletedEntry] = useState<FoodEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
+  const [fastScanMode, setFastScanMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("zyra:fastScan") === "1";
+  });
+  const fastScanRef = useRef(fastScanMode);
+  useEffect(() => {
+    fastScanRef.current = fastScanMode;
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("zyra:fastScan", fastScanMode ? "1" : "0");
+    }
+  }, [fastScanMode]);
 
   // Redirect unauthenticated users to login, new users to onboarding
   useEffect(() => {
