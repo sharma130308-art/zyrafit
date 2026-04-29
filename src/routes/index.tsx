@@ -261,7 +261,8 @@ function Dashboard() {
   };
 
 
-  const handlePhotoCapture = async (file: File) => {
+  const handlePhotoCapture = async (file: File, fastOverride?: boolean) => {
+    const fast = fastOverride ?? fastScanRef.current;
     lastPhotoFileRef.current = file;
     // ── Offline path: queue the scan and show a placeholder entry immediately
     if (typeof navigator !== "undefined" && !navigator.onLine) {
