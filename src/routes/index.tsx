@@ -308,9 +308,9 @@ function Dashboard() {
     setAiErrorRetryable(false);
     try {
       const { logScan } = await import("@/lib/scan-debug");
-      logScan("scan started", "info", `online=${navigator.onLine} user=${user?.id ? "yes" : "no"}`);
-      const { captureImageAsBase64, analyzePhoto } = await import("@/lib/food-ai");
-      const base64 = await captureImageAsBase64(file);
+      logScan(`scan started${fast ? " (fast)" : ""}`, "info", `online=${navigator.onLine} user=${user?.id ? "yes" : "no"}`);
+      const { captureImageAsBase64, captureImageAsBase64Fast, analyzePhoto } = await import("@/lib/food-ai");
+      const base64 = fast ? await captureImageAsBase64Fast(file) : await captureImageAsBase64(file);
       setAiImageUrl(base64);
 
       // Backup upload to private storage (best-effort, non-blocking).
