@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, ScanBarcode, Pencil, X } from "lucide-react";
+import { Camera, ScanBarcode, Pencil, X, Zap } from "lucide-react";
 import type { MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 import { hapticLight } from "@/lib/haptics";
@@ -10,9 +10,19 @@ interface QuickAddPickerProps {
   onAiPhoto: () => void;
   onBarcodeScan: () => void;
   onManual: () => void;
+  fastScan?: boolean;
+  onToggleFastScan?: (next: boolean) => void;
 }
 
-export function QuickAddPicker({ mealType, onClose, onAiPhoto, onBarcodeScan, onManual }: QuickAddPickerProps) {
+export function QuickAddPicker({
+  mealType,
+  onClose,
+  onAiPhoto,
+  onBarcodeScan,
+  onManual,
+  fastScan = false,
+  onToggleFastScan,
+}: QuickAddPickerProps) {
   if (!mealType) return null;
 
   return (
