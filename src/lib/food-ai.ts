@@ -93,7 +93,7 @@ async function analyzeViaFetch(imageBase64: string, started: number, fast = fals
         Authorization: `Bearer ${accessToken}`,
         apikey: ANON_KEY,
       },
-      body: JSON.stringify({ imageBase64 }),
+      body: JSON.stringify({ imageBase64, fast }),
       signal: controller.signal,
     });
   } catch (e) {
