@@ -154,7 +154,7 @@ export function clearFastScanCache() {
  * status code and surface useful error messages instead of the opaque
  * "Failed to send a request to the Edge Function".
  */
-async function analyzeViaFetch(imageBase64: string, started: number, fast = false): Promise<AIFoodResult> {
+async function analyzeViaFetch(imageBase64: string, started: number, fast = false, hash: string | null = null): Promise<AIFoodResult> {
   const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
   const ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!SUPABASE_URL || !ANON_KEY) {
