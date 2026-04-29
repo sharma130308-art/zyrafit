@@ -162,6 +162,23 @@ export async function captureImageAsBase64(file: File): Promise<string> {
 }
 
 /**
+ * Ultra-aggressive downscale for "Fast Scan" mode — prioritizes upload speed
+ * over visual fidelity. 512px / quality 0.5 typically yields ~30-80 KB.
+ */
+export async function captureImageAsBase64Fast(file: File): Promise<string> {
+  logScan("capture file (fast)", "info", `${file.name || "(no name)"} • ${Math.round(file.size / 1024)} KB`);
+  const raw = await readFileAsDataUrl(file);
+  try {
+    const out = await downscaleDataUrl(raw, 512, 0.5);
+    logScan("downscale fast ok", "ok", `${Math.round((out.length * 3) / 4 / 1024)} KB`);
+    return out;
+  } catch (e) {
+    logScan("downscale fast failed — using raw", "error", e instanceof Error ? e.message : String(e));
+    return raw;
+  }
+}
+
+/**
  * Higher-resolution variant for receipts / body scan printouts where
  * text legibility matters. Still well under the 5 MB ceiling.
  */
