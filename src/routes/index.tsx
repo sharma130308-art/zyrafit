@@ -676,45 +676,8 @@ function Dashboard() {
                   />
                 </motion.div>
 
-                {/* Shimmer placeholder rows */}
-                <div className="w-full max-w-[260px] space-y-3 mb-6">
-                  {[0.8, 0.6, 0.45].map((w, i) => (
-                    <motion.div
-                      key={i}
-                      className="relative h-3.5 rounded-full bg-muted/60 overflow-hidden"
-                      style={{ width: `${w * 100}%` }}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + i * 0.1 }}
-                    >
-                      <motion.div
-                        className="absolute inset-0"
-                        style={{
-                          background: "linear-gradient(90deg, transparent, var(--color-muted) 50%, transparent)",
-                        }}
-                        animate={{ x: ["-100%", "200%"] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-
-                <motion.p
-                  className="text-foreground font-semibold text-[15px]"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  Analyzing your meal…
-                </motion.p>
-                <motion.p
-                  className="text-muted-foreground text-xs mt-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0.4, 0.8, 0.4] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  Detecting calories & macros
-                </motion.p>
+                {/* Stage stepper */}
+                <ScanStepper stage={scanStage} elapsedMs={scanElapsedMs} />
 
                 <motion.button
                   initial={{ opacity: 0, y: 10 }}
