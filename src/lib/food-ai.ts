@@ -229,7 +229,11 @@ async function analyzeViaFetch(imageBase64: string, started: number, fast = fals
 
   const itemCount = Array.isArray(data.items) ? data.items.length : 0;
   logScan("analyze-food ok (fetch)", "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
-  return data as AIFoodResult;
+  const result = data as AIFoodResult;
+  if (fast && hash && result.is_food && result.items?.length) {
+    putCachedResult(hash, result);
+  }
+  return result;
 }
 
 /**
