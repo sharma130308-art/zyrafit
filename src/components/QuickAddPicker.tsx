@@ -67,8 +67,14 @@ export function QuickAddPicker({
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => { hapticLight(); onAiPhoto(); }}
-            className="flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25"
+            className="relative flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25"
           >
+            {fastScan && (
+              <span className="absolute top-2 right-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary-foreground/20 text-[9px] font-bold uppercase tracking-wide">
+                <Zap className="w-2.5 h-2.5" />
+                Fast
+              </span>
+            )}
             <Camera className="w-7 h-7" />
             <span className="text-[13px]">AI Photo</span>
           </motion.button>
@@ -91,6 +97,37 @@ export function QuickAddPicker({
             <span className="text-[13px]">Manual</span>
           </motion.button>
         </div>
+
+        {onToggleFastScan && (
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { hapticLight(); onToggleFastScan(!fastScan); }}
+            className={`mt-4 w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-colors ${
+              fastScan
+                ? "bg-primary/10 border-primary/30 text-foreground"
+                : "bg-muted/40 border-border/30 text-foreground"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${fastScan ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                <Zap className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <div className="text-[13px] font-semibold leading-tight">Fast Scan</div>
+                <div className="text-[11px] text-muted-foreground leading-tight">
+                  Quicker results, lower accuracy
+                </div>
+              </div>
+            </div>
+            <div className={`relative w-10 h-6 rounded-full transition-colors ${fastScan ? "bg-primary" : "bg-muted-foreground/30"}`}>
+              <motion.div
+                className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow"
+                animate={{ left: fastScan ? "calc(100% - 1.25rem - 2px)" : "2px" }}
+                transition={{ type: "spring", damping: 22, stiffness: 320 }}
+              />
+            </div>
+          </motion.button>
+        )}
       </motion.div>
     </AnimatePresence>
   );
