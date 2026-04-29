@@ -540,6 +540,8 @@ function Dashboard() {
         <QuickAddPicker
           mealType={quickAddMeal}
           onClose={() => setQuickAddMeal(null)}
+          fastScan={fastScanMode}
+          onToggleFastScan={setFastScanMode}
           onAiPhoto={() => {
             const meal = quickAddMeal;
             setQuickAddMeal(null);
