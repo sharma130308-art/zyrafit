@@ -111,7 +111,6 @@ function Dashboard() {
 
   // AI photo state
   const [aiLoading, setAiLoading] = useState(false);
-  type ScanStage = "preparing" | "uploading" | "analyzing" | "extracting";
   const [scanStage, setScanStage] = useState<ScanStage>("preparing");
   const [scanStartedAt, setScanStartedAt] = useState<number | null>(null);
   const [scanElapsedMs, setScanElapsedMs] = useState(0);
