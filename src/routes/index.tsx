@@ -317,18 +317,22 @@ function Dashboard() {
     const abortController = new AbortController();
     aiAbortRef.current = abortController;
     setAiLoading(true);
+    setScanStage("preparing");
+    setScanStartedAt(Date.now());
+    setScanElapsedMs(0);
     setAiError(null);
     setAiErrorRetryable(false);
     try {
       const { logScan } = await import("@/lib/scan-debug");
       logScan(`scan started${fast ? " (fast)" : ""}`, "info", `online=${navigator.onLine} user=${user?.id ? "yes" : "no"}`);
       const { captureImageAsBase64, captureImageAsBase64Fast, analyzePhoto } = await import("@/lib/food-ai");
+      // Stage 1: preparing/compressing the image locally
+      setScanStage("preparing");
       const base64 = fast ? await captureImageAsBase64Fast(file) : await captureImageAsBase64(file);
       setAiImageUrl(base64);
 
-      // Backup upload to private storage (best-effort, non-blocking).
-      // For the visible thumbnail we use the base64 data URL so it always renders
-      // — the bucket is private so a raw path wouldn't display.
+      // Stage 2: uploading to backend (non-blocking storage backup + analyze request)
+      setScanStage("uploading");
       const userId = user?.id;
       if (userId) {
         const fileName = `${userId}/${Date.now()}-${file.name}`;
@@ -342,7 +346,11 @@ function Dashboard() {
       if (abortController.signal.aborted) return;
       let result;
       try {
+        // Stage 3: AI is analyzing
+        setScanStage("analyzing");
         result = await analyzePhoto(base64, { fast });
+        // Stage 4: extracting macros from the response
+        setScanStage("extracting");
       } catch (analyzeErr) {
         if (!navigator.onLine) {
           const { enqueueFoodScan } = await import("@/lib/ai-scan-queue");
