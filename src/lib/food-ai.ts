@@ -15,33 +15,37 @@ export interface AIFoodResult {
   items: AIFoodItem[];
 }
 
-export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
+export async function analyzePhoto(
+  imageBase64: string,
+  opts: { fast?: boolean } = {},
+): Promise<AIFoodResult> {
+  const fast = opts.fast === true;
   const sizeKb = Math.round((imageBase64.length * 3) / 4 / 1024);
   const started = performance.now();
-  logScan("invoke analyze-food", "info", `payload ~${sizeKb} KB`);
+  logScan(`invoke analyze-food${fast ? " (fast)" : ""}`, "info", `payload ~${sizeKb} KB`);
 
   // Try the supabase-js invoke first.
   try {
     const res = await supabase.functions.invoke("analyze-food", {
-      body: { imageBase64 },
+      body: { imageBase64, fast },
     });
     const ms = Math.round(performance.now() - started);
 
     if (res.error) {
       logScan("invoke returned error — falling back to fetch", "error", `${ms}ms — ${res.error.message || JSON.stringify(res.error)}`);
-      return await analyzeViaFetch(imageBase64, started);
+      return await analyzeViaFetch(imageBase64, started, fast);
     }
     const data = res.data as any;
     if (!data) {
       logScan("invoke empty — falling back to fetch", "error", `${ms}ms`);
-      return await analyzeViaFetch(imageBase64, started);
+      return await analyzeViaFetch(imageBase64, started, fast);
     }
     if (data.ok === false || data.error) {
       logScan("analyze-food rejected", "error", `${ms}ms — ${data.error || "unknown"}`);
       throw new Error(data.error || "Analysis failed");
     }
     const itemCount = Array.isArray(data.items) ? data.items.length : 0;
-    logScan("analyze-food ok (invoke)", "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
+    logScan(`analyze-food ok (invoke${fast ? ", fast" : ""})`, "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
     return data as AIFoodResult;
   } catch (networkErr) {
     const ms = Math.round(performance.now() - started);
@@ -50,7 +54,7 @@ export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
       "error",
       `${ms}ms — ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`,
     );
-    return await analyzeViaFetch(imageBase64, started);
+    return await analyzeViaFetch(imageBase64, started, fast);
   }
 }
 
