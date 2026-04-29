@@ -186,7 +186,11 @@ serve(async (req) => {
       });
     }
 
-    admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today }).then();
+    if (fastMode && Array.isArray(result?.items)) {
+      result.items = result.items.map((it: any) => ({ ...it, confidence: it.confidence ?? "low" }));
+    }
+
+    admin.from("ai_usage").insert({ user_id: userId, feature: fastMode ? "photo_scan_fast" : FEATURE, used_on: today }).then();
 
     return new Response(JSON.stringify({ ok: true, ...result }), {
       status: 200,
