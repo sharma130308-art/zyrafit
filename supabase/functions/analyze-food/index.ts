@@ -57,7 +57,8 @@ serve(async (req) => {
       });
     }
 
-    const { imageBase64 } = await req.json();
+    const { imageBase64, fast } = await req.json();
+    const fastMode = fast === true;
     if (!imageBase64 || typeof imageBase64 !== "string" || !imageBase64.startsWith("data:image/")) {
       return new Response(JSON.stringify({ ok: false, error: "Invalid image" }), {
         status: 400,
