@@ -34,6 +34,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { StreakBadge } from "@/components/StreakBadge";
 import { UndoToast } from "@/components/UndoToast";
+import { ScanStepper, type ScanStage } from "@/components/ScanStepper";
 
 // Heavy / on-demand components — lazy-loaded so they don't block first paint.
 const AddFoodDialog = lazy(() => import("@/components/AddFoodDialog").then(m => ({ default: m.AddFoodDialog })));
