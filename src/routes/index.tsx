@@ -110,6 +110,19 @@ function Dashboard() {
 
   // AI photo state
   const [aiLoading, setAiLoading] = useState(false);
+  type ScanStage = "preparing" | "uploading" | "analyzing" | "extracting";
+  const [scanStage, setScanStage] = useState<ScanStage>("preparing");
+  const [scanStartedAt, setScanStartedAt] = useState<number | null>(null);
+  const [scanElapsedMs, setScanElapsedMs] = useState(0);
+
+  // Tick elapsed timer while scanning
+  useEffect(() => {
+    if (!aiLoading || scanStartedAt == null) return;
+    const id = window.setInterval(() => {
+      setScanElapsedMs(Date.now() - scanStartedAt);
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [aiLoading, scanStartedAt]);
   const aiAbortRef = useRef<AbortController | null>(null);
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
