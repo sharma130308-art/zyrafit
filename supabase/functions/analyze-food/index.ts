@@ -57,7 +57,8 @@ serve(async (req) => {
       });
     }
 
-    const { imageBase64 } = await req.json();
+    const { imageBase64, fast } = await req.json();
+    const fastMode = fast === true;
     if (!imageBase64 || typeof imageBase64 !== "string" || !imageBase64.startsWith("data:image/")) {
       return new Response(JSON.stringify({ ok: false, error: "Invalid image" }), {
         status: 400,
@@ -74,6 +75,27 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const systemPrompt = fastMode
+      ? "You are a fast nutrition estimator. Glance at the photo and return a SINGLE summary food item that totals everything visible. Speed over precision — round numbers are fine. If not food, set is_food=false. Always call analyze_food."
+      : "You are a nutrition analysis expert. Analyze food photos and estimate calories and macronutrients per typical serving shown. If the image doesn't contain food, set is_food to false. Identify each distinct food item visible. Always call the analyze_food tool.";
+
+    const userPrompt = fastMode
+      ? "Quickly estimate ONE summary item with total calories/protein/carbs/fat for everything in this photo."
+      : "Analyze this food photo. Identify all food items and estimate their nutritional content per typical serving shown.";
+
+    const itemProps: any = {
+      name: { type: "string" },
+      calories: { type: "number" },
+      protein: { type: "number" },
+      carbs: { type: "number" },
+      fat: { type: "number" },
+    };
+    const requiredItem = ["name", "calories", "protein", "carbs", "fat"];
+    if (!fastMode) {
+      itemProps.confidence = { type: "string", enum: ["high", "medium", "low"] };
+      requiredItem.push("confidence");
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -83,45 +105,35 @@ serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         messages: [
-          {
-            role: "system",
-            content:
-              "You are a nutrition analysis expert. Analyze food photos and estimate calories and macronutrients per typical serving shown. If the image doesn't contain food, set is_food to false. Identify each distinct food item visible. Always call the analyze_food tool.",
-          },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
-              {
-                type: "text",
-                text: "Analyze this food photo. Identify all food items and estimate their nutritional content per typical serving shown.",
-              },
+              { type: "text", text: userPrompt },
               { type: "image_url", image_url: { url: imageBase64 } },
             ],
           },
         ],
+        ...(fastMode ? { reasoning: { effort: "none" } } : {}),
         tools: [
           {
             type: "function",
             function: {
               name: "analyze_food",
-              description: "Return nutritional analysis of food items in the photo",
+              description: fastMode
+                ? "Return ONE summary food item totaling everything in the photo"
+                : "Return nutritional analysis of food items in the photo",
               parameters: {
                 type: "object",
                 properties: {
                   is_food: { type: "boolean", description: "Whether the image contains food" },
                   items: {
                     type: "array",
+                    ...(fastMode ? { maxItems: 1 } : {}),
                     items: {
                       type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        calories: { type: "number" },
-                        protein: { type: "number" },
-                        carbs: { type: "number" },
-                        fat: { type: "number" },
-                        confidence: { type: "string", enum: ["high", "medium", "low"] },
-                      },
-                      required: ["name", "calories", "protein", "carbs", "fat", "confidence"],
+                      properties: itemProps,
+                      required: requiredItem,
                       additionalProperties: false,
                     },
                   },
@@ -174,7 +186,11 @@ serve(async (req) => {
       });
     }
 
-    admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today }).then();
+    if (fastMode && Array.isArray(result?.items)) {
+      result.items = result.items.map((it: any) => ({ ...it, confidence: it.confidence ?? "low" }));
+    }
+
+    admin.from("ai_usage").insert({ user_id: userId, feature: fastMode ? "photo_scan_fast" : FEATURE, used_on: today }).then();
 
     return new Response(JSON.stringify({ ok: true, ...result }), {
       status: 200,

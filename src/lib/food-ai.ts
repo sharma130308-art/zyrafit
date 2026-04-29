@@ -15,33 +15,37 @@ export interface AIFoodResult {
   items: AIFoodItem[];
 }
 
-export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
+export async function analyzePhoto(
+  imageBase64: string,
+  opts: { fast?: boolean } = {},
+): Promise<AIFoodResult> {
+  const fast = opts.fast === true;
   const sizeKb = Math.round((imageBase64.length * 3) / 4 / 1024);
   const started = performance.now();
-  logScan("invoke analyze-food", "info", `payload ~${sizeKb} KB`);
+  logScan(`invoke analyze-food${fast ? " (fast)" : ""}`, "info", `payload ~${sizeKb} KB`);
 
   // Try the supabase-js invoke first.
   try {
     const res = await supabase.functions.invoke("analyze-food", {
-      body: { imageBase64 },
+      body: { imageBase64, fast },
     });
     const ms = Math.round(performance.now() - started);
 
     if (res.error) {
       logScan("invoke returned error — falling back to fetch", "error", `${ms}ms — ${res.error.message || JSON.stringify(res.error)}`);
-      return await analyzeViaFetch(imageBase64, started);
+      return await analyzeViaFetch(imageBase64, started, fast);
     }
     const data = res.data as any;
     if (!data) {
       logScan("invoke empty — falling back to fetch", "error", `${ms}ms`);
-      return await analyzeViaFetch(imageBase64, started);
+      return await analyzeViaFetch(imageBase64, started, fast);
     }
     if (data.ok === false || data.error) {
       logScan("analyze-food rejected", "error", `${ms}ms — ${data.error || "unknown"}`);
       throw new Error(data.error || "Analysis failed");
     }
     const itemCount = Array.isArray(data.items) ? data.items.length : 0;
-    logScan("analyze-food ok (invoke)", "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
+    logScan(`analyze-food ok (invoke${fast ? ", fast" : ""})`, "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
     return data as AIFoodResult;
   } catch (networkErr) {
     const ms = Math.round(performance.now() - started);
@@ -50,7 +54,7 @@ export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
       "error",
       `${ms}ms — ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`,
     );
-    return await analyzeViaFetch(imageBase64, started);
+    return await analyzeViaFetch(imageBase64, started, fast);
   }
 }
 
@@ -59,7 +63,7 @@ export async function analyzePhoto(imageBase64: string): Promise<AIFoodResult> {
  * status code and surface useful error messages instead of the opaque
  * "Failed to send a request to the Edge Function".
  */
-async function analyzeViaFetch(imageBase64: string, started: number): Promise<AIFoodResult> {
+async function analyzeViaFetch(imageBase64: string, started: number, fast = false): Promise<AIFoodResult> {
   const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
   const ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!SUPABASE_URL || !ANON_KEY) {
@@ -79,7 +83,8 @@ async function analyzeViaFetch(imageBase64: string, started: number): Promise<AI
 
   let res: Response;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  const timeoutMs = fast ? 25000 : 60000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     res = await fetch(url, {
       method: "POST",
@@ -88,7 +93,7 @@ async function analyzeViaFetch(imageBase64: string, started: number): Promise<AI
         Authorization: `Bearer ${accessToken}`,
         apikey: ANON_KEY,
       },
-      body: JSON.stringify({ imageBase64 }),
+      body: JSON.stringify({ imageBase64, fast }),
       signal: controller.signal,
     });
   } catch (e) {
@@ -152,6 +157,23 @@ export async function captureImageAsBase64(file: File): Promise<string> {
     return out;
   } catch (e) {
     logScan("downscale failed — using raw", "error", e instanceof Error ? e.message : String(e));
+    return raw;
+  }
+}
+
+/**
+ * Ultra-aggressive downscale for "Fast Scan" mode — prioritizes upload speed
+ * over visual fidelity. 512px / quality 0.5 typically yields ~30-80 KB.
+ */
+export async function captureImageAsBase64Fast(file: File): Promise<string> {
+  logScan("capture file (fast)", "info", `${file.name || "(no name)"} • ${Math.round(file.size / 1024)} KB`);
+  const raw = await readFileAsDataUrl(file);
+  try {
+    const out = await downscaleDataUrl(raw, 512, 0.5);
+    logScan("downscale fast ok", "ok", `${Math.round((out.length * 3) / 4 / 1024)} KB`);
+    return out;
+  } catch (e) {
+    logScan("downscale fast failed — using raw", "error", e instanceof Error ? e.message : String(e));
     return raw;
   }
 }

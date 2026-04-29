@@ -70,6 +70,17 @@ function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [deletedEntry, setDeletedEntry] = useState<FoodEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
+  const [fastScanMode, setFastScanMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("zyra:fastScan") === "1";
+  });
+  const fastScanRef = useRef(fastScanMode);
+  useEffect(() => {
+    fastScanRef.current = fastScanMode;
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("zyra:fastScan", fastScanMode ? "1" : "0");
+    }
+  }, [fastScanMode]);
 
   // Redirect unauthenticated users to login, new users to onboarding
   useEffect(() => {
@@ -250,7 +261,8 @@ function Dashboard() {
   };
 
 
-  const handlePhotoCapture = async (file: File) => {
+  const handlePhotoCapture = async (file: File, fastOverride?: boolean) => {
+    const fast = fastOverride ?? fastScanRef.current;
     lastPhotoFileRef.current = file;
     // ── Offline path: queue the scan and show a placeholder entry immediately
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -296,9 +308,9 @@ function Dashboard() {
     setAiErrorRetryable(false);
     try {
       const { logScan } = await import("@/lib/scan-debug");
-      logScan("scan started", "info", `online=${navigator.onLine} user=${user?.id ? "yes" : "no"}`);
-      const { captureImageAsBase64, analyzePhoto } = await import("@/lib/food-ai");
-      const base64 = await captureImageAsBase64(file);
+      logScan(`scan started${fast ? " (fast)" : ""}`, "info", `online=${navigator.onLine} user=${user?.id ? "yes" : "no"}`);
+      const { captureImageAsBase64, captureImageAsBase64Fast, analyzePhoto } = await import("@/lib/food-ai");
+      const base64 = fast ? await captureImageAsBase64Fast(file) : await captureImageAsBase64(file);
       setAiImageUrl(base64);
 
       // Backup upload to private storage (best-effort, non-blocking).
@@ -317,7 +329,7 @@ function Dashboard() {
       if (abortController.signal.aborted) return;
       let result;
       try {
-        result = await analyzePhoto(base64);
+        result = await analyzePhoto(base64, { fast });
       } catch (analyzeErr) {
         if (!navigator.onLine) {
           const { enqueueFoodScan } = await import("@/lib/ai-scan-queue");
@@ -528,6 +540,8 @@ function Dashboard() {
         <QuickAddPicker
           mealType={quickAddMeal}
           onClose={() => setQuickAddMeal(null)}
+          fastScan={fastScanMode}
+          onToggleFastScan={setFastScanMode}
           onAiPhoto={() => {
             const meal = quickAddMeal;
             setQuickAddMeal(null);
