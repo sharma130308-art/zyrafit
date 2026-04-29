@@ -15,6 +15,74 @@ export interface AIFoodResult {
   items: AIFoodItem[];
 }
 
+// ── Fast Scan result cache (localStorage, keyed by SHA-256 of base64 image)
+const CACHE_KEY = "zyra:fastScanCache:v1";
+const CACHE_MAX_ENTRIES = 40;
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+type CacheEntry = { hash: string; result: AIFoodResult; ts: number };
+
+async function sha256Hex(input: string): Promise<string | null> {
+  try {
+    if (typeof crypto === "undefined" || !crypto.subtle) return null;
+    const buf = new TextEncoder().encode(input);
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return null;
+  }
+}
+
+function readCache(): CacheEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as CacheEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCache(entries: CacheEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
+  } catch {
+    // quota exceeded — drop oldest half and retry once
+    try {
+      const half = entries.slice(-Math.ceil(entries.length / 2));
+      window.localStorage.setItem(CACHE_KEY, JSON.stringify(half));
+    } catch {
+      /* give up */
+    }
+  }
+}
+
+function getCachedResult(hash: string): AIFoodResult | null {
+  const now = Date.now();
+  const entries = readCache().filter((e) => now - e.ts < CACHE_TTL_MS);
+  const hit = entries.find((e) => e.hash === hash);
+  if (!hit) {
+    // Prune expired entries opportunistically
+    if (entries.length !== readCache().length) writeCache(entries);
+    return null;
+  }
+  return hit.result;
+}
+
+function putCachedResult(hash: string, result: AIFoodResult) {
+  const now = Date.now();
+  const existing = readCache().filter((e) => e.hash !== hash && now - e.ts < CACHE_TTL_MS);
+  existing.push({ hash, result, ts: now });
+  // Keep only the most recent CACHE_MAX_ENTRIES
+  const trimmed = existing.slice(-CACHE_MAX_ENTRIES);
+  writeCache(trimmed);
+}
+
 export async function analyzePhoto(
   imageBase64: string,
   opts: { fast?: boolean } = {},
@@ -23,6 +91,21 @@ export async function analyzePhoto(
   const sizeKb = Math.round((imageBase64.length * 3) / 4 / 1024);
   const started = performance.now();
   logScan(`invoke analyze-food${fast ? " (fast)" : ""}`, "info", `payload ~${sizeKb} KB`);
+
+  // Cache lookup (fast mode only — full mode may return more detailed items
+  // and we don't want to lock users into a stale "fast" response).
+  let hash: string | null = null;
+  if (fast) {
+    hash = await sha256Hex(imageBase64);
+    if (hash) {
+      const cached = getCachedResult(hash);
+      if (cached) {
+        const ms = Math.round(performance.now() - started);
+        logScan("analyze-food cache hit", "ok", `${ms}ms — items=${cached.items?.length ?? 0}`);
+        return cached;
+      }
+    }
+  }
 
   // Try the supabase-js invoke first.
   try {
@@ -33,12 +116,12 @@ export async function analyzePhoto(
 
     if (res.error) {
       logScan("invoke returned error — falling back to fetch", "error", `${ms}ms — ${res.error.message || JSON.stringify(res.error)}`);
-      return await analyzeViaFetch(imageBase64, started, fast);
+      return await analyzeViaFetch(imageBase64, started, fast, hash);
     }
     const data = res.data as any;
     if (!data) {
       logScan("invoke empty — falling back to fetch", "error", `${ms}ms`);
-      return await analyzeViaFetch(imageBase64, started, fast);
+      return await analyzeViaFetch(imageBase64, started, fast, hash);
     }
     if (data.ok === false || data.error) {
       logScan("analyze-food rejected", "error", `${ms}ms — ${data.error || "unknown"}`);
@@ -46,7 +129,11 @@ export async function analyzePhoto(
     }
     const itemCount = Array.isArray(data.items) ? data.items.length : 0;
     logScan(`analyze-food ok (invoke${fast ? ", fast" : ""})`, "ok", `${ms}ms — is_food=${data.is_food} items=${itemCount}`);
-    return data as AIFoodResult;
+    const result = data as AIFoodResult;
+    if (fast && hash && result.is_food && result.items?.length) {
+      putCachedResult(hash, result);
+    }
+    return result;
   } catch (networkErr) {
     const ms = Math.round(performance.now() - started);
     logScan(
@@ -54,8 +141,12 @@ export async function analyzePhoto(
       "error",
       `${ms}ms — ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`,
     );
-    return await analyzeViaFetch(imageBase64, started, fast);
+    return await analyzeViaFetch(imageBase64, started, fast, hash);
   }
+}
+
+export function clearFastScanCache() {
+  if (typeof window !== "undefined") window.localStorage.removeItem(CACHE_KEY);
 }
 
 /**
