@@ -34,6 +34,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { StreakBadge } from "@/components/StreakBadge";
 import { UndoToast } from "@/components/UndoToast";
+import { ScanStepper, type ScanStage } from "@/components/ScanStepper";
 
 // Heavy / on-demand components — lazy-loaded so they don't block first paint.
 const AddFoodDialog = lazy(() => import("@/components/AddFoodDialog").then(m => ({ default: m.AddFoodDialog })));
@@ -110,6 +111,18 @@ function Dashboard() {
 
   // AI photo state
   const [aiLoading, setAiLoading] = useState(false);
+  const [scanStage, setScanStage] = useState<ScanStage>("preparing");
+  const [scanStartedAt, setScanStartedAt] = useState<number | null>(null);
+  const [scanElapsedMs, setScanElapsedMs] = useState(0);
+
+  // Tick elapsed timer while scanning
+  useEffect(() => {
+    if (!aiLoading || scanStartedAt == null) return;
+    const id = window.setInterval(() => {
+      setScanElapsedMs(Date.now() - scanStartedAt);
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [aiLoading, scanStartedAt]);
   const aiAbortRef = useRef<AbortController | null>(null);
   const [aiItems, setAiItems] = useState<AIFoodItem[] | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string>("");
@@ -304,18 +317,22 @@ function Dashboard() {
     const abortController = new AbortController();
     aiAbortRef.current = abortController;
     setAiLoading(true);
+    setScanStage("preparing");
+    setScanStartedAt(Date.now());
+    setScanElapsedMs(0);
     setAiError(null);
     setAiErrorRetryable(false);
     try {
       const { logScan } = await import("@/lib/scan-debug");
       logScan(`scan started${fast ? " (fast)" : ""}`, "info", `online=${navigator.onLine} user=${user?.id ? "yes" : "no"}`);
       const { captureImageAsBase64, captureImageAsBase64Fast, analyzePhoto } = await import("@/lib/food-ai");
+      // Stage 1: preparing/compressing the image locally
+      setScanStage("preparing");
       const base64 = fast ? await captureImageAsBase64Fast(file) : await captureImageAsBase64(file);
       setAiImageUrl(base64);
 
-      // Backup upload to private storage (best-effort, non-blocking).
-      // For the visible thumbnail we use the base64 data URL so it always renders
-      // — the bucket is private so a raw path wouldn't display.
+      // Stage 2: uploading to backend (non-blocking storage backup + analyze request)
+      setScanStage("uploading");
       const userId = user?.id;
       if (userId) {
         const fileName = `${userId}/${Date.now()}-${file.name}`;
@@ -329,7 +346,11 @@ function Dashboard() {
       if (abortController.signal.aborted) return;
       let result;
       try {
+        // Stage 3: AI is analyzing
+        setScanStage("analyzing");
         result = await analyzePhoto(base64, { fast });
+        // Stage 4: extracting macros from the response
+        setScanStage("extracting");
       } catch (analyzeErr) {
         if (!navigator.onLine) {
           const { enqueueFoodScan } = await import("@/lib/ai-scan-queue");
@@ -655,45 +676,8 @@ function Dashboard() {
                   />
                 </motion.div>
 
-                {/* Shimmer placeholder rows */}
-                <div className="w-full max-w-[260px] space-y-3 mb-6">
-                  {[0.8, 0.6, 0.45].map((w, i) => (
-                    <motion.div
-                      key={i}
-                      className="relative h-3.5 rounded-full bg-muted/60 overflow-hidden"
-                      style={{ width: `${w * 100}%` }}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + i * 0.1 }}
-                    >
-                      <motion.div
-                        className="absolute inset-0"
-                        style={{
-                          background: "linear-gradient(90deg, transparent, var(--color-muted) 50%, transparent)",
-                        }}
-                        animate={{ x: ["-100%", "200%"] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-
-                <motion.p
-                  className="text-foreground font-semibold text-[15px]"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  Analyzing your meal…
-                </motion.p>
-                <motion.p
-                  className="text-muted-foreground text-xs mt-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0.4, 0.8, 0.4] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  Detecting calories & macros
-                </motion.p>
+                {/* Stage stepper */}
+                <ScanStepper stage={scanStage} elapsedMs={scanElapsedMs} />
 
                 <motion.button
                   initial={{ opacity: 0, y: 10 }}
