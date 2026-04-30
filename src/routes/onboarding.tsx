@@ -121,6 +121,7 @@ function OnboardingPage() {
       import("@/components/onboarding/HealthStep");
       import("@/components/onboarding/ResultsStep");
       import("@/components/onboarding/SignupStep");
+      import("@/components/onboarding/NotificationsStep");
     }
   }, [step]);
 
