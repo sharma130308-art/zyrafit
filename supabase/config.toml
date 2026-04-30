@@ -2,3 +2,6 @@ project_id = "kmoxjqrkcdrwvqnlyalf"
 
 [functions.send-meal-reminders]
 verify_jwt = false
+
+[functions.send-onboarding-reminders]
+verify_jwt = false

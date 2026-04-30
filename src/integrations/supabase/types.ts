@@ -89,6 +89,27 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_reminders_sent: {
+        Row: {
+          id: string
+          reminder_kind: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          reminder_kind: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          reminder_kind?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
