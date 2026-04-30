@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -8,8 +8,10 @@ import { StepContainer } from "./StepContainer";
 
 export function SignupStep({
   onAccountCreated,
+  onComplete,
 }: {
   onAccountCreated: (userId: string) => Promise<void>;
+  onComplete?: () => void;
 }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -17,6 +19,20 @@ export function SignupStep({
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // If user returns from OAuth flow already authenticated, advance immediately.
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (active && data.user && onComplete) {
+        // Profile is saved by parent on subsequent flow; proceed to notifications.
+        onComplete();
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [onComplete]);
 
   const canSubmit = email !== "" && password.length >= 6;
 
@@ -40,7 +56,11 @@ export function SignupStep({
     if (data.user) {
       await onAccountCreated(data.user.id);
       setAuthLoading(false);
-      navigate({ to: "/" });
+      if (onComplete) {
+        onComplete();
+      } else {
+        navigate({ to: "/" });
+      }
     } else {
       setAuthLoading(false);
       setAuthError("Check your email to confirm, then sign in.");
