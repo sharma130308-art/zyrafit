@@ -25,6 +25,7 @@ import {
 const HealthStep = lazy(() => import("@/components/onboarding/HealthStep").then(m => ({ default: m.HealthStep })));
 const ResultsStep = lazy(() => import("@/components/onboarding/ResultsStep").then(m => ({ default: m.ResultsStep })));
 const SignupStep = lazy(() => import("@/components/onboarding/SignupStep").then(m => ({ default: m.SignupStep })));
+const NotificationsStep = lazy(() => import("@/components/onboarding/NotificationsStep").then(m => ({ default: m.NotificationsStep })));
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/onboarding")({
   }),
 });
 
-const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "results", "signup"] as const;
+const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "results", "signup", "notifications"] as const;
 type Step = (typeof STEPS)[number];
 
 const OBSTACLES = [
@@ -150,6 +151,7 @@ function OnboardingPage() {
       case "health": return true;
       case "results": return true;
       case "signup": return true;
+      case "notifications": return true;
       default: return false;
     }
   };
