@@ -449,7 +449,7 @@ function OnboardingPage() {
               </StepContainer>
             )}
 
-            {(step === "health" || step === "results" || step === "signup") && (
+            {(step === "health" || step === "results" || step === "signup" || step === "notifications") && (
               <Suspense fallback={<StepFallback />}>
                 {step === "health" && (
                   <HealthStep appleHealth={appleHealth} setAppleHealth={setAppleHealth} />
@@ -465,15 +465,21 @@ function OnboardingPage() {
                   />
                 )}
                 {step === "signup" && (
-                  <SignupStep onAccountCreated={handleAccountCreated} />
+                  <SignupStep
+                    onAccountCreated={handleAccountCreated}
+                    onComplete={() => setCurrentStep((s) => s + 1)}
+                  />
+                )}
+                {step === "notifications" && (
+                  <NotificationsStep onDone={() => navigate({ to: "/" })} />
                 )}
               </Suspense>
             )}
           </motion.div>
         </AnimatePresence>
 
-        {/* Continue button (hide on signup step) */}
-        {step !== "signup" && (
+        {/* Continue button (hide on signup + notifications — they have their own actions) */}
+        {step !== "signup" && step !== "notifications" && (
           <div className="pb-10 pt-4">
             <motion.button
               onClick={handleNext}
