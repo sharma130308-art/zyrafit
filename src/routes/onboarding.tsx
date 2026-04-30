@@ -25,6 +25,7 @@ import {
 const HealthStep = lazy(() => import("@/components/onboarding/HealthStep").then(m => ({ default: m.HealthStep })));
 const ResultsStep = lazy(() => import("@/components/onboarding/ResultsStep").then(m => ({ default: m.ResultsStep })));
 const SignupStep = lazy(() => import("@/components/onboarding/SignupStep").then(m => ({ default: m.SignupStep })));
+const NotificationsStep = lazy(() => import("@/components/onboarding/NotificationsStep").then(m => ({ default: m.NotificationsStep })));
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/onboarding")({
   }),
 });
 
-const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "results", "signup"] as const;
+const STEPS = ["gender", "age", "height", "weight", "workout", "goal", "obstacles", "health", "results", "signup", "notifications"] as const;
 type Step = (typeof STEPS)[number];
 
 const OBSTACLES = [
@@ -120,6 +121,7 @@ function OnboardingPage() {
       import("@/components/onboarding/HealthStep");
       import("@/components/onboarding/ResultsStep");
       import("@/components/onboarding/SignupStep");
+      import("@/components/onboarding/NotificationsStep");
     }
   }, [step]);
 
@@ -150,6 +152,7 @@ function OnboardingPage() {
       case "health": return true;
       case "results": return true;
       case "signup": return true;
+      case "notifications": return true;
       default: return false;
     }
   };
@@ -447,7 +450,7 @@ function OnboardingPage() {
               </StepContainer>
             )}
 
-            {(step === "health" || step === "results" || step === "signup") && (
+            {(step === "health" || step === "results" || step === "signup" || step === "notifications") && (
               <Suspense fallback={<StepFallback />}>
                 {step === "health" && (
                   <HealthStep appleHealth={appleHealth} setAppleHealth={setAppleHealth} />
@@ -463,15 +466,21 @@ function OnboardingPage() {
                   />
                 )}
                 {step === "signup" && (
-                  <SignupStep onAccountCreated={handleAccountCreated} />
+                  <SignupStep
+                    onAccountCreated={handleAccountCreated}
+                    onComplete={() => setCurrentStep((s) => s + 1)}
+                  />
+                )}
+                {step === "notifications" && (
+                  <NotificationsStep onDone={() => navigate({ to: "/" })} />
                 )}
               </Suspense>
             )}
           </motion.div>
         </AnimatePresence>
 
-        {/* Continue button (hide on signup step) */}
-        {step !== "signup" && (
+        {/* Continue button (hide on signup + notifications — they have their own actions) */}
+        {step !== "signup" && step !== "notifications" && (
           <div className="pb-10 pt-4">
             <motion.button
               onClick={handleNext}
