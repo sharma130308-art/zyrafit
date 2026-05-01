@@ -35,7 +35,7 @@ function WelcomePage() {
         .maybeSingle();
       if (cancelled) return;
       if (data?.onboarding_completed) {
-        navigate({ to: "/", replace: true });
+        navigate({ to: "/app", replace: true });
       } else {
         setChecking(false);
       }

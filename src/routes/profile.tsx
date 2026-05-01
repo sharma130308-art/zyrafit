@@ -416,7 +416,7 @@ function ProfilePage() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate({ to: "/" });
+    navigate({ to: "/app" });
   };
 
   const goalLabel = GOALS.find((g) => g.value === profile?.goal)?.label ?? "—";
@@ -1161,7 +1161,7 @@ function ProfilePage() {
         )}
       </div>
 
-      <BottomNav onAddClick={() => navigate({ to: "/" })} />
+      <BottomNav onAddClick={() => navigate({ to: "/app" })} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
       <div className="flex items-center justify-around py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
           <Link
-            to="/"
+            to="/app"
             onClick={() => hapticLight()}
             className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-colors ${
               path === "/" ? "text-nav-active" : "text-nav-foreground"

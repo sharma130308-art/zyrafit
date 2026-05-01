@@ -27,14 +27,14 @@ function LoginPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const redirectAfterAuth = async (userId?: string) => {
-    if (!userId) { navigate({ to: "/" }); return; }
+    if (!userId) { navigate({ to: "/app" }); return; }
     const { data } = await supabase
       .from("user_profiles")
       .select("onboarding_completed")
       .eq("user_id", userId)
       .maybeSingle();
     if (data?.onboarding_completed) {
-      navigate({ to: "/" });
+      navigate({ to: "/app" });
     } else {
       navigate({ to: "/onboarding" });
     }

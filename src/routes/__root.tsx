@@ -130,6 +130,26 @@ function RootComponent() {
     return () => document.removeEventListener("pointerdown", handleTap);
   }, []);
 
+  // Marketing / public content routes render full-width — they are NOT wrapped
+  // in the 430px mobile app shell. The actual app lives under /app.
+  const isMarketingRoute =
+    location.pathname === "/" ||
+    location.pathname === "/terms" ||
+    location.pathname === "/privacy-policy";
+
+  if (isMarketingRoute) {
+    return (
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
+        <Outlet />
+      </motion.div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-[430px] min-h-screen bg-background shadow-xl relative overflow-hidden">
       <SwipeBackGesture />
