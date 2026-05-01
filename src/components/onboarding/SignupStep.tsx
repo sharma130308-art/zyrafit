@@ -59,7 +59,7 @@ export function SignupStep({
       if (onComplete) {
         onComplete();
       } else {
-        navigate({ to: "/" });
+        navigate({ to: "/app" });
       }
     } else {
       setAuthLoading(false);

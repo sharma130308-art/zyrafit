@@ -69,7 +69,7 @@ function ResetPasswordPage() {
             Your password has been reset successfully.
           </p>
           <Link
-            to="/"
+            to="/app"
             className="inline-flex items-center justify-center py-3.5 px-8 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25"
           >
             Go to Dashboard

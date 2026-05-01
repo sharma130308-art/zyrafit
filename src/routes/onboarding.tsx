@@ -203,7 +203,7 @@ function OnboardingPage() {
         await saveProfile(user.id);
         clearProgress();
         setSaving(false);
-        navigate({ to: "/" });
+        navigate({ to: "/app" });
         return;
       }
     }
@@ -472,7 +472,7 @@ function OnboardingPage() {
                   />
                 )}
                 {step === "notifications" && (
-                  <NotificationsStep onDone={() => navigate({ to: "/" })} />
+                  <NotificationsStep onDone={() => navigate({ to: "/app" })} />
                 )}
               </Suspense>
             )}
