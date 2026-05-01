@@ -87,7 +87,7 @@ function Dashboard() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      navigate({ to: "/welcome" });
+      navigate({ to: "/" });
       return;
     }
     // Check onboarding status
