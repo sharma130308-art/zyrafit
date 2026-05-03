@@ -120,6 +120,18 @@ export function MealSection({ mealType, entries, onDelete, onAdd, onEdit, onUpda
                       </div>
                     </div>
                   </SwipeToDelete>
+                  <AnimatePresence>
+                    {onUpdate && editingId === entry.id && (
+                      <InlineEntryEditor
+                        entry={entry}
+                        onSave={async (id, patch) => {
+                          await onUpdate(id, patch);
+                          setEditingId(null);
+                        }}
+                        onCancel={() => setEditingId(null)}
+                      />
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               ))}
             </div>
