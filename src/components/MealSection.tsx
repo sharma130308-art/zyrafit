@@ -76,7 +76,14 @@ export function MealSection({ mealType, entries, onDelete, onAdd, onEdit, onUpda
                 >
                   <SwipeToDelete onDelete={() => onDelete(entry.id)}>
                     <div
-                      onClick={() => { hapticLight(); onEdit?.(entry); }}
+                      onClick={() => {
+                        hapticLight();
+                        if (onUpdate) {
+                          setEditingId((curr) => (curr === entry.id ? null : entry.id));
+                        } else {
+                          onEdit?.(entry);
+                        }
+                      }}
                       className="flex items-center justify-between py-2.5 border-t border-border/20 first:border-t-0 px-1 cursor-pointer active:bg-muted/30 transition-colors rounded-lg"
                     >
                       {entry.photoUrl && (
