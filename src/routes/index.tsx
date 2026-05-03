@@ -97,7 +97,7 @@ function LandingPage() {
           </nav>
           <Link
             to="/login"
-            className="text-sm font-medium px-4 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+            className="text-sm font-semibold px-4 py-2 rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
           >
             Sign in
           </Link>
