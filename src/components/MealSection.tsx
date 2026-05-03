@@ -5,6 +5,7 @@ import type { FoodEntry, MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 import { hapticLight } from "@/lib/haptics";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { InlineEntryEditor } from "@/components/InlineEntryEditor";
 
 interface MealSectionProps {
   mealType: MealType;
@@ -12,9 +13,11 @@ interface MealSectionProps {
   onDelete: (id: string) => void;
   onAdd?: (mealType: MealType) => void;
   onEdit?: (entry: FoodEntry) => void;
+  onUpdate?: (id: string, patch: Partial<Omit<FoodEntry, "id">>) => void | Promise<void>;
 }
 
-export function MealSection({ mealType, entries, onDelete, onAdd, onEdit }: MealSectionProps) {
+export function MealSection({ mealType, entries, onDelete, onAdd, onEdit, onUpdate }: MealSectionProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const totalCalories = entries.reduce((sum, e) => sum + e.calories * e.quantity, 0);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{ url: string; name: string } | null>(null);
 
@@ -73,7 +76,14 @@ export function MealSection({ mealType, entries, onDelete, onAdd, onEdit }: Meal
                 >
                   <SwipeToDelete onDelete={() => onDelete(entry.id)}>
                     <div
-                      onClick={() => { hapticLight(); onEdit?.(entry); }}
+                      onClick={() => {
+                        hapticLight();
+                        if (onUpdate) {
+                          setEditingId((curr) => (curr === entry.id ? null : entry.id));
+                        } else {
+                          onEdit?.(entry);
+                        }
+                      }}
                       className="flex items-center justify-between py-2.5 border-t border-border/20 first:border-t-0 px-1 cursor-pointer active:bg-muted/30 transition-colors rounded-lg"
                     >
                       {entry.photoUrl && (
@@ -110,6 +120,18 @@ export function MealSection({ mealType, entries, onDelete, onAdd, onEdit }: Meal
                       </div>
                     </div>
                   </SwipeToDelete>
+                  <AnimatePresence>
+                    {onUpdate && editingId === entry.id && (
+                      <InlineEntryEditor
+                        entry={entry}
+                        onSave={async (id, patch) => {
+                          await onUpdate(id, patch);
+                          setEditingId(null);
+                        }}
+                        onCancel={() => setEditingId(null)}
+                      />
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               ))}
             </div>
