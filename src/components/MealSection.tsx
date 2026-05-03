@@ -5,6 +5,7 @@ import type { FoodEntry, MealType } from "@/lib/food-store";
 import { MEAL_LABELS, MEAL_ICONS } from "@/lib/food-store";
 import { hapticLight } from "@/lib/haptics";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { InlineEntryEditor } from "@/components/InlineEntryEditor";
 
 interface MealSectionProps {
   mealType: MealType;
@@ -12,9 +13,11 @@ interface MealSectionProps {
   onDelete: (id: string) => void;
   onAdd?: (mealType: MealType) => void;
   onEdit?: (entry: FoodEntry) => void;
+  onUpdate?: (id: string, patch: Partial<Omit<FoodEntry, "id">>) => void | Promise<void>;
 }
 
-export function MealSection({ mealType, entries, onDelete, onAdd, onEdit }: MealSectionProps) {
+export function MealSection({ mealType, entries, onDelete, onAdd, onEdit, onUpdate }: MealSectionProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const totalCalories = entries.reduce((sum, e) => sum + e.calories * e.quantity, 0);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{ url: string; name: string } | null>(null);
 
