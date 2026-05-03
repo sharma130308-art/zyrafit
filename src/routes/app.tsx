@@ -530,7 +530,10 @@ function Dashboard() {
                 entries={byMeal[type]}
                 onDelete={handleDelete}
                 onAdd={(meal) => setQuickAddMeal(meal)}
-                onEdit={(entry) => setEditingEntry(entry)}
+                onUpdate={async (id, patch) => {
+                  await updateEntry(id, patch);
+                  refresh();
+                }}
               />
             </motion.div>
           ))}
