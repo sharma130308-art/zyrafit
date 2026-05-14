@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Home, PlusCircle, User } from "lucide-react";
+import { Home, PlusCircle, User, Dumbbell } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 
 interface BottomNavProps {
@@ -10,6 +10,9 @@ interface BottomNavProps {
 export function BottomNav({ onAddClick }: BottomNavProps) {
   const location = useLocation();
   const path = location.pathname;
+  const isHome = path === "/app" || path === "/";
+  const isWorkouts = path === "/workouts";
+  const isProfile = path === "/profile";
 
   return (
     <div className="fixed bottom-0 inset-x-0 z-30 bg-nav/80 backdrop-blur-2xl backdrop-saturate-150 border-t border-border/20">
@@ -18,19 +21,25 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           <Link
             to="/app"
             onClick={() => hapticLight()}
-            className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-colors ${
-              path === "/" ? "text-nav-active" : "text-nav-foreground"
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+              isHome ? "text-nav-active" : "text-nav-foreground"
             }`}
           >
-            <Home className="w-6 h-6" strokeWidth={path === "/" ? 2.5 : 1.5} />
+            <Home className="w-6 h-6" strokeWidth={isHome ? 2.5 : 1.5} />
             <span className="text-[10px] font-semibold">Home</span>
-            {path === "/" && (
-              <motion.div
-                className="w-1 h-1 rounded-full bg-nav-active -mt-0.5"
-                layoutId="nav-indicator"
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-              />
-            )}
+          </Link>
+        </motion.div>
+
+        <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+          <Link
+            to="/workouts"
+            onClick={() => hapticLight()}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+              isWorkouts ? "text-nav-active" : "text-nav-foreground"
+            }`}
+          >
+            <Dumbbell className="w-6 h-6" strokeWidth={isWorkouts ? 2.5 : 1.5} />
+            <span className="text-[10px] font-semibold">Workouts</span>
           </Link>
         </motion.div>
 
@@ -49,21 +58,16 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           <Link
             to="/profile"
             onClick={() => hapticLight()}
-            className={`flex flex-col items-center gap-0.5 px-4 py-1.5 transition-colors ${
-              path === "/profile" ? "text-nav-active" : "text-nav-foreground"
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+              isProfile ? "text-nav-active" : "text-nav-foreground"
             }`}
           >
-            <User className="w-6 h-6" strokeWidth={path === "/profile" ? 2.5 : 1.5} />
+            <User className="w-6 h-6" strokeWidth={isProfile ? 2.5 : 1.5} />
             <span className="text-[10px] font-semibold">Profile</span>
-            {path === "/profile" && (
-              <motion.div
-                className="w-1 h-1 rounded-full bg-nav-active -mt-0.5"
-                layoutId="nav-indicator"
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
-              />
-            )}
           </Link>
         </motion.div>
+
+        <div className="w-10" aria-hidden />
       </div>
     </div>
   );
