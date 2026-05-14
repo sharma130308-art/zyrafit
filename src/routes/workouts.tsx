@@ -1,21 +1,29 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dumbbell, Plus, Trash2, X } from "lucide-react";
+import { Search, Check, X, Trash2, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { Button } from "@/components/ui/button";
+import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
+import {
+  EXERCISES,
+  BODY_PARTS,
+  getExercise,
+  type BodyPart,
+  type Exercise,
+} from "@/lib/exercises";
 
 interface Workout {
   id: string;
   name: string;
   notes: string | null;
   date: string;
+  exercise_key: string | null;
   created_at: string;
 }
 
@@ -24,7 +32,7 @@ export const Route = createFileRoute("/workouts")({
   head: () => ({
     meta: [
       { title: "Workouts — ZyraFit" },
-      { name: "description", content: "Log and track your workouts." },
+      { name: "description", content: "Browse exercises and log your workouts." },
     ],
   }),
 });
@@ -37,10 +45,13 @@ function WorkoutsPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
+  const [filter, setFilter] = useState<BodyPart>("all");
+  const [search, setSearch] = useState("");
+  const [pickedExercise, setPickedExercise] = useState<Exercise | null>(null);
+  const [customOpen, setCustomOpen] = useState(false);
   const [notes, setNotes] = useState("");
+  const [customName, setCustomName] = useState("");
+  const [customNotes, setCustomNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -53,30 +64,85 @@ function WorkoutsPage() {
       .from("workouts")
       .select("*")
       .order("date", { ascending: false })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
     setWorkouts((data ?? []) as Workout[]);
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
     if (user) refresh();
   }, [user, refresh]);
 
-  const handleAdd = async () => {
-    if (!user || !name.trim()) return;
+  const today = todayISO();
+  const todayLogged = useMemo(
+    () => new Set(workouts.filter((w) => w.date === today && w.exercise_key).map((w) => w.exercise_key!)),
+    [workouts, today],
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return EXERCISES.filter((e) => {
+      if (filter !== "all" && e.bodyPart !== filter) return false;
+      if (q && !e.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [filter, search]);
+
+  const todayWorkouts = workouts.filter((w) => w.date === today);
+
+  async function logExercise(ex: Exercise, extraNotes: string) {
+    if (!user) return;
     setSaving(true);
     const optimistic: Workout = {
       id: `tmp-${Date.now()}`,
-      name: name.trim(),
-      notes: notes.trim() || null,
-      date: todayISO(),
+      name: ex.name,
+      notes: extraNotes.trim() || null,
+      date: today,
+      exercise_key: ex.key,
       created_at: new Date().toISOString(),
     };
     setWorkouts((p) => [optimistic, ...p]);
-    setOpen(false);
-    setName("");
+    setPickedExercise(null);
     setNotes("");
-    hapticMedium();
+    hapticSuccess();
+    toast.success(`${ex.name} logged`);
+
+    const { data, error } = await supabase
+      .from("workouts")
+      .insert({
+        user_id: user.id,
+        name: ex.name,
+        notes: optimistic.notes,
+        date: today,
+        exercise_key: ex.key,
+      })
+      .select()
+      .single();
+    setSaving(false);
+    if (error) {
+      setWorkouts((p) => p.filter((w) => w.id !== optimistic.id));
+      toast.error("Couldn't save workout");
+      return;
+    }
+    if (data) setWorkouts((p) => p.map((w) => (w.id === optimistic.id ? (data as Workout) : w)));
+  }
+
+  async function logCustom() {
+    if (!user || !customName.trim()) return;
+    setSaving(true);
+    const optimistic: Workout = {
+      id: `tmp-${Date.now()}`,
+      name: customName.trim(),
+      notes: customNotes.trim() || null,
+      date: today,
+      exercise_key: null,
+      created_at: new Date().toISOString(),
+    };
+    setWorkouts((p) => [optimistic, ...p]);
+    setCustomOpen(false);
+    setCustomName("");
+    setCustomNotes("");
+    hapticSuccess();
 
     const { data, error } = await supabase
       .from("workouts")
@@ -84,145 +150,240 @@ function WorkoutsPage() {
         user_id: user.id,
         name: optimistic.name,
         notes: optimistic.notes,
-        date: optimistic.date,
+        date: today,
       })
       .select()
       .single();
-
     setSaving(false);
     if (error) {
       setWorkouts((p) => p.filter((w) => w.id !== optimistic.id));
       toast.error("Couldn't save workout");
       return;
     }
-    if (data) {
-      setWorkouts((p) => p.map((w) => (w.id === optimistic.id ? (data as Workout) : w)));
-    }
-  };
+    if (data) setWorkouts((p) => p.map((w) => (w.id === optimistic.id ? (data as Workout) : w)));
+  }
 
-  const handleDelete = async (id: string) => {
+  async function handleDelete(id: string) {
     hapticLight();
     setWorkouts((p) => p.filter((w) => w.id !== id));
     await supabase.from("workouts").delete().eq("id", id);
-  };
-
-  // Group by date
-  const grouped = workouts.reduce<Record<string, Workout[]>>((acc, w) => {
-    (acc[w.date] ||= []).push(w);
-    return acc;
-  }, {});
-  const dateKeys = Object.keys(grouped);
-
-  const formatDate = (iso: string) => {
-    const d = new Date(iso + "T00:00:00");
-    const today = todayISO();
-    const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    if (iso === today) return "Today";
-    if (iso === yest) return "Yesterday";
-    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  };
+  }
 
   return (
     <div className="min-h-screen bg-background pb-28">
-      <div className="px-6 pt-14 pb-6">
+      {/* Header */}
+      <div className="px-6 pt-14 pb-4">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-sm text-muted-foreground">Training</p>
           <h1 className="text-3xl font-bold tracking-tight mt-1">Workouts</h1>
         </motion.div>
       </div>
 
-      <div className="px-6">
-        <Button
-          onClick={() => { hapticMedium(); setOpen(true); }}
-          className="w-full h-12 rounded-2xl gap-2 font-semibold shadow-lg shadow-primary/20"
-        >
-          <Plus className="w-5 h-5" />
-          Log a workout
-        </Button>
+      {/* Search */}
+      <div className="px-6 mb-4">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search exercises"
+            className="h-12 pl-10 rounded-2xl bg-muted/40 border-0"
+          />
+        </div>
       </div>
 
-      <div className="px-6 mt-8 space-y-6">
-        {loading ? (
-          <div className="text-center text-muted-foreground py-12 text-sm">Loading…</div>
-        ) : workouts.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center text-center py-16 px-4"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-              <Dumbbell className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="font-semibold mb-1">No workouts yet</h3>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Tap "Log a workout" to record your first session.
-            </p>
-          </motion.div>
-        ) : (
-          dateKeys.map((date) => (
-            <div key={date}>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
-                {formatDate(date)}
-              </h2>
-              <div className="space-y-2">
-                <AnimatePresence initial={false}>
-                  {grouped[date].map((w) => (
-                    <motion.div
-                      key={w.id}
-                      layout
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="bg-card border border-border/40 rounded-2xl p-4 flex items-start gap-3"
+      {/* Body part chips */}
+      <div className="overflow-x-auto no-scrollbar -mx-6 px-6 mb-5">
+        <div className="flex gap-2 pb-1 w-max">
+          {BODY_PARTS.map((bp) => {
+            const active = filter === bp.id;
+            return (
+              <button
+                key={bp.id}
+                onClick={() => { hapticLight(); setFilter(bp.id); }}
+                className={`px-4 h-9 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/40 text-foreground/80"
+                }`}
+              >
+                {bp.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Today logged */}
+      {todayWorkouts.length > 0 && (
+        <div className="px-6 mb-6">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            Today · {todayWorkouts.length}
+          </h2>
+          <div className="space-y-2">
+            <AnimatePresence initial={false}>
+              {todayWorkouts.map((w) => {
+                const ex = getExercise(w.exercise_key);
+                return (
+                  <motion.div
+                    key={w.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="bg-card border border-border/40 rounded-2xl p-3 flex items-center gap-3"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-muted/40 overflow-hidden flex items-center justify-center shrink-0">
+                      {ex ? (
+                        <img src={ex.image} alt="" className="w-full h-full object-contain" loading="lazy" />
+                      ) : (
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate text-sm">{w.name}</p>
+                      {w.notes && (
+                        <p className="text-xs text-muted-foreground truncate">{w.notes}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDelete(w.id)}
+                      className="text-muted-foreground/60 hover:text-destructive p-1.5"
+                      aria-label="Remove"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <Dumbbell className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{w.name}</p>
-                        {w.notes && (
-                          <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap break-words">
-                            {w.notes}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleDelete(w.id)}
-                        className="text-muted-foreground/60 hover:text-destructive p-1.5 -m-1.5"
-                        aria-label="Delete workout"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </div>
-          ))
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+
+      {/* Exercise grid */}
+      <div className="px-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Library · {filtered.length}
+          </h2>
+          <button
+            onClick={() => { hapticMedium(); setCustomOpen(true); }}
+            className="text-xs font-semibold text-primary flex items-center gap-1"
+          >
+            <Plus className="w-3.5 h-3.5" /> Custom
+          </button>
+        </div>
+        {filtered.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-12">No exercises match.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {filtered.map((ex) => {
+              const logged = todayLogged.has(ex.key);
+              return (
+                <motion.button
+                  key={ex.key}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => { hapticLight(); setPickedExercise(ex); setNotes(""); }}
+                  className={`relative bg-card border rounded-2xl p-3 text-left transition-colors ${
+                    logged ? "border-primary/60" : "border-border/40"
+                  }`}
+                >
+                  <div className="aspect-square rounded-xl bg-muted/30 overflow-hidden mb-2 flex items-center justify-center">
+                    <img
+                      src={ex.image}
+                      alt={ex.name}
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                      width={512}
+                      height={512}
+                    />
+                  </div>
+                  <p className="font-semibold text-sm leading-tight">{ex.name}</p>
+                  <p className="text-xs text-muted-foreground capitalize mt-0.5">{ex.bodyPart}</p>
+                  {logged && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
         )}
       </div>
 
+      {/* Picked exercise sheet */}
       <AnimatePresence>
-        {open && (
+        {pickedExercise && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
+              onClick={() => setPickedExercise(null)}
             />
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-border/30 max-w-[430px] mx-auto"
+            >
+              <div className="flex items-start gap-4 mb-5">
+                <div className="w-20 h-20 rounded-2xl bg-muted/40 overflow-hidden shrink-0">
+                  <img src={pickedExercise.image} alt="" className="w-full h-full object-contain" />
+                </div>
+                <div className="flex-1 min-w-0 pt-1">
+                  <h2 className="text-xl font-bold leading-tight">{pickedExercise.name}</h2>
+                  <p className="text-sm text-muted-foreground capitalize mt-0.5">
+                    {pickedExercise.bodyPart}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setPickedExercise(null)}
+                  className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                Notes (optional)
+              </label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Sets × reps, weight, how it felt…"
+                rows={3}
+                className="rounded-xl resize-none mb-4"
+              />
+              <Button
+                onClick={() => logExercise(pickedExercise, notes)}
+                disabled={saving}
+                className="w-full h-12 rounded-xl font-semibold"
+              >
+                Log workout
+              </Button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Custom workout sheet */}
+      <AnimatePresence>
+        {customOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              onClick={() => setCustomOpen(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-border/30 max-w-[430px] mx-auto"
             >
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold">Log workout</h2>
+                <h2 className="text-lg font-bold">Custom workout</h2>
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={() => setCustomOpen(false)}
                   className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />
@@ -234,9 +395,9 @@ function WorkoutsPage() {
                     Workout
                   </label>
                   <Input
-                    placeholder="e.g. Push day, 5km run, Yoga…"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder="e.g. Yoga, HIIT, Climbing"
                     autoFocus
                     className="h-12 rounded-xl"
                   />
@@ -246,19 +407,19 @@ function WorkoutsPage() {
                     Notes (optional)
                   </label>
                   <Textarea
-                    placeholder="Sets, reps, distance, how it felt…"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
+                    value={customNotes}
+                    onChange={(e) => setCustomNotes(e.target.value)}
+                    placeholder="Duration, intensity…"
+                    rows={3}
                     className="rounded-xl resize-none"
                   />
                 </div>
                 <Button
-                  onClick={handleAdd}
-                  disabled={!name.trim() || saving}
+                  onClick={logCustom}
+                  disabled={!customName.trim() || saving}
                   className="w-full h-12 rounded-xl font-semibold mt-2"
                 >
-                  Save workout
+                  Log workout
                 </Button>
               </div>
             </motion.div>
@@ -266,7 +427,7 @@ function WorkoutsPage() {
         )}
       </AnimatePresence>
 
-      <BottomNav onAddClick={() => { hapticMedium(); setOpen(true); }} />
+      <BottomNav onAddClick={() => { hapticMedium(); setCustomOpen(true); }} />
     </div>
   );
 }
