@@ -67,7 +67,6 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           </Link>
         </motion.div>
 
-        <div className="w-10" aria-hidden />
       </div>
     </div>
   );
