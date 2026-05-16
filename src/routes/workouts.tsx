@@ -291,7 +291,7 @@ function WorkoutsPage() {
       {activeWorkouts.length > 0 && (
         <div className="px-6 mb-6">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Today · {activeWorkouts.length}
+            {formatDateLabel(activeDate)} · {activeWorkouts.length}
           </h2>
           <div className="space-y-2">
             <AnimatePresence initial={false}>
