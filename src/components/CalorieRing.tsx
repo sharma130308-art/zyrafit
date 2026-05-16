@@ -6,13 +6,16 @@ import { hapticSuccess } from "@/lib/haptics";
 interface CalorieRingProps {
   consumed: number;
   goal: number;
+  /** Calories burned through training; added to the daily allowance. */
+  burned?: number;
 }
 
-export function CalorieRing({ consumed, goal }: CalorieRingProps) {
-  const remaining = Math.max(0, goal - consumed);
-  const percentage = Math.min((consumed / goal) * 100, 100);
-  const overGoal = consumed > goal;
-  const hitGoal = consumed >= goal;
+export function CalorieRing({ consumed, goal, burned = 0 }: CalorieRingProps) {
+  const effectiveGoal = goal + (burned > 0 ? burned : 0);
+  const remaining = Math.max(0, effectiveGoal - consumed);
+  const percentage = Math.min((consumed / effectiveGoal) * 100, 100);
+  const overGoal = consumed > effectiveGoal;
+  const hitGoal = consumed >= effectiveGoal;
   const [showCelebration, setShowCelebration] = useState(false);
   const hasCelebratedRef = useRef(false);
 
