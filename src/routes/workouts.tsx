@@ -169,17 +169,24 @@ function WorkoutsPage() {
   async function logExercise(ex: Exercise, extraNotes: string) {
     if (!user) return;
     setSaving(true);
+    const mins = parseInt(duration, 10);
+    const kcal = parseInt(calories, 10);
     const optimistic: Workout = {
       id: `tmp-${Date.now()}`,
       name: ex.name,
       notes: extraNotes.trim() || null,
       date: activeDate,
       exercise_key: ex.key,
+      duration_min: Number.isFinite(mins) && mins > 0 ? mins : null,
+      calories_burned: Number.isFinite(kcal) && kcal > 0 ? kcal : null,
       created_at: new Date().toISOString(),
     };
     setWorkouts((p) => [optimistic, ...p]);
     setPickedExercise(null);
     setNotes("");
+    setDuration("");
+    setCalories("");
+    setCaloriesTouched(false);
     hapticSuccess();
     toast.success(`${ex.name} logged`);
 
@@ -191,6 +198,8 @@ function WorkoutsPage() {
         notes: optimistic.notes,
         date: activeDate,
         exercise_key: ex.key,
+        duration_min: optimistic.duration_min,
+        calories_burned: optimistic.calories_burned,
       })
       .select()
       .single();
@@ -206,18 +215,25 @@ function WorkoutsPage() {
   async function logCustom() {
     if (!user || !customName.trim()) return;
     setSaving(true);
+    const mins = parseInt(customDuration, 10);
+    const kcal = parseInt(customCalories, 10);
     const optimistic: Workout = {
       id: `tmp-${Date.now()}`,
       name: customName.trim(),
       notes: customNotes.trim() || null,
       date: activeDate,
       exercise_key: null,
+      duration_min: Number.isFinite(mins) && mins > 0 ? mins : null,
+      calories_burned: Number.isFinite(kcal) && kcal > 0 ? kcal : null,
       created_at: new Date().toISOString(),
     };
     setWorkouts((p) => [optimistic, ...p]);
     setCustomOpen(false);
     setCustomName("");
     setCustomNotes("");
+    setCustomDuration("");
+    setCustomCalories("");
+    setCustomCaloriesTouched(false);
     hapticSuccess();
 
     const { data, error } = await supabase
@@ -227,6 +243,8 @@ function WorkoutsPage() {
         name: optimistic.name,
         notes: optimistic.notes,
         date: activeDate,
+        duration_min: optimistic.duration_min,
+        calories_burned: optimistic.calories_burned,
       })
       .select()
       .single();
