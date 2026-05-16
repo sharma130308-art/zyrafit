@@ -132,6 +132,7 @@ function Dashboard() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
   const [streak, setStreak] = useState(0);
+  const [caloriesBurned, setCaloriesBurned] = useState(0);
 
   const refresh = useCallback(async () => {
     // Instant render from localStorage cache — no waiting for network
