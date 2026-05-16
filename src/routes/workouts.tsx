@@ -78,7 +78,6 @@ function WorkoutsPage() {
   }, [user, refresh]);
 
   const today = todayISO();
-  const today = todayISO();
   const activeDate = selectedDate;
   const isToday = activeDate === today;
   const activeLogged = useMemo(
