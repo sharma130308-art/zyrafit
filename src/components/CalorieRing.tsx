@@ -6,13 +6,16 @@ import { hapticSuccess } from "@/lib/haptics";
 interface CalorieRingProps {
   consumed: number;
   goal: number;
+  /** Calories burned through training; added to the daily allowance. */
+  burned?: number;
 }
 
-export function CalorieRing({ consumed, goal }: CalorieRingProps) {
-  const remaining = Math.max(0, goal - consumed);
-  const percentage = Math.min((consumed / goal) * 100, 100);
-  const overGoal = consumed > goal;
-  const hitGoal = consumed >= goal;
+export function CalorieRing({ consumed, goal, burned = 0 }: CalorieRingProps) {
+  const effectiveGoal = goal + (burned > 0 ? burned : 0);
+  const remaining = Math.max(0, effectiveGoal - consumed);
+  const percentage = Math.min((consumed / effectiveGoal) * 100, 100);
+  const overGoal = consumed > effectiveGoal;
+  const hitGoal = consumed >= effectiveGoal;
   const [showCelebration, setShowCelebration] = useState(false);
   const hasCelebratedRef = useRef(false);
 
@@ -135,14 +138,23 @@ export function CalorieRing({ consumed, goal }: CalorieRingProps) {
         )}
       </AnimatePresence>
 
-      <div className="flex gap-8 text-sm">
+      <div className="flex gap-6 text-sm">
         <div className="flex flex-col items-center">
           <span className="text-lg font-bold text-foreground">{Math.round(consumed)}</span>
           <span className="text-xs text-muted-foreground">eaten</span>
         </div>
+        {burned > 0 && (
+          <>
+            <div className="h-10 w-px bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-bold text-primary">{burned}</span>
+              <span className="text-xs text-muted-foreground">burned</span>
+            </div>
+          </>
+        )}
         <div className="h-10 w-px bg-border" />
         <div className="flex flex-col items-center">
-          <span className="text-lg font-bold text-foreground">{goal}</span>
+          <span className="text-lg font-bold text-foreground">{effectiveGoal}</span>
           <span className="text-xs text-muted-foreground">goal</span>
         </div>
       </div>

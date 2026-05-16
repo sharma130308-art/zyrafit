@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Check, X, Trash2, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Check, X, Trash2, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Flame, Clock } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,6 +16,8 @@ import {
   EXERCISES,
   BODY_PARTS,
   getExercise,
+  estimateCalories,
+  DEFAULT_MET,
   type BodyPart,
   type Exercise,
 } from "@/lib/exercises";
@@ -26,6 +28,8 @@ interface Workout {
   notes: string | null;
   date: string;
   exercise_key: string | null;
+  duration_min: number | null;
+  calories_burned: number | null;
   created_at: string;
 }
 
@@ -57,6 +61,17 @@ function WorkoutsPage() {
   const [saving, setSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
   const [dateOpen, setDateOpen] = useState(false);
+  const [userWeight, setUserWeight] = useState<number | null>(null);
+
+  // Per-exercise log sheet fields
+  const [duration, setDuration] = useState<string>("");
+  const [calories, setCalories] = useState<string>("");
+  const [caloriesTouched, setCaloriesTouched] = useState(false);
+
+  // Custom-workout sheet fields
+  const [customDuration, setCustomDuration] = useState<string>("");
+  const [customCalories, setCustomCalories] = useState<string>("");
+  const [customCaloriesTouched, setCustomCaloriesTouched] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/" });
@@ -76,6 +91,43 @@ function WorkoutsPage() {
   useEffect(() => {
     if (user) refresh();
   }, [user, refresh]);
+
+  // Load user weight once — used to estimate calories burned.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_profiles")
+      .select("weight_kg")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.weight_kg) setUserWeight(Number(data.weight_kg));
+      });
+  }, [user]);
+
+  // Auto-estimate calories from duration in the per-exercise sheet.
+  useEffect(() => {
+    if (!pickedExercise) return;
+    if (caloriesTouched) return;
+    const mins = parseInt(duration, 10);
+    if (!mins || mins <= 0) {
+      setCalories("");
+      return;
+    }
+    setCalories(String(estimateCalories(pickedExercise.met, mins, userWeight)));
+  }, [duration, pickedExercise, userWeight, caloriesTouched]);
+
+  // Auto-estimate calories from duration in the custom sheet (uses default MET).
+  useEffect(() => {
+    if (!customOpen) return;
+    if (customCaloriesTouched) return;
+    const mins = parseInt(customDuration, 10);
+    if (!mins || mins <= 0) {
+      setCustomCalories("");
+      return;
+    }
+    setCustomCalories(String(estimateCalories(DEFAULT_MET, mins, userWeight)));
+  }, [customDuration, customOpen, userWeight, customCaloriesTouched]);
 
   const today = todayISO();
   const activeDate = selectedDate;
@@ -117,17 +169,24 @@ function WorkoutsPage() {
   async function logExercise(ex: Exercise, extraNotes: string) {
     if (!user) return;
     setSaving(true);
+    const mins = parseInt(duration, 10);
+    const kcal = parseInt(calories, 10);
     const optimistic: Workout = {
       id: `tmp-${Date.now()}`,
       name: ex.name,
       notes: extraNotes.trim() || null,
       date: activeDate,
       exercise_key: ex.key,
+      duration_min: Number.isFinite(mins) && mins > 0 ? mins : null,
+      calories_burned: Number.isFinite(kcal) && kcal > 0 ? kcal : null,
       created_at: new Date().toISOString(),
     };
     setWorkouts((p) => [optimistic, ...p]);
     setPickedExercise(null);
     setNotes("");
+    setDuration("");
+    setCalories("");
+    setCaloriesTouched(false);
     hapticSuccess();
     toast.success(`${ex.name} logged`);
 
@@ -139,6 +198,8 @@ function WorkoutsPage() {
         notes: optimistic.notes,
         date: activeDate,
         exercise_key: ex.key,
+        duration_min: optimistic.duration_min,
+        calories_burned: optimistic.calories_burned,
       })
       .select()
       .single();
@@ -154,18 +215,25 @@ function WorkoutsPage() {
   async function logCustom() {
     if (!user || !customName.trim()) return;
     setSaving(true);
+    const mins = parseInt(customDuration, 10);
+    const kcal = parseInt(customCalories, 10);
     const optimistic: Workout = {
       id: `tmp-${Date.now()}`,
       name: customName.trim(),
       notes: customNotes.trim() || null,
       date: activeDate,
       exercise_key: null,
+      duration_min: Number.isFinite(mins) && mins > 0 ? mins : null,
+      calories_burned: Number.isFinite(kcal) && kcal > 0 ? kcal : null,
       created_at: new Date().toISOString(),
     };
     setWorkouts((p) => [optimistic, ...p]);
     setCustomOpen(false);
     setCustomName("");
     setCustomNotes("");
+    setCustomDuration("");
+    setCustomCalories("");
+    setCustomCaloriesTouched(false);
     hapticSuccess();
 
     const { data, error } = await supabase
@@ -175,6 +243,8 @@ function WorkoutsPage() {
         name: optimistic.name,
         notes: optimistic.notes,
         date: activeDate,
+        duration_min: optimistic.duration_min,
+        calories_burned: optimistic.calories_burned,
       })
       .select()
       .single();
@@ -290,9 +360,21 @@ function WorkoutsPage() {
       {/* Today logged */}
       {activeWorkouts.length > 0 && (
         <div className="px-6 mb-6">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            {formatDateLabel(activeDate)} · {activeWorkouts.length}
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {formatDateLabel(activeDate)} · {activeWorkouts.length}
+            </h2>
+            {(() => {
+              const total = activeWorkouts.reduce((s, w) => s + (w.calories_burned ?? 0), 0);
+              if (total <= 0) return null;
+              return (
+                <span className="flex items-center gap-1 text-xs font-semibold text-primary">
+                  <Flame className="w-3.5 h-3.5" />
+                  {total} kcal
+                </span>
+              );
+            })()}
+          </div>
           <div className="space-y-2">
             <AnimatePresence initial={false}>
               {activeWorkouts.map((w) => {
@@ -315,9 +397,23 @@ function WorkoutsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate text-sm">{w.name}</p>
-                      {w.notes && (
-                        <p className="text-xs text-muted-foreground truncate">{w.notes}</p>
-                      )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {w.duration_min ? (
+                          <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            {w.duration_min}m
+                          </span>
+                        ) : null}
+                        {w.calories_burned ? (
+                          <span className="flex items-center gap-0.5 text-[11px] font-medium text-primary">
+                            <Flame className="w-3 h-3" />
+                            {w.calories_burned} kcal
+                          </span>
+                        ) : null}
+                        {w.notes && (
+                          <span className="text-[11px] text-muted-foreground truncate">{w.notes}</span>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleDelete(w.id)}
@@ -417,6 +513,47 @@ function WorkoutsPage() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Duration
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      placeholder="0"
+                      className="h-12 rounded-xl pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">min</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <Flame className="w-3 h-3" /> Calories
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={calories}
+                      onChange={(e) => { setCalories(e.target.value); setCaloriesTouched(true); }}
+                      placeholder="0"
+                      className="h-12 rounded-xl pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kcal</span>
+                  </div>
+                </div>
+              </div>
+              {duration && !caloriesTouched && (
+                <p className="text-[11px] text-muted-foreground mb-3 -mt-1">
+                  Estimated from duration{userWeight ? "" : " (using 70 kg — set your weight for accuracy)"}.
+                </p>
+              )}
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                 Notes (optional)
               </label>
@@ -475,6 +612,47 @@ function WorkoutsPage() {
                     className="h-12 rounded-xl"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Duration
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        value={customDuration}
+                        onChange={(e) => setCustomDuration(e.target.value)}
+                        placeholder="0"
+                        className="h-12 rounded-xl pr-12"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">min</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <Flame className="w-3 h-3" /> Calories
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        value={customCalories}
+                        onChange={(e) => { setCustomCalories(e.target.value); setCustomCaloriesTouched(true); }}
+                        placeholder="0"
+                        className="h-12 rounded-xl pr-12"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kcal</span>
+                    </div>
+                  </div>
+                </div>
+                {customDuration && !customCaloriesTouched && (
+                  <p className="text-[11px] text-muted-foreground -mt-1">
+                    Rough estimate — tap calories to edit.
+                  </p>
+                )}
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                     Notes (optional)
