@@ -121,7 +121,7 @@ function WorkoutsPage() {
       id: `tmp-${Date.now()}`,
       name: ex.name,
       notes: extraNotes.trim() || null,
-      date: today,
+      date: activeDate,
       exercise_key: ex.key,
       created_at: new Date().toISOString(),
     };
@@ -137,7 +137,7 @@ function WorkoutsPage() {
         user_id: user.id,
         name: ex.name,
         notes: optimistic.notes,
-        date: today,
+        date: activeDate,
         exercise_key: ex.key,
       })
       .select()
@@ -158,7 +158,7 @@ function WorkoutsPage() {
       id: `tmp-${Date.now()}`,
       name: customName.trim(),
       notes: customNotes.trim() || null,
-      date: today,
+      date: activeDate,
       exercise_key: null,
       created_at: new Date().toISOString(),
     };
@@ -174,7 +174,7 @@ function WorkoutsPage() {
         user_id: user.id,
         name: optimistic.name,
         notes: optimistic.notes,
-        date: today,
+        date: activeDate,
       })
       .select()
       .single();
@@ -239,14 +239,14 @@ function WorkoutsPage() {
       </div>
 
       {/* Today logged */}
-      {todayWorkouts.length > 0 && (
+      {activeWorkouts.length > 0 && (
         <div className="px-6 mb-6">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Today · {todayWorkouts.length}
+            Today · {activeWorkouts.length}
           </h2>
           <div className="space-y-2">
             <AnimatePresence initial={false}>
-              {todayWorkouts.map((w) => {
+              {activeWorkouts.map((w) => {
                 const ex = getExercise(w.exercise_key);
                 return (
                   <motion.div
@@ -303,7 +303,7 @@ function WorkoutsPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filtered.map((ex) => {
-              const logged = todayLogged.has(ex.key);
+              const logged = activeLogged.has(ex.key);
               return (
                 <motion.button
                   key={ex.key}
