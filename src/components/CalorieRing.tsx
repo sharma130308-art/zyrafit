@@ -138,14 +138,23 @@ export function CalorieRing({ consumed, goal, burned = 0 }: CalorieRingProps) {
         )}
       </AnimatePresence>
 
-      <div className="flex gap-8 text-sm">
+      <div className="flex gap-6 text-sm">
         <div className="flex flex-col items-center">
           <span className="text-lg font-bold text-foreground">{Math.round(consumed)}</span>
           <span className="text-xs text-muted-foreground">eaten</span>
         </div>
+        {burned > 0 && (
+          <>
+            <div className="h-10 w-px bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-bold text-primary">{burned}</span>
+              <span className="text-xs text-muted-foreground">burned</span>
+            </div>
+          </>
+        )}
         <div className="h-10 w-px bg-border" />
         <div className="flex flex-col items-center">
-          <span className="text-lg font-bold text-foreground">{goal}</span>
+          <span className="text-lg font-bold text-foreground">{effectiveGoal}</span>
           <span className="text-xs text-muted-foreground">goal</span>
         </div>
       </div>
