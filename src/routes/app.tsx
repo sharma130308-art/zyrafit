@@ -501,7 +501,7 @@ function Dashboard() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <CalorieRing consumed={totals.calories} goal={goal} />
+          <CalorieRing consumed={totals.calories} goal={goal} burned={caloriesBurned} />
         </motion.div>
 
         {/* Macros — premium summary cards */}
