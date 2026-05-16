@@ -61,6 +61,17 @@ function WorkoutsPage() {
   const [saving, setSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
   const [dateOpen, setDateOpen] = useState(false);
+  const [userWeight, setUserWeight] = useState<number | null>(null);
+
+  // Per-exercise log sheet fields
+  const [duration, setDuration] = useState<string>("");
+  const [calories, setCalories] = useState<string>("");
+  const [caloriesTouched, setCaloriesTouched] = useState(false);
+
+  // Custom-workout sheet fields
+  const [customDuration, setCustomDuration] = useState<string>("");
+  const [customCalories, setCustomCalories] = useState<string>("");
+  const [customCaloriesTouched, setCustomCaloriesTouched] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/" });
