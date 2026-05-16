@@ -156,18 +156,24 @@ function Dashboard() {
       }
     }
 
-    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak, fetchedMacros] = await Promise.all([
+    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak, fetchedMacros, burnedRes] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
       getWeeklyHistory(),
       getLoggingStreak(),
       loadMacroGoals(),
+      supabase.from("workouts").select("calories_burned").eq("date", today),
     ]);
     setEntries(fetchedEntries);
     setGoal(fetchedGoal);
     setWeeklyData(fetchedWeekly);
     setStreak(fetchedStreak);
     setMacroGoals(fetchedMacros);
+    const burnedTotal = (burnedRes.data ?? []).reduce(
+      (sum, row) => sum + (row.calories_burned ?? 0),
+      0,
+    );
+    setCaloriesBurned(burnedTotal);
     setLoading(false);
     setRefreshing(false);
   }, [today]);
