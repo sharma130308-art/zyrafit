@@ -203,6 +203,55 @@ function WorkoutsPage() {
         </motion.div>
       </div>
 
+      {/* Date picker bar */}
+      <div className="px-6 mb-4">
+        <div className="flex items-center gap-2 bg-muted/40 rounded-2xl p-1.5">
+          <button
+            onClick={() => shiftDay(-1)}
+            className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted active:scale-95 transition"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+            <PopoverTrigger asChild>
+              <button
+                onClick={() => hapticLight()}
+                className="flex-1 h-10 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm hover:bg-muted/60 transition"
+              >
+                <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                {formatDateLabel(activeDate)}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={new Date(activeDate + "T00:00:00")}
+                onSelect={(d) => {
+                  if (!d) return;
+                  const iso = d.toISOString().slice(0, 10);
+                  if (iso > today) return;
+                  hapticLight();
+                  setSelectedDate(iso);
+                  setDateOpen(false);
+                }}
+                disabled={(d) => d > new Date()}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          <button
+            onClick={() => shiftDay(1)}
+            disabled={isToday}
+            className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted active:scale-95 transition disabled:opacity-30 disabled:active:scale-100"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
       {/* Search */}
       <div className="px-6 mb-4">
         <div className="relative">
