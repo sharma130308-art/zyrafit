@@ -28,6 +28,8 @@ interface Workout {
   notes: string | null;
   date: string;
   exercise_key: string | null;
+  duration_min: number | null;
+  calories_burned: number | null;
   created_at: string;
 }
 
