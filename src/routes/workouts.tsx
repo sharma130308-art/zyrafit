@@ -612,6 +612,47 @@ function WorkoutsPage() {
                     className="h-12 rounded-xl"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Duration
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        value={customDuration}
+                        onChange={(e) => setCustomDuration(e.target.value)}
+                        placeholder="0"
+                        className="h-12 rounded-xl pr-12"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">min</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <Flame className="w-3 h-3" /> Calories
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        value={customCalories}
+                        onChange={(e) => { setCustomCalories(e.target.value); setCustomCaloriesTouched(true); }}
+                        placeholder="0"
+                        className="h-12 rounded-xl pr-12"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kcal</span>
+                    </div>
+                  </div>
+                </div>
+                {customDuration && !customCaloriesTouched && (
+                  <p className="text-[11px] text-muted-foreground -mt-1">
+                    Rough estimate — tap calories to edit.
+                  </p>
+                )}
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                     Notes (optional)
