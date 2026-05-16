@@ -92,6 +92,43 @@ function WorkoutsPage() {
     if (user) refresh();
   }, [user, refresh]);
 
+  // Load user weight once — used to estimate calories burned.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_profiles")
+      .select("weight_kg")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.weight_kg) setUserWeight(Number(data.weight_kg));
+      });
+  }, [user]);
+
+  // Auto-estimate calories from duration in the per-exercise sheet.
+  useEffect(() => {
+    if (!pickedExercise) return;
+    if (caloriesTouched) return;
+    const mins = parseInt(duration, 10);
+    if (!mins || mins <= 0) {
+      setCalories("");
+      return;
+    }
+    setCalories(String(estimateCalories(pickedExercise.met, mins, userWeight)));
+  }, [duration, pickedExercise, userWeight, caloriesTouched]);
+
+  // Auto-estimate calories from duration in the custom sheet (uses default MET).
+  useEffect(() => {
+    if (!customOpen) return;
+    if (customCaloriesTouched) return;
+    const mins = parseInt(customDuration, 10);
+    if (!mins || mins <= 0) {
+      setCustomCalories("");
+      return;
+    }
+    setCustomCalories(String(estimateCalories(DEFAULT_MET, mins, userWeight)));
+  }, [customDuration, customOpen, userWeight, customCaloriesTouched]);
+
   const today = todayISO();
   const activeDate = selectedDate;
   const isToday = activeDate === today;
