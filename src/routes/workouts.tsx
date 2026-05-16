@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Check, X, Trash2, Plus } from "lucide-react";
+import { Search, Check, X, Trash2, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
@@ -53,6 +55,8 @@ function WorkoutsPage() {
   const [customName, setCustomName] = useState("");
   const [customNotes, setCustomNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(todayISO());
+  const [dateOpen, setDateOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/" });
@@ -74,9 +78,11 @@ function WorkoutsPage() {
   }, [user, refresh]);
 
   const today = todayISO();
-  const todayLogged = useMemo(
-    () => new Set(workouts.filter((w) => w.date === today && w.exercise_key).map((w) => w.exercise_key!)),
-    [workouts, today],
+  const activeDate = selectedDate;
+  const isToday = activeDate === today;
+  const activeLogged = useMemo(
+    () => new Set(workouts.filter((w) => w.date === activeDate && w.exercise_key).map((w) => w.exercise_key!)),
+    [workouts, activeDate],
   );
 
   const filtered = useMemo(() => {
@@ -88,7 +94,25 @@ function WorkoutsPage() {
     });
   }, [filter, search]);
 
-  const todayWorkouts = workouts.filter((w) => w.date === today);
+  const activeWorkouts = workouts.filter((w) => w.date === activeDate);
+
+  function shiftDay(delta: number) {
+    const d = new Date(activeDate + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    const iso = d.toISOString().slice(0, 10);
+    if (iso > today) return;
+    hapticLight();
+    setSelectedDate(iso);
+  }
+
+  function formatDateLabel(iso: string) {
+    if (iso === today) return "Today";
+    const d = new Date(iso + "T00:00:00");
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (iso === yesterday.toISOString().slice(0, 10)) return "Yesterday";
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
 
   async function logExercise(ex: Exercise, extraNotes: string) {
     if (!user) return;
@@ -97,7 +121,7 @@ function WorkoutsPage() {
       id: `tmp-${Date.now()}`,
       name: ex.name,
       notes: extraNotes.trim() || null,
-      date: today,
+      date: activeDate,
       exercise_key: ex.key,
       created_at: new Date().toISOString(),
     };
@@ -113,7 +137,7 @@ function WorkoutsPage() {
         user_id: user.id,
         name: ex.name,
         notes: optimistic.notes,
-        date: today,
+        date: activeDate,
         exercise_key: ex.key,
       })
       .select()
@@ -134,7 +158,7 @@ function WorkoutsPage() {
       id: `tmp-${Date.now()}`,
       name: customName.trim(),
       notes: customNotes.trim() || null,
-      date: today,
+      date: activeDate,
       exercise_key: null,
       created_at: new Date().toISOString(),
     };
@@ -150,7 +174,7 @@ function WorkoutsPage() {
         user_id: user.id,
         name: optimistic.name,
         notes: optimistic.notes,
-        date: today,
+        date: activeDate,
       })
       .select()
       .single();
@@ -177,6 +201,55 @@ function WorkoutsPage() {
           <p className="text-sm text-muted-foreground">Training</p>
           <h1 className="text-3xl font-bold tracking-tight mt-1">Workouts</h1>
         </motion.div>
+      </div>
+
+      {/* Date picker bar */}
+      <div className="px-6 mb-4">
+        <div className="flex items-center gap-2 bg-muted/40 rounded-2xl p-1.5">
+          <button
+            onClick={() => shiftDay(-1)}
+            className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted active:scale-95 transition"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+            <PopoverTrigger asChild>
+              <button
+                onClick={() => hapticLight()}
+                className="flex-1 h-10 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm hover:bg-muted/60 transition"
+              >
+                <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                {formatDateLabel(activeDate)}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={new Date(activeDate + "T00:00:00")}
+                onSelect={(d) => {
+                  if (!d) return;
+                  const iso = d.toISOString().slice(0, 10);
+                  if (iso > today) return;
+                  hapticLight();
+                  setSelectedDate(iso);
+                  setDateOpen(false);
+                }}
+                disabled={(d) => d > new Date()}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          <button
+            onClick={() => shiftDay(1)}
+            disabled={isToday}
+            className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-muted active:scale-95 transition disabled:opacity-30 disabled:active:scale-100"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -215,14 +288,14 @@ function WorkoutsPage() {
       </div>
 
       {/* Today logged */}
-      {todayWorkouts.length > 0 && (
+      {activeWorkouts.length > 0 && (
         <div className="px-6 mb-6">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Today · {todayWorkouts.length}
+            {formatDateLabel(activeDate)} · {activeWorkouts.length}
           </h2>
           <div className="space-y-2">
             <AnimatePresence initial={false}>
-              {todayWorkouts.map((w) => {
+              {activeWorkouts.map((w) => {
                 const ex = getExercise(w.exercise_key);
                 return (
                   <motion.div
@@ -279,7 +352,7 @@ function WorkoutsPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filtered.map((ex) => {
-              const logged = todayLogged.has(ex.key);
+              const logged = activeLogged.has(ex.key);
               return (
                 <motion.button
                   key={ex.key}
