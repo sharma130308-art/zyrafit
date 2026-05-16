@@ -513,6 +513,47 @@ function WorkoutsPage() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Duration
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      placeholder="0"
+                      className="h-12 rounded-xl pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">min</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <Flame className="w-3 h-3" /> Calories
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={calories}
+                      onChange={(e) => { setCalories(e.target.value); setCaloriesTouched(true); }}
+                      placeholder="0"
+                      className="h-12 rounded-xl pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kcal</span>
+                  </div>
+                </div>
+              </div>
+              {duration && !caloriesTouched && (
+                <p className="text-[11px] text-muted-foreground mb-3 -mt-1">
+                  Estimated from duration{userWeight ? "" : " (using 70 kg — set your weight for accuracy)"}.
+                </p>
+              )}
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                 Notes (optional)
               </label>
