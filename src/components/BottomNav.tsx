@@ -30,6 +30,17 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           </Link>
         </motion.div>
 
+        <motion.button
+          whileTap={{ scale: 0.85, rotate: -8 }}
+          transition={{ type: "spring", stiffness: 500, damping: 25 }}
+          onClick={() => { hapticMedium(); onAddClick(); }}
+          className="relative -mt-7"
+        >
+          <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30">
+            <PlusCircle className="w-7 h-7" />
+          </div>
+        </motion.button>
+
         <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
           <Link
             to="/workouts"
@@ -42,17 +53,6 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
             <span className="text-[10px] font-semibold">Workouts</span>
           </Link>
         </motion.div>
-
-        <motion.button
-          whileTap={{ scale: 0.85, rotate: -8 }}
-          transition={{ type: "spring", stiffness: 500, damping: 25 }}
-          onClick={() => { hapticMedium(); onAddClick(); }}
-          className="relative -mt-7"
-        >
-          <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30">
-            <PlusCircle className="w-7 h-7" />
-          </div>
-        </motion.button>
 
         <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
           <Link
