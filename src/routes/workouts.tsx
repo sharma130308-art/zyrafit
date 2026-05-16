@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Check, X, Trash2, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Check, X, Trash2, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Flame, Clock } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,6 +16,8 @@ import {
   EXERCISES,
   BODY_PARTS,
   getExercise,
+  estimateCalories,
+  DEFAULT_MET,
   type BodyPart,
   type Exercise,
 } from "@/lib/exercises";
