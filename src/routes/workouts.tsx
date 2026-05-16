@@ -78,9 +78,12 @@ function WorkoutsPage() {
   }, [user, refresh]);
 
   const today = todayISO();
-  const todayLogged = useMemo(
-    () => new Set(workouts.filter((w) => w.date === today && w.exercise_key).map((w) => w.exercise_key!)),
-    [workouts, today],
+  const today = todayISO();
+  const activeDate = selectedDate;
+  const isToday = activeDate === today;
+  const activeLogged = useMemo(
+    () => new Set(workouts.filter((w) => w.date === activeDate && w.exercise_key).map((w) => w.exercise_key!)),
+    [workouts, activeDate],
   );
 
   const filtered = useMemo(() => {
@@ -92,7 +95,25 @@ function WorkoutsPage() {
     });
   }, [filter, search]);
 
-  const todayWorkouts = workouts.filter((w) => w.date === today);
+  const activeWorkouts = workouts.filter((w) => w.date === activeDate);
+
+  function shiftDay(delta: number) {
+    const d = new Date(activeDate + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    const iso = d.toISOString().slice(0, 10);
+    if (iso > today) return;
+    hapticLight();
+    setSelectedDate(iso);
+  }
+
+  function formatDateLabel(iso: string) {
+    if (iso === today) return "Today";
+    const d = new Date(iso + "T00:00:00");
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (iso === yesterday.toISOString().slice(0, 10)) return "Yesterday";
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
 
   async function logExercise(ex: Exercise, extraNotes: string) {
     if (!user) return;
