@@ -55,6 +55,8 @@ function WorkoutsPage() {
   const [customName, setCustomName] = useState("");
   const [customNotes, setCustomNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(todayISO());
+  const [dateOpen, setDateOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/" });
