@@ -21,12 +21,15 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           <Link
             to="/app"
             onClick={() => hapticLight()}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+            className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
               isHome ? "text-nav-active" : "text-nav-foreground"
             }`}
           >
             <Home className="w-6 h-6" strokeWidth={isHome ? 2.5 : 1.5} />
             <span className="text-[10px] font-semibold">Home</span>
+            {isHome && (
+              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-nav-active" />
+            )}
           </Link>
         </motion.div>
 
@@ -45,12 +48,15 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           <Link
             to="/workouts"
             onClick={() => hapticLight()}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+            className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
               isWorkouts ? "text-nav-active" : "text-nav-foreground"
             }`}
           >
             <Dumbbell className="w-6 h-6" strokeWidth={isWorkouts ? 2.5 : 1.5} />
             <span className="text-[10px] font-semibold">Workouts</span>
+            {isWorkouts && (
+              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-nav-active" />
+            )}
           </Link>
         </motion.div>
 
@@ -58,12 +64,15 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           <Link
             to="/profile"
             onClick={() => hapticLight()}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+            className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
               isProfile ? "text-nav-active" : "text-nav-foreground"
             }`}
           >
             <User className="w-6 h-6" strokeWidth={isProfile ? 2.5 : 1.5} />
             <span className="text-[10px] font-semibold">Profile</span>
+            {isProfile && (
+              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-nav-active" />
+            )}
           </Link>
         </motion.div>
 
