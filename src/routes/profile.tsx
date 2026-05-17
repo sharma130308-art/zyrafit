@@ -255,6 +255,7 @@ function ProfilePage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
+      navigate({ to: "/welcome", replace: true });
       setProfileLoading(false);
       return;
     }
