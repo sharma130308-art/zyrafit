@@ -89,7 +89,7 @@
   --calories: oklch(0.62 0.22 220);
   --nav: oklch(1 0 0);
   --nav-foreground: oklch(0.55 0.02 260);
-  --nav-active: oklch(0.18 0.02 265);
+  --nav-active: var(--primary);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);
