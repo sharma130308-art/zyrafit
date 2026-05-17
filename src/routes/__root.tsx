@@ -133,7 +133,6 @@ function RootComponent() {
   // Marketing / public content routes render full-width — they are NOT wrapped
   // in the 430px mobile app shell. The actual app lives under /app.
   const isMarketingRoute =
-    location.pathname === "/" ||
     location.pathname === "/terms" ||
     location.pathname === "/privacy-policy";
 
