@@ -21,7 +21,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
           <Link
             to="/app"
             onClick={() => hapticLight()}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+            className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
               isHome ? "text-nav-active" : "text-nav-foreground"
             }`}
           >
