@@ -74,7 +74,21 @@ function WorkoutsPage() {
   const [customCaloriesTouched, setCustomCaloriesTouched] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate({ to: "/" });
+    if (authLoading) return;
+    if (!user) {
+      navigate({ to: "/welcome", replace: true });
+      return;
+    }
+    supabase
+      .from("user_profiles")
+      .select("onboarding_completed")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data?.onboarding_completed) {
+          navigate({ to: "/onboarding", replace: true });
+        }
+      });
   }, [user, authLoading, navigate]);
 
   const refresh = useCallback(async () => {

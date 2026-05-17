@@ -252,9 +252,25 @@ function ProfilePage() {
     }
   }, []);
 
+  // Onboarding guard — incomplete users get sent to /onboarding
+  useEffect(() => {
+    if (authLoading || !user) return;
+    supabase
+      .from("user_profiles")
+      .select("onboarding_completed")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data?.onboarding_completed) {
+          navigate({ to: "/onboarding", replace: true });
+        }
+      });
+  }, [user, authLoading, navigate]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
+      navigate({ to: "/welcome", replace: true });
       setProfileLoading(false);
       return;
     }

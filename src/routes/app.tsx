@@ -83,14 +83,13 @@ function Dashboard() {
     }
   }, [fastScanMode]);
 
-  // Redirect unauthenticated users to login, new users to onboarding
+  // Redirect unauthenticated users to /welcome, incomplete users to /onboarding
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      navigate({ to: "/" });
+      navigate({ to: "/welcome", replace: true });
       return;
     }
-    // Check onboarding status
     supabase
       .from("user_profiles")
       .select("onboarding_completed")
@@ -98,7 +97,7 @@ function Dashboard() {
       .maybeSingle()
       .then(({ data }) => {
         if (!data?.onboarding_completed) {
-          navigate({ to: "/onboarding" });
+          navigate({ to: "/onboarding", replace: true });
         }
       });
   }, [user, authLoading, navigate]);
