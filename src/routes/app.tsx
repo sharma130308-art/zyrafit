@@ -456,7 +456,7 @@ function Dashboard() {
   const byMeal = getEntriesByMeal(entries);
   const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
-  if (loading) {
+  if (loading || !guardReady) {
     return <DashboardSkeleton />;
   }
 
