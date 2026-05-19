@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, subDays, subMonths } from "date-fns";
 import { BottomNav } from "@/components/BottomNav";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { RemindersToggle } from "@/components/RemindersToggle";
 import { MealReminderTimes } from "@/components/MealReminderTimes";
 
@@ -68,6 +69,7 @@ function ProfilePage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [goal, setGoal] = useState(2000);
+  const [guardReady, setGuardReady] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -264,6 +266,7 @@ function ProfilePage() {
         if (!data?.onboarding_completed) {
           navigate({ to: "/onboarding", replace: true });
         }
+        setGuardReady(true);
       });
   }, [user, authLoading, navigate]);
 
@@ -437,6 +440,10 @@ function ProfilePage() {
 
   const goalLabel = GOALS.find((g) => g.value === profile?.goal)?.label ?? "—";
   const genderLabel = GENDERS.find((g) => g.value === profile?.gender)?.label ?? "—";
+
+  if (!guardReady) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-28">

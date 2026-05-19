@@ -67,6 +67,7 @@ function Dashboard() {
   const [goal, setGoal] = useState(2000);
   const [macroGoals, setMacroGoals] = useState<MacroGoals>(() => getMacroGoalsLocal());
   const [loading, setLoading] = useState(true);
+  const [guardReady, setGuardReady] = useState(false);
   // Background refresh: cached data is on screen but a network fetch is in flight.
   const [refreshing, setRefreshing] = useState(false);
   const [deletedEntry, setDeletedEntry] = useState<FoodEntry | null>(null);
@@ -99,6 +100,7 @@ function Dashboard() {
         if (!data?.onboarding_completed) {
           navigate({ to: "/onboarding", replace: true });
         }
+        setGuardReady(true);
       });
   }, [user, authLoading, navigate]);
 
@@ -454,7 +456,7 @@ function Dashboard() {
   const byMeal = getEntriesByMeal(entries);
   const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
-  if (loading) {
+  if (loading || !guardReady) {
     return <DashboardSkeleton />;
   }
 

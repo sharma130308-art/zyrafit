@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ function WorkoutsPage() {
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
   const [dateOpen, setDateOpen] = useState(false);
   const [userWeight, setUserWeight] = useState<number | null>(null);
+  const [guardReady, setGuardReady] = useState(false);
 
   // Per-exercise log sheet fields
   const [duration, setDuration] = useState<string>("");
@@ -88,6 +90,7 @@ function WorkoutsPage() {
         if (!data?.onboarding_completed) {
           navigate({ to: "/onboarding", replace: true });
         }
+        setGuardReady(true);
       });
   }, [user, authLoading, navigate]);
 
@@ -275,6 +278,10 @@ function WorkoutsPage() {
     hapticLight();
     setWorkouts((p) => p.filter((w) => w.id !== id));
     await supabase.from("workouts").delete().eq("id", id);
+  }
+
+  if (!guardReady) {
+    return <DashboardSkeleton />;
   }
 
   return (
