@@ -63,6 +63,7 @@ function WorkoutsPage() {
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
   const [dateOpen, setDateOpen] = useState(false);
   const [userWeight, setUserWeight] = useState<number | null>(null);
+  const [guardReady, setGuardReady] = useState(false);
 
   // Per-exercise log sheet fields
   const [duration, setDuration] = useState<string>("");
