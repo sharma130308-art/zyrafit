@@ -280,6 +280,10 @@ function WorkoutsPage() {
     await supabase.from("workouts").delete().eq("id", id);
   }
 
+  if (!guardReady) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
