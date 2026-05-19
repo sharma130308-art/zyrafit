@@ -90,6 +90,7 @@ function WorkoutsPage() {
         if (!data?.onboarding_completed) {
           navigate({ to: "/onboarding", replace: true });
         }
+        setGuardReady(true);
       });
   }, [user, authLoading, navigate]);
 
