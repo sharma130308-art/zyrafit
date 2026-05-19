@@ -69,6 +69,7 @@ function ProfilePage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [goal, setGoal] = useState(2000);
+  const [guardReady, setGuardReady] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
