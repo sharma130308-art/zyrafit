@@ -441,6 +441,10 @@ function ProfilePage() {
   const goalLabel = GOALS.find((g) => g.value === profile?.goal)?.label ?? "—";
   const genderLabel = GENDERS.find((g) => g.value === profile?.gender)?.label ?? "—";
 
+  if (!guardReady) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="min-h-screen bg-background pb-28">
       <div className="px-6 pt-14 pb-6">
