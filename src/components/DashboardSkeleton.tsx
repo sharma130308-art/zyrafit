@@ -18,7 +18,7 @@ function Shimmer({ className }: { className?: string }) {
 
 export function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div data-testid="dashboard-skeleton" className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="px-6 pt-14 pb-2">
         <Shimmer className="h-4 w-16 mb-2 rounded-lg" />
