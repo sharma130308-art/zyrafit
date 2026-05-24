@@ -158,9 +158,11 @@ describe.each([
     expect(screen.getByTestId("dashboard-skeleton")).toBeTruthy();
   });
 
-  it(`redirects to /onboarding and keeps skeleton when onboarding incomplete [${label}]`, async () => {
+  it(`redirects to /onboarding once the query resolves with onboarding_completed=false [${label}]`, async () => {
     const Comp = await loadRouteComponent(modPath);
     render(<Comp />);
+    // Skeleton is the only thing rendered while the query is pending.
+    expect(screen.getByTestId("dashboard-skeleton")).toBeTruthy();
     await act(async () => {
       resolveGuardQuery({ data: { onboarding_completed: false } });
       await guardQueryPromise;
@@ -168,7 +170,6 @@ describe.each([
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith({ to: "/onboarding", replace: true });
     });
-    expect(screen.getByTestId("dashboard-skeleton")).toBeTruthy();
   });
 
   it(`removes skeleton after the query resolves with onboarding_completed=true [${label}]`, async () => {
