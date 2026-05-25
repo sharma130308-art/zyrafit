@@ -125,10 +125,13 @@ export function ScanDebugPanel() {
   }, []);
 
 
+  if (!isDev) return null;
+
   if (!visible) {
     // Show a discreet floating bug button only if there are any entries OR user toggled it.
     if (entries.length === 0) return null;
   }
+
 
   return (
     <div className="fixed bottom-24 right-3 z-[60] max-w-[360px] w-[90vw]">
