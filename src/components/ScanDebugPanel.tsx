@@ -98,6 +98,9 @@ export function ScanDebugPanel() {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
+  // Hard kill-switch in production: never render the debug panel UI for end users.
+  const isDev = !!import.meta.env?.DEV;
+
   const hint = useMemo(() => diagnoseEntries(entries), [entries]);
 
   useEffect(() => {
