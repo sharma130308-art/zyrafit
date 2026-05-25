@@ -166,7 +166,13 @@ serve(async (req) => {
       });
     }
 
-    admin.from("ai_usage").insert({ user_id: userId, feature: FEATURE, used_on: today }).then();
+    {
+      const { error: usageErr } = await admin
+        .from("ai_usage")
+        .insert({ user_id: userId, feature: FEATURE, used_on: today });
+      if (usageErr) console.error("ai_usage insert failed:", usageErr);
+    }
+
 
     return new Response(JSON.stringify({ ok: true, ...result }), {
       status: 200,
