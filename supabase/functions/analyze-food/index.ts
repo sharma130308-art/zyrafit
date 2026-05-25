@@ -190,7 +190,13 @@ serve(async (req) => {
       result.items = result.items.map((it: any) => ({ ...it, confidence: it.confidence ?? "low" }));
     }
 
-    admin.from("ai_usage").insert({ user_id: userId, feature: fastMode ? "photo_scan_fast" : FEATURE, used_on: today }).then();
+    {
+      const { error: usageErr } = await admin
+        .from("ai_usage")
+        .insert({ user_id: userId, feature: fastMode ? "photo_scan_fast" : FEATURE, used_on: today });
+      if (usageErr) console.error("ai_usage insert failed:", usageErr);
+    }
+
 
     return new Response(JSON.stringify({ ok: true, ...result }), {
       status: 200,
