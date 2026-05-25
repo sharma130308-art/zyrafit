@@ -98,6 +98,9 @@ export function ScanDebugPanel() {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
+  // Hard kill-switch in production: never render the debug panel UI for end users.
+  const isDev = !!import.meta.env?.DEV;
+
   const hint = useMemo(() => diagnoseEntries(entries), [entries]);
 
   useEffect(() => {
@@ -107,8 +110,10 @@ export function ScanDebugPanel() {
     return subscribeScanDebug(setEntries);
   }, []);
 
-  // Hidden global toggle: tap a key combo or set the flag from console.
+  // Hidden global toggle: only exposed in development builds to avoid leaking
+  // internal AI service URLs / function names via window.* in production.
   useEffect(() => {
+    if (!import.meta.env?.DEV) return;
     (window as unknown as { showScanDebug?: () => void }).showScanDebug = () => {
       localStorage.setItem(STORAGE_KEY, "1");
       setVisible(true);
@@ -119,10 +124,14 @@ export function ScanDebugPanel() {
     };
   }, []);
 
+
+  if (!isDev) return null;
+
   if (!visible) {
     // Show a discreet floating bug button only if there are any entries OR user toggled it.
     if (entries.length === 0) return null;
   }
+
 
   return (
     <div className="fixed bottom-24 right-3 z-[60] max-w-[360px] w-[90vw]">
