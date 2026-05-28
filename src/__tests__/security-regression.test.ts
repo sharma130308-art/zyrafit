@@ -101,6 +101,3 @@ describe("security regressions", () => {
     expect(offenders, offenders.join("\n")).toEqual([]);
   });
 });
-
-  });
-});
