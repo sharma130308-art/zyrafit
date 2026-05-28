@@ -65,21 +65,19 @@ describe("security regressions", () => {
     const liveWritePolicies = new Set<string>();
 
     for (const file of files) {
-      const sql = readFileSync(file, "utf8")
-        .replace(/--.*$/gm, "")
-        .replace(/\/\*[\s\S]*?\*\//g, "");
+      // Split into statements so multi-line regexes can't cross boundaries.
+      for (const stmt of sql.split(";")) {
+        const createMatch = stmt.match(
+          /create\s+policy\s+"([^"]+)"[\s\S]*?on\s+(?:public\.)?ai_usage\b[\s\S]*?for\s+(insert|update|delete)\b/i,
+        );
+        if (createMatch) liveWritePolicies.add(createMatch[1]);
 
-      const createRe =
-        /create\s+policy\s+"([^"]+)"[\s\S]*?on\s+(?:public\.)?ai_usage[\s\S]*?for\s+(insert|update|delete)/gi;
-      for (const m of sql.matchAll(createRe)) {
-        liveWritePolicies.add(m[1]);
+        const dropMatch = stmt.match(
+          /drop\s+policy\s+(?:if\s+exists\s+)?"([^"]+)"\s+on\s+(?:public\.)?ai_usage\b/i,
+        );
+        if (dropMatch) liveWritePolicies.delete(dropMatch[1]);
       }
 
-      const dropRe =
-        /drop\s+policy\s+(?:if\s+exists\s+)?"([^"]+)"\s+on\s+(?:public\.)?ai_usage/gi;
-      for (const m of sql.matchAll(dropRe)) {
-        liveWritePolicies.delete(m[1]);
-      }
 
       // Broad GRANTs to anon/authenticated/public are always a regression.
       const grantRe =
