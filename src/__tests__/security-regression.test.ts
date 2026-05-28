@@ -65,6 +65,10 @@ describe("security regressions", () => {
     const liveWritePolicies = new Set<string>();
 
     for (const file of files) {
+      const sql = readFileSync(file, "utf8")
+        .replace(/--.*$/gm, "")
+        .replace(/\/\*[\s\S]*?\*\//g, "");
+
       // Split into statements so multi-line regexes can't cross boundaries.
       for (const stmt of sql.split(";")) {
         const createMatch = stmt.match(
