@@ -56,43 +56,51 @@ describe("security regressions", () => {
   });
 
   it("does not grant client INSERT/UPDATE/DELETE on public.ai_usage", () => {
+  it("does not grant client INSERT/UPDATE/DELETE on public.ai_usage", () => {
     const migrationsDir = join(ROOT, "supabase", "migrations");
-    const files = walk(migrationsDir, [".sql"]);
+    const files = walk(migrationsDir, [".sql"]).sort(); // chronological by timestamp prefix
     const offenders: string[] = [];
 
+    // Track the net set of surviving write policies on ai_usage across all
+    // migrations. A CREATE POLICY adds; a DROP POLICY removes.
+    const liveWritePolicies = new Set<string>();
+
     for (const file of files) {
-      const sql = readFileSync(file, "utf8");
-      // Strip comments to avoid false positives.
-      const stripped = sql
+      const sql = readFileSync(file, "utf8")
         .replace(/--.*$/gm, "")
         .replace(/\/\*[\s\S]*?\*\//g, "");
 
-      // Look for CREATE POLICY blocks targeting ai_usage with a write command.
-      const policyRegex =
-        /create\s+policy[\s\S]*?on\s+(?:public\.)?ai_usage[\s\S]*?for\s+(insert|update|delete)/gi;
-      const matches = [...stripped.matchAll(policyRegex)];
-
-      for (const m of matches) {
-        // Allow the policy only if it is dropped later in the same file.
-        // Cheap check: ensure there's no surviving CREATE POLICY for write ops
-        // that isn't followed by a DROP POLICY for the same name.
-        // For safety, just flag any CREATE POLICY for write on ai_usage —
-        // server-only writes go through the service role and need no policy.
-        offenders.push(
-          `${file}: CREATE POLICY for ${m[1].toUpperCase()} on ai_usage (server-only table — no client write policy allowed)`,
-        );
+      const createRe =
+        /create\s+policy\s+"([^"]+)"[\s\S]*?on\s+(?:public\.)?ai_usage[\s\S]*?for\s+(insert|update|delete)/gi;
+      for (const m of sql.matchAll(createRe)) {
+        liveWritePolicies.add(m[1]);
       }
 
-      // Also flag broad GRANT INSERT/UPDATE/DELETE on ai_usage to anon/authenticated.
-      const grantRegex =
+      const dropRe =
+        /drop\s+policy\s+(?:if\s+exists\s+)?"([^"]+)"\s+on\s+(?:public\.)?ai_usage/gi;
+      for (const m of sql.matchAll(dropRe)) {
+        liveWritePolicies.delete(m[1]);
+      }
+
+      // Broad GRANTs to anon/authenticated/public are always a regression.
+      const grantRe =
         /grant\s+[^;]*\b(insert|update|delete)\b[^;]*on\s+(?:table\s+)?(?:public\.)?ai_usage[^;]*to\s+[^;]*\b(anon|authenticated|public)\b/gi;
-      for (const g of stripped.matchAll(grantRegex)) {
+      for (const g of sql.matchAll(grantRe)) {
         offenders.push(
           `${file}: GRANT ${g[1].toUpperCase()} on ai_usage to ${g[2]} (server-only table)`,
         );
       }
     }
 
+    for (const name of liveWritePolicies) {
+      offenders.push(
+        `Surviving client write policy on public.ai_usage: "${name}" — ai_usage is server-only; drop the policy`,
+      );
+    }
+
     expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+});
+
   });
 });
