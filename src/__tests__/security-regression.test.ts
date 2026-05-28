@@ -56,7 +56,6 @@ describe("security regressions", () => {
   });
 
   it("does not grant client INSERT/UPDATE/DELETE on public.ai_usage", () => {
-  it("does not grant client INSERT/UPDATE/DELETE on public.ai_usage", () => {
     const migrationsDir = join(ROOT, "supabase", "migrations");
     const files = walk(migrationsDir, [".sql"]).sort(); // chronological by timestamp prefix
     const offenders: string[] = [];
