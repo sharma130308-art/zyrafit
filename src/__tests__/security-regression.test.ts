@@ -9,12 +9,43 @@
  *
  * Run as part of `vitest` in CI. If this test fails, do NOT relax it — fix
  * the regression in the offending file/migration.
+ *
+ * On failure, a structured artifact is written to
+ * `artifacts/security-regression-offenders.json` (path overridable with
+ * `SECURITY_ARTIFACT_PATH`) containing per-offender file, line, and matched
+ * snippet so CI can upload it for inspection.
  */
-import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { afterAll, describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../..");
+const ARTIFACT_PATH = process.env.SECURITY_ARTIFACT_PATH
+  ? resolve(process.env.SECURITY_ARTIFACT_PATH)
+  : resolve(ROOT, "artifacts/security-regression-offenders.json");
+
+type Offender = {
+  check: "debug-window-hooks" | "ai_usage-client-writes";
+  file: string; // repo-relative
+  line: number | null;
+  snippet: string;
+  message: string;
+};
+
+const collected: Offender[] = [];
+
+function rel(p: string) {
+  return relative(ROOT, p).split("\\").join("/");
+}
+
+function lineOf(src: string, index: number): number {
+  return src.slice(0, index).split("\n").length;
+}
+
+function snippetAt(src: string, index: number, span = 200): string {
+  const start = Math.max(0, index - 40);
+  return src.slice(start, Math.min(src.length, index + span)).replace(/\s+/g, " ").trim();
+}
 
 function walk(dir: string, exts: string[], acc: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -26,6 +57,30 @@ function walk(dir: string, exts: string[], acc: string[] = []): string[] {
   }
   return acc;
 }
+
+afterAll(() => {
+  try {
+    if (collected.length === 0) {
+      // Remove any stale artifact from a previous failing run so green runs
+      // don't leave misleading files behind.
+      try { rmSync(ARTIFACT_PATH, { force: true }); } catch { /* ignore */ }
+      return;
+    }
+    mkdirSync(dirname(ARTIFACT_PATH), { recursive: true });
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      totalOffenders: collected.length,
+      offenders: collected,
+    };
+    writeFileSync(ARTIFACT_PATH, JSON.stringify(payload, null, 2), "utf8");
+    // Surface the artifact path in CI logs.
+    // eslint-disable-next-line no-console
+    console.error(`[security-regression] wrote ${collected.length} offender(s) to ${ARTIFACT_PATH}`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[security-regression] failed to write artifact:", err);
+  }
+});
 
 describe("security regressions", () => {
   it("does not expose window.showScanDebug / hideScanDebug outside DEV guards", () => {
@@ -40,14 +95,20 @@ describe("security regressions", () => {
       ];
       if (hits.length === 0) continue;
 
-      // Each assignment must appear inside an `import.meta.env.DEV` guard.
-      // We require the file to contain a DEV check AND each assignment to be
-      // textually preceded (within 400 chars) by an `import.meta.env.DEV` token.
       for (const m of hits) {
-        const start = Math.max(0, (m.index ?? 0) - 400);
-        const window400 = src.slice(start, m.index);
+        const idx = m.index ?? 0;
+        const start = Math.max(0, idx - 400);
+        const window400 = src.slice(start, idx);
         if (!/import\.meta\.env\.DEV/.test(window400)) {
-          offenders.push(`${file}: \`${m[0]}\` is not guarded by import.meta.env.DEV`);
+          const message = `${rel(file)}:${lineOf(src, idx)} \`${m[0]}\` is not guarded by import.meta.env.DEV`;
+          offenders.push(message);
+          collected.push({
+            check: "debug-window-hooks",
+            file: rel(file),
+            line: lineOf(src, idx),
+            snippet: snippetAt(src, idx),
+            message,
+          });
         }
       }
     }
@@ -62,19 +123,31 @@ describe("security regressions", () => {
 
     // Track the net set of surviving write policies on ai_usage across all
     // migrations. A CREATE POLICY adds; a DROP POLICY removes.
-    const liveWritePolicies = new Set<string>();
+    type LiveEntry = { file: string; line: number; snippet: string };
+    const liveWritePolicies = new Map<string, LiveEntry>();
 
     for (const file of files) {
-      const sql = readFileSync(file, "utf8")
+      const raw = readFileSync(file, "utf8");
+      const sql = raw
         .replace(/--.*$/gm, "")
         .replace(/\/\*[\s\S]*?\*\//g, "");
 
-      // Split into statements so multi-line regexes can't cross boundaries.
+      // Track per-statement offsets so we can report line numbers.
+      let cursor = 0;
       for (const stmt of sql.split(";")) {
+        const stmtStartInSql = cursor;
+        cursor += stmt.length + 1; // +1 for the ";" we split on
+
         const createMatch = stmt.match(
           /create\s+policy\s+"([^"]+)"[\s\S]*?on\s+(?:public\.)?ai_usage\b[\s\S]*?for\s+(insert|update|delete)\b/i,
         );
-        if (createMatch) liveWritePolicies.add(createMatch[1]);
+        if (createMatch) {
+          liveWritePolicies.set(createMatch[1], {
+            file: rel(file),
+            line: lineOf(sql, stmtStartInSql),
+            snippet: stmt.replace(/\s+/g, " ").trim().slice(0, 280),
+          });
+        }
 
         const dropMatch = stmt.match(
           /drop\s+policy\s+(?:if\s+exists\s+)?"([^"]+)"\s+on\s+(?:public\.)?ai_usage\b/i,
@@ -82,21 +155,33 @@ describe("security regressions", () => {
         if (dropMatch) liveWritePolicies.delete(dropMatch[1]);
       }
 
-
       // Broad GRANTs to anon/authenticated/public are always a regression.
       const grantRe =
         /grant\s+[^;]*\b(insert|update|delete)\b[^;]*on\s+(?:table\s+)?(?:public\.)?ai_usage[^;]*to\s+[^;]*\b(anon|authenticated|public)\b/gi;
       for (const g of sql.matchAll(grantRe)) {
-        offenders.push(
-          `${file}: GRANT ${g[1].toUpperCase()} on ai_usage to ${g[2]} (server-only table)`,
-        );
+        const idx = g.index ?? 0;
+        const message = `${rel(file)}:${lineOf(sql, idx)} GRANT ${g[1].toUpperCase()} on ai_usage to ${g[2]} (server-only table)`;
+        offenders.push(message);
+        collected.push({
+          check: "ai_usage-client-writes",
+          file: rel(file),
+          line: lineOf(sql, idx),
+          snippet: g[0].replace(/\s+/g, " ").trim(),
+          message,
+        });
       }
     }
 
-    for (const name of liveWritePolicies) {
-      offenders.push(
-        `Surviving client write policy on public.ai_usage: "${name}" — ai_usage is server-only; drop the policy`,
-      );
+    for (const [name, entry] of liveWritePolicies) {
+      const message = `${entry.file}:${entry.line} Surviving client write policy on public.ai_usage: "${name}" — ai_usage is server-only; drop the policy`;
+      offenders.push(message);
+      collected.push({
+        check: "ai_usage-client-writes",
+        file: entry.file,
+        line: entry.line,
+        snippet: entry.snippet,
+        message,
+      });
     }
 
     expect(offenders, offenders.join("\n")).toEqual([]);
