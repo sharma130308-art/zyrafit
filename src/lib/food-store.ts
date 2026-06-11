@@ -501,6 +501,7 @@ export async function getWeeklyHistory(): Promise<DaySummary[]> {
           barcode: row.barcode,
           source: (row.source as FoodSource) || "manual",
           photoUrl: (row as any).photo_url || null,
+          updatedAt: (row as any).updated_at || null,
         };
         const arr = entriesByDate.get(e.date) || [];
         arr.push(e);
