@@ -193,6 +193,7 @@ export async function deleteEntry(id: string): Promise<FoodEntry | null> {
             barcode: data.barcode,
             source: (data.source as FoodSource) || "manual",
             photoUrl: (data as any).photo_url || null,
+            updatedAt: (data as any).updated_at || null,
           };
           await supabase.from("food_entries").delete().eq("id", id);
           setLocalEntries(all.filter((e) => e.id !== id));
@@ -209,7 +210,7 @@ export async function deleteEntry(id: string): Promise<FoodEntry | null> {
 
   // Offline (or failed): remove locally + queue delete if logged in
   setLocalEntries(all.filter((e) => e.id !== id));
-  if (userId) enqueueDelete(id);
+  if (userId) enqueueDelete(id, { baseUpdatedAt: deleted?.updatedAt ?? null });
   return deleted;
 }
 
@@ -220,8 +221,12 @@ export async function updateEntry(
   const userId = await getCurrentUserId();
   const online = typeof navigator === "undefined" || navigator.onLine;
 
-  // Update local cache immediately
+  // Snapshot the pre-patch entry (used for resurrection on conflict)
   const all = getLocalEntries();
+  const existing = all.find((e) => e.id === id) || null;
+  const baseUpdatedAt = existing?.updatedAt ?? null;
+
+  // Update local cache immediately
   const updated = all.map((e) => (e.id === id ? { ...e, ...patch } : e));
   setLocalEntries(updated);
 
@@ -250,7 +255,12 @@ export async function updateEntry(
     }
   }
 
-  if (userId) enqueueUpdate(id, patch);
+  if (userId) {
+    enqueueUpdate(id, patch, {
+      baseUpdatedAt,
+      snapshot: existing ? { ...existing, ...patch } : undefined,
+    });
+  }
 }
 
 export async function restoreEntry(entry: FoodEntry): Promise<void> {
