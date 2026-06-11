@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CloudOff, RefreshCw, Check, AlertCircle, Sparkles } from "lucide-react";
-import { onQueueChange, flushQueue } from "@/lib/sync-queue";
+import { toast } from "sonner";
+import { onQueueChange, flushQueue, onConflictsChange, type SyncConflict } from "@/lib/sync-queue";
 import { onAIQueueChange, flushAIQueue } from "@/lib/ai-scan-queue";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 
