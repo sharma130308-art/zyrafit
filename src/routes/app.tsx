@@ -539,8 +539,9 @@ function Dashboard() {
                 onDelete={handleDelete}
                 onAdd={(meal) => setQuickAddMeal(meal)}
                 onUpdate={async (id, patch) => {
+                  // Optimistic: update list immediately so totals reflect instantly
+                  setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
                   await updateEntry(id, patch);
-                  refresh();
                 }}
               />
             </motion.div>
