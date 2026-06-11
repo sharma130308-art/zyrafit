@@ -17,6 +17,8 @@ export interface FoodEntry {
   barcode?: string | null;
   source: FoodSource;
   photoUrl?: string | null;
+  /** Server-known last-modified time (ISO). Missing for offline-only entries. */
+  updatedAt?: string | null;
 }
 
 const STORAGE_KEY = "zyrafit_entries";
