@@ -141,6 +141,7 @@ export async function addEntry(
           barcode: data.barcode,
           source: (data.source as FoodSource) || "manual",
           photoUrl: (data as any).photo_url || null,
+          updatedAt: (data as any).updated_at || null,
         };
         const all = getLocalEntries();
         all.push(newEntry);
