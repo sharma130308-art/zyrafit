@@ -53,6 +53,7 @@ export type Database = {
           protein: number
           quantity: number
           source: Database["public"]["Enums"]["food_source"]
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -69,6 +70,7 @@ export type Database = {
           protein?: number
           quantity?: number
           source?: Database["public"]["Enums"]["food_source"]
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -85,6 +87,7 @@ export type Database = {
           protein?: number
           quantity?: number
           source?: Database["public"]["Enums"]["food_source"]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
