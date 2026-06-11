@@ -57,6 +57,43 @@ export function SyncStatusBanner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Notify the user when offline edits get reconciled against newer server data.
+  const seenConflictKeys = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const unsub = onConflictsChange((conflicts: SyncConflict[]) => {
+      // First pass on mount: don't toast historical conflicts, just remember them.
+      if (seenConflictKeys.current.size === 0 && conflicts.length > 0) {
+        for (const c of conflicts) seenConflictKeys.current.add(`${c.resolvedAt}:${c.id}`);
+        return;
+      }
+      const fresh: SyncConflict[] = [];
+      for (const c of conflicts) {
+        const key = `${c.resolvedAt}:${c.id}`;
+        if (!seenConflictKeys.current.has(key)) {
+          seenConflictKeys.current.add(key);
+          fresh.push(c);
+        }
+      }
+      for (const c of fresh) {
+        const label = c.label ?? "entry";
+        if (c.kind === "update-on-deleted") {
+          toast("Restored an edit", {
+            description: `"${label}" was removed on another device — your offline edit brought it back.`,
+          });
+        } else if (c.kind === "update-vs-newer-server") {
+          toast("Your edit overwrote a newer change", {
+            description: `"${label}" was changed elsewhere while you were offline. Your version was kept.`,
+          });
+        } else if (c.kind === "delete-vs-newer-server") {
+          toast("Deleted despite newer changes", {
+            description: `"${label}" was edited on another device after you deleted it offline. The deletion was applied.`,
+          });
+        }
+      }
+    });
+    return unsub;
+  }, []);
+
   const handleRetry = async () => {
     if (syncing) return;
     if (!online) {
