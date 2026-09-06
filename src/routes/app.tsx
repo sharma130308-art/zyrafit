@@ -133,7 +133,7 @@ function Dashboard() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [weeklyData, setWeeklyData] = useState<DaySummary[]>([]);
   const [streak, setStreak] = useState(0);
-  const [caloriesBurned, setCaloriesBurned] = useState(0);
+  
 
   const refresh = useCallback(async () => {
     // Instant render from localStorage cache — no waiting for network
@@ -157,24 +157,18 @@ function Dashboard() {
       }
     }
 
-    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak, fetchedMacros, burnedRes] = await Promise.all([
+    const [fetchedEntries, fetchedGoal, fetchedWeekly, fetchedStreak, fetchedMacros] = await Promise.all([
       getEntries(today),
       loadCalorieGoal(),
       getWeeklyHistory(),
       getLoggingStreak(),
       loadMacroGoals(),
-      supabase.from("workouts").select("calories_burned").eq("date", today),
     ]);
     setEntries(fetchedEntries);
     setGoal(fetchedGoal);
     setWeeklyData(fetchedWeekly);
     setStreak(fetchedStreak);
     setMacroGoals(fetchedMacros);
-    const burnedTotal = (burnedRes.data ?? []).reduce(
-      (sum, row) => sum + (row.calories_burned ?? 0),
-      0,
-    );
-    setCaloriesBurned(burnedTotal);
     setLoading(false);
     setRefreshing(false);
   }, [today]);
@@ -502,7 +496,7 @@ function Dashboard() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <CalorieRing consumed={totals.calories} goal={goal} burned={caloriesBurned} />
+          <CalorieRing consumed={totals.calories} goal={goal} />
         </motion.div>
 
         {/* Macros — premium summary cards */}

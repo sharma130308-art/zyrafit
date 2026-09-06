@@ -189,7 +189,6 @@ vi.mock("sonner", () => ({
 // ---------------------------------------------------------------------------
 
 import * as appRoute from "./app";
-import * as workoutsRoute from "./workouts";
 import * as profileRoute from "./profile";
 
 function getRouteComponent(mod: unknown): React.ComponentType {
@@ -208,7 +207,6 @@ function getRouteComponent(mod: unknown): React.ComponentType {
 
 const routes: Array<[label: string, Component: React.ComponentType]> = [
   ["/app", getRouteComponent(appRoute)],
-  ["/workouts", getRouteComponent(workoutsRoute)],
   ["/profile", getRouteComponent(profileRoute)],
 ];
 
