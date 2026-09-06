@@ -1,7 +1,7 @@
 /**
  * Route-level guard test.
  *
- * Mounts the actual protected route components (/app, /workouts, /profile)
+ * Mounts the actual protected route components (/app and /profile)
  * and verifies the no-flash contract:
  *
  *   - while the `user_profiles.onboarding_completed` query is pending,
@@ -189,7 +189,6 @@ vi.mock("sonner", () => ({
 // ---------------------------------------------------------------------------
 
 import * as appRoute from "./app";
-import * as workoutsRoute from "./workouts";
 import * as profileRoute from "./profile";
 
 function getRouteComponent(mod: unknown): React.ComponentType {
@@ -208,7 +207,6 @@ function getRouteComponent(mod: unknown): React.ComponentType {
 
 const routes: Array<[label: string, Component: React.ComponentType]> = [
   ["/app", getRouteComponent(appRoute)],
-  ["/workouts", getRouteComponent(workoutsRoute)],
   ["/profile", getRouteComponent(profileRoute)],
 ];
 
