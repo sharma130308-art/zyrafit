@@ -1,7 +1,7 @@
 /**
  * Route-level guard test.
  *
- * Mounts the actual protected route components (/app, /workouts, /profile)
+ * Mounts the actual protected route components (/app and /profile)
  * and verifies the no-flash contract:
  *
  *   - while the `user_profiles.onboarding_completed` query is pending,
