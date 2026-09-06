@@ -32,6 +32,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { ReminderPrompt } from "@/components/ReminderPrompt";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { FirstRunSetup, isFirstRunPending } from "@/components/FirstRunSetup";
+
 import { StreakBadge } from "@/components/StreakBadge";
 import { UndoToast } from "@/components/UndoToast";
 import { ScanStepper, type ScanStage } from "@/components/ScanStepper";
@@ -68,6 +70,12 @@ function Dashboard() {
   const [macroGoals, setMacroGoals] = useState<MacroGoals>(() => getMacroGoalsLocal());
   const [loading, setLoading] = useState(true);
   const [guardReady, setGuardReady] = useState(false);
+  // Short, skippable first-run setup shown once, right after the guard resolves.
+  const [showFirstRun, setShowFirstRun] = useState(false);
+  useEffect(() => {
+    if (guardReady && isFirstRunPending()) setShowFirstRun(true);
+  }, [guardReady]);
+
   // Background refresh: cached data is on screen but a network fetch is in flight.
   const [refreshing, setRefreshing] = useState(false);
   const [deletedEntry, setDeletedEntry] = useState<FoodEntry | null>(null);
@@ -453,6 +461,11 @@ function Dashboard() {
   if (loading || !guardReady) {
     return <DashboardSkeleton />;
   }
+
+  if (showFirstRun) {
+    return <FirstRunSetup onDone={() => setShowFirstRun(false)} />;
+  }
+
 
   return (
     <PullToRefresh onRefresh={refresh}>
