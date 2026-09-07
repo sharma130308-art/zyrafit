@@ -94,6 +94,9 @@ function ProfilePage() {
   const [editGender, setEditGender] = useState("");
   const [editWorkoutDays, setEditWorkoutDays] = useState(3);
   const [editGoal, setEditGoal] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const phoneError = editPhone.trim() !== "" && !isValidPhone(editPhone);
+
   const [editTargetWeight, setEditTargetWeight] = useState("");
   const [editTargetBmi, setEditTargetBmi] = useState("");
   const [editTargetBodyFat, setEditTargetBodyFat] = useState("");
