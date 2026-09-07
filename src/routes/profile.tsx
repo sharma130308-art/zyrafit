@@ -256,6 +256,8 @@ function ProfilePage() {
         setEditGender(c.profile.gender ?? "");
         setEditWorkoutDays(c.profile.workout_days_per_week ?? 3);
         setEditGoal(c.profile.goal ?? "");
+        setEditPhone(c.profile.phone ?? "");
+
         setEditTargetWeight(String(c.profile.target_weight_kg ?? ""));
         setEditTargetBmi(String(c.profile.target_bmi ?? ""));
         setEditTargetBodyFat(String(c.profile.target_body_fat_percent ?? ""));
@@ -317,6 +319,8 @@ function ProfilePage() {
           gender: profileRes.data.gender,
           workout_days_per_week: profileRes.data.workout_days_per_week,
           goal: profileRes.data.goal,
+          phone: (p.phone as string) ?? null,
+
           target_weight_kg: (p.target_weight_kg as number) ?? null,
           target_bmi: (p.target_bmi as number) ?? null,
           target_body_fat_percent: (p.target_body_fat_percent as number) ?? null,
@@ -327,6 +331,8 @@ function ProfilePage() {
         setEditGender(profileData.gender ?? "");
         setEditWorkoutDays(profileData.workout_days_per_week ?? 3);
         setEditGoal(profileData.goal ?? "");
+        setEditPhone(profileData.phone ?? "");
+
         setEditTargetWeight(String(profileData.target_weight_kg ?? ""));
         setEditTargetBmi(String(profileData.target_bmi ?? ""));
         setEditTargetBodyFat(String(profileData.target_body_fat_percent ?? ""));
@@ -380,6 +386,8 @@ function ProfilePage() {
       setEditGender(profile.gender ?? "");
       setEditWorkoutDays(profile.workout_days_per_week ?? 3);
       setEditGoal(profile.goal ?? "");
+      setEditPhone(profile.phone ?? "");
+
       setEditTargetWeight(String(profile.target_weight_kg ?? ""));
       setEditTargetBmi(String(profile.target_bmi ?? ""));
       setEditTargetBodyFat(String(profile.target_body_fat_percent ?? ""));
