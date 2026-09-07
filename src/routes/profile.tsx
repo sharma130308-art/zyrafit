@@ -397,14 +397,17 @@ function ProfilePage() {
 
   const handleSaveProfile = async () => {
     if (!user) return;
+    if (phoneError) return;
     setSaving(true);
 
     const ageNum = parseInt(editAge);
     const weightNum = parseFloat(editWeight);
     const heightNum = parseFloat(editHeight) || 170;
+    const phoneVal = editPhone.trim() ? editPhone.trim().slice(0, 20) : null;
     const targetWeightNum = editTargetWeight ? parseFloat(editTargetWeight) : null;
     const targetBmiNum = editTargetBmi ? parseFloat(editTargetBmi) : null;
     const targetBodyFatNum = editTargetBodyFat ? parseFloat(editTargetBodyFat) : null;
+
 
     const newMacros = calculateMacros({
       age: ageNum,
