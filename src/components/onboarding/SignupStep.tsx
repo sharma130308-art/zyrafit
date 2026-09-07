@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Phone, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { isValidPhoneNumber, phoneToEmail, normalizePhone } from "@/lib/phone-auth";
 import { StepContainer } from "./StepContainer";
 
 export function SignupStep({
@@ -14,7 +15,7 @@ export function SignupStep({
   onComplete?: () => void;
 }) {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -34,27 +35,40 @@ export function SignupStep({
     };
   }, [onComplete]);
 
-  const canSubmit = email !== "" && password.length >= 6;
+  const canSubmit = isValidPhoneNumber(phone) && password.length >= 6;
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError(null);
 
+    if (!isValidPhoneNumber(phone)) {
+      setAuthError("Enter a valid phone number.");
+      setAuthLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: phoneToEmail(phone),
       password,
-      options: { emailRedirectTo: window.location.origin },
     });
 
     if (error) {
-      setAuthError(error.message);
+      setAuthError(
+        error.message.toLowerCase().includes("already")
+          ? "That number already has an account. Sign in instead."
+          : error.message,
+      );
       setAuthLoading(false);
       return;
     }
 
     if (data.user) {
       await onAccountCreated(data.user.id);
+      await supabase
+        .from("user_profiles")
+        .update({ phone: `+${normalizePhone(phone)}` })
+        .eq("user_id", data.user.id);
       setAuthLoading(false);
       if (onComplete) {
         onComplete();
@@ -63,7 +77,7 @@ export function SignupStep({
       }
     } else {
       setAuthLoading(false);
-      setAuthError("Check your email to confirm, then sign in.");
+      setAuthError("Could not create your account. Please try again.");
     }
   };
 
@@ -89,18 +103,20 @@ export function SignupStep({
 
   return (
     <StepContainer
-      icon={<Mail className="w-6 h-6" />}
+      icon={<Phone className="w-6 h-6" />}
       title="Create your account"
-      subtitle="Save your profile & sync across devices"
+      subtitle="Sign up with your phone number"
     >
       <form onSubmit={handleSignUp} className="space-y-4">
         <div className="relative">
-          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="Phone number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             required
             className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
@@ -124,6 +140,7 @@ export function SignupStep({
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
+
 
         {authError && (
           <motion.p
