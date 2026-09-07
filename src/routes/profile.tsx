@@ -21,6 +21,7 @@ import {
   Trash2,
   Camera,
   Loader2,
+  Phone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, subDays, subMonths } from "date-fns";
@@ -430,6 +431,7 @@ function ProfilePage() {
       }, { onConflict: "user_id" }).then(() => {
         // Update new goal columns separately since types may not include them yet
         return (supabase.from("user_profiles") as any).update({
+          phone: phoneVal,
           target_bmi: targetBmiNum,
           target_body_fat_percent: targetBodyFatNum,
         }).eq("user_id", user.id);
@@ -451,6 +453,7 @@ function ProfilePage() {
       gender: editGender,
       workout_days_per_week: editWorkoutDays,
       goal: editGoal,
+      phone: phoneVal,
       target_weight_kg: targetWeightNum,
       target_bmi: targetBmiNum,
       target_body_fat_percent: targetBodyFatNum,
@@ -541,6 +544,7 @@ function ProfilePage() {
                   <ProfileRow icon={<Weight className="w-4 h-4" />} label="Weight" value={profile?.weight_kg ? `${profile.weight_kg} kg` : "—"} />
                   <ProfileRow icon={<Dumbbell className="w-4 h-4" />} label="Workouts" value={profile?.workout_days_per_week != null ? `${profile.workout_days_per_week} days/week` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Goal" value={goalLabel} />
+                  <ProfileRow icon={<Phone className="w-4 h-4" />} label="Phone" value={profile?.phone || "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Weight" value={profile?.target_weight_kg ? `${profile.target_weight_kg} kg` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target BMI" value={profile?.target_bmi ? `${profile.target_bmi}` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Body Fat" value={profile?.target_body_fat_percent ? `${profile.target_body_fat_percent}%` : "—"} />
@@ -650,6 +654,24 @@ function ProfilePage() {
                     </div>
                   </div>
 
+                  {/* Phone */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Phone number</label>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value.slice(0, 20))}
+                      placeholder="+44 7700 900123"
+                      maxLength={20}
+                      className={`w-full px-4 py-3 rounded-xl bg-muted text-foreground border outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40 ${phoneError ? "border-destructive" : "border-transparent"}`}
+                    />
+                    {phoneError && (
+                      <p className="text-xs text-destructive mt-1.5">Enter a valid phone number (7–15 digits).</p>
+                    )}
+                  </div>
+
                   {/* Target Weight */}
                   <div>
                     <label className="text-xs text-muted-foreground mb-1.5 block">Target Weight (kg)</label>
@@ -696,7 +718,7 @@ function ProfilePage() {
                   </div>
                   <button
                     onClick={handleSaveProfile}
-                    disabled={saving || !editAge || !editWeight || !editGoal}
+                    disabled={saving || phoneError || !editAge || !editWeight || !editGoal}
                     className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 disabled:opacity-40"
                   >
                     {saving ? "Saving…" : "Save & Recalculate"}
