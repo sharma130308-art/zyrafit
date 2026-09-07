@@ -120,16 +120,6 @@ function LoginPage() {
             </motion.p>
           )}
 
-          {success && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-sm text-primary text-center bg-primary/10 rounded-xl px-4 py-2"
-            >
-              {success}
-            </motion.p>
-          )}
-
           <motion.button
             type="submit"
             disabled={loading}
@@ -144,20 +134,20 @@ function LoginPage() {
               />
             ) : (
               <>
-                {mode === "login" ? "Sign In" : "Send Reset Link"}
+                Sign In
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </motion.button>
         </form>
 
-        {mode !== "forgot" && (
-          <>
+        <>
             <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground">or continue with</span>
               <div className="flex-1 h-px bg-border" />
             </div>
+
 
             <div className="flex gap-3">
               <motion.button
