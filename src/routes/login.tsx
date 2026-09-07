@@ -3,7 +3,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { motion } from "framer-motion";
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Phone, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { isValidPhoneNumber, phoneToEmail } from "@/lib/phone-auth";
 import zyrafitIcon from "@/assets/zyrafit-icon.png";
 
 export const Route = createFileRoute("/login")({
@@ -11,20 +12,18 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "ZyraFit — Sign In" },
-      { name: "description", content: "Sign in to ZyraFit to sync your food diary across devices." },
+      { name: "description", content: "Sign in to ZyraFit with your phone number to sync your food diary across devices." },
     ],
   }),
 });
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "forgot">("login");
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const redirectAfterAuth = async (userId?: string) => {
     if (!userId) { navigate({ to: "/app" }); return; }
@@ -42,27 +41,21 @@ function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
-    setSuccess(null);
 
-    if (mode === "forgot") {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      setLoading(false);
-      if (error) {
-        setError(error.message);
-      } else {
-        setSuccess("Check your email for a password reset link.");
-      }
+    if (!isValidPhoneNumber(phone)) {
+      setError("Enter a valid phone number.");
       return;
     }
 
-    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(true);
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      email: phoneToEmail(phone),
+      password,
+    });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError("That number and password don't match an account.");
     } else {
       await redirectAfterAuth(signInData.user?.id);
     }
@@ -78,57 +71,44 @@ function LoginPage() {
         <div className="text-center mb-8">
           <img src={zyrafitIcon} alt="ZyraFit" className="w-16 h-16 rounded-2xl mx-auto mb-3" />
           <h1 className="text-3xl font-bold text-foreground">ZyraFit</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {mode === "login" ? "Welcome back" : "Reset your password"}
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Welcome back</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="Phone number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
               className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
-          {mode !== "forgot" && (
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full pl-11 pr-11 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          )}
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full pl-11 pr-11 py-3.5 rounded-2xl bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
 
-          {mode === "login" && (
-            <div className="text-right">
-              <button
-                type="button"
-                onClick={() => { setMode("forgot"); setError(null); setSuccess(null); }}
-                className="text-xs text-muted-foreground hover:text-primary transition-colors"
-              >
-                Forgot password?
-              </button>
-            </div>
-          )}
 
           {error && (
             <motion.p
@@ -137,16 +117,6 @@ function LoginPage() {
               className="text-sm text-destructive text-center bg-destructive/10 rounded-xl px-4 py-2"
             >
               {error}
-            </motion.p>
-          )}
-
-          {success && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-sm text-primary text-center bg-primary/10 rounded-xl px-4 py-2"
-            >
-              {success}
             </motion.p>
           )}
 
@@ -164,20 +134,20 @@ function LoginPage() {
               />
             ) : (
               <>
-                {mode === "login" ? "Sign In" : "Send Reset Link"}
+                Sign In
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </motion.button>
         </form>
 
-        {mode !== "forgot" && (
-          <>
+        <>
             <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground">or continue with</span>
               <div className="flex-1 h-px bg-border" />
             </div>
+
 
             <div className="flex gap-3">
               <motion.button
@@ -214,26 +184,15 @@ function LoginPage() {
                 Apple
               </motion.button>
             </div>
-          </>
-        )}
+        </>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          {mode === "forgot" ? (
-            <button
-              onClick={() => { setMode("login"); setError(null); setSuccess(null); }}
-              className="text-primary font-medium"
-            >
-              Back to Sign In
-            </button>
-          ) : (
-            <>
-              Don't have an account?{" "}
-              <Link to="/onboarding" className="text-primary font-medium">
-                Sign Up
-              </Link>
-            </>
-          )}
+          Don't have an account?{" "}
+          <Link to="/onboarding" className="text-primary font-medium">
+            Sign Up
+          </Link>
         </p>
+
       </motion.div>
     </div>
   );
