@@ -156,6 +156,7 @@ export type Database = {
           id: string
           obstacles: string | null
           onboarding_completed: boolean
+          phone: string | null
           target_bmi: number | null
           target_body_fat_percent: number | null
           target_weight_kg: number | null
@@ -173,6 +174,7 @@ export type Database = {
           id?: string
           obstacles?: string | null
           onboarding_completed?: boolean
+          phone?: string | null
           target_bmi?: number | null
           target_body_fat_percent?: number | null
           target_weight_kg?: number | null
@@ -190,6 +192,7 @@ export type Database = {
           id?: string
           obstacles?: string | null
           onboarding_completed?: boolean
+          phone?: string | null
           target_bmi?: number | null
           target_body_fat_percent?: number | null
           target_weight_kg?: number | null
