@@ -50,10 +50,22 @@ interface ProfileData {
   gender: string | null;
   workout_days_per_week: number | null;
   goal: string | null;
+  phone: string | null;
   target_weight_kg: number | null;
   target_bmi: number | null;
   target_body_fat_percent: number | null;
 }
+
+// Loose E.164-ish check: optional +, 7–15 digits, spaces/dashes/parens allowed.
+const PHONE_RE = /^\+?[0-9][0-9\s\-().]{5,19}$/;
+export function isValidPhone(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return true; // optional
+  if (!PHONE_RE.test(trimmed)) return false;
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 
 interface WeightLog {
   id: string;
