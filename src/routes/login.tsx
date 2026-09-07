@@ -184,26 +184,15 @@ function LoginPage() {
                 Apple
               </motion.button>
             </div>
-          </>
-        )}
+        </>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          {mode === "forgot" ? (
-            <button
-              onClick={() => { setMode("login"); setError(null); setSuccess(null); }}
-              className="text-primary font-medium"
-            >
-              Back to Sign In
-            </button>
-          ) : (
-            <>
-              Don't have an account?{" "}
-              <Link to="/onboarding" className="text-primary font-medium">
-                Sign Up
-              </Link>
-            </>
-          )}
+          Don't have an account?{" "}
+          <Link to="/onboarding" className="text-primary font-medium">
+            Sign Up
+          </Link>
         </p>
+
       </motion.div>
     </div>
   );
