@@ -21,6 +21,7 @@ import {
   Trash2,
   Camera,
   Loader2,
+  Phone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO, subDays, subMonths } from "date-fns";
@@ -50,10 +51,22 @@ interface ProfileData {
   gender: string | null;
   workout_days_per_week: number | null;
   goal: string | null;
+  phone: string | null;
   target_weight_kg: number | null;
   target_bmi: number | null;
   target_body_fat_percent: number | null;
 }
+
+// Loose E.164-ish check: optional +, 7–15 digits, spaces/dashes/parens allowed.
+const PHONE_RE = /^\+?[0-9][0-9\s\-().]{5,19}$/;
+export function isValidPhone(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return true; // optional
+  if (!PHONE_RE.test(trimmed)) return false;
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 
 interface WeightLog {
   id: string;
@@ -82,6 +95,9 @@ function ProfilePage() {
   const [editGender, setEditGender] = useState("");
   const [editWorkoutDays, setEditWorkoutDays] = useState(3);
   const [editGoal, setEditGoal] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const phoneError = editPhone.trim() !== "" && !isValidPhone(editPhone);
+
   const [editTargetWeight, setEditTargetWeight] = useState("");
   const [editTargetBmi, setEditTargetBmi] = useState("");
   const [editTargetBodyFat, setEditTargetBodyFat] = useState("");
@@ -241,6 +257,8 @@ function ProfilePage() {
         setEditGender(c.profile.gender ?? "");
         setEditWorkoutDays(c.profile.workout_days_per_week ?? 3);
         setEditGoal(c.profile.goal ?? "");
+        setEditPhone(c.profile.phone ?? "");
+
         setEditTargetWeight(String(c.profile.target_weight_kg ?? ""));
         setEditTargetBmi(String(c.profile.target_bmi ?? ""));
         setEditTargetBodyFat(String(c.profile.target_body_fat_percent ?? ""));
@@ -302,6 +320,8 @@ function ProfilePage() {
           gender: profileRes.data.gender,
           workout_days_per_week: profileRes.data.workout_days_per_week,
           goal: profileRes.data.goal,
+          phone: (p.phone as string) ?? null,
+
           target_weight_kg: (p.target_weight_kg as number) ?? null,
           target_bmi: (p.target_bmi as number) ?? null,
           target_body_fat_percent: (p.target_body_fat_percent as number) ?? null,
@@ -312,6 +332,8 @@ function ProfilePage() {
         setEditGender(profileData.gender ?? "");
         setEditWorkoutDays(profileData.workout_days_per_week ?? 3);
         setEditGoal(profileData.goal ?? "");
+        setEditPhone(profileData.phone ?? "");
+
         setEditTargetWeight(String(profileData.target_weight_kg ?? ""));
         setEditTargetBmi(String(profileData.target_bmi ?? ""));
         setEditTargetBodyFat(String(profileData.target_body_fat_percent ?? ""));
@@ -365,6 +387,8 @@ function ProfilePage() {
       setEditGender(profile.gender ?? "");
       setEditWorkoutDays(profile.workout_days_per_week ?? 3);
       setEditGoal(profile.goal ?? "");
+      setEditPhone(profile.phone ?? "");
+
       setEditTargetWeight(String(profile.target_weight_kg ?? ""));
       setEditTargetBmi(String(profile.target_bmi ?? ""));
       setEditTargetBodyFat(String(profile.target_body_fat_percent ?? ""));
@@ -374,14 +398,17 @@ function ProfilePage() {
 
   const handleSaveProfile = async () => {
     if (!user) return;
+    if (phoneError) return;
     setSaving(true);
 
     const ageNum = parseInt(editAge);
     const weightNum = parseFloat(editWeight);
     const heightNum = parseFloat(editHeight) || 170;
+    const phoneVal = editPhone.trim() ? editPhone.trim().slice(0, 20) : null;
     const targetWeightNum = editTargetWeight ? parseFloat(editTargetWeight) : null;
     const targetBmiNum = editTargetBmi ? parseFloat(editTargetBmi) : null;
     const targetBodyFatNum = editTargetBodyFat ? parseFloat(editTargetBodyFat) : null;
+
 
     const newMacros = calculateMacros({
       age: ageNum,
@@ -404,6 +431,7 @@ function ProfilePage() {
       }, { onConflict: "user_id" }).then(() => {
         // Update new goal columns separately since types may not include them yet
         return (supabase.from("user_profiles") as any).update({
+          phone: phoneVal,
           target_bmi: targetBmiNum,
           target_body_fat_percent: targetBodyFatNum,
         }).eq("user_id", user.id);
@@ -425,6 +453,7 @@ function ProfilePage() {
       gender: editGender,
       workout_days_per_week: editWorkoutDays,
       goal: editGoal,
+      phone: phoneVal,
       target_weight_kg: targetWeightNum,
       target_bmi: targetBmiNum,
       target_body_fat_percent: targetBodyFatNum,
@@ -515,6 +544,7 @@ function ProfilePage() {
                   <ProfileRow icon={<Weight className="w-4 h-4" />} label="Weight" value={profile?.weight_kg ? `${profile.weight_kg} kg` : "—"} />
                   <ProfileRow icon={<Dumbbell className="w-4 h-4" />} label="Workouts" value={profile?.workout_days_per_week != null ? `${profile.workout_days_per_week} days/week` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Goal" value={goalLabel} />
+                  <ProfileRow icon={<Phone className="w-4 h-4" />} label="Phone" value={profile?.phone || "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Weight" value={profile?.target_weight_kg ? `${profile.target_weight_kg} kg` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target BMI" value={profile?.target_bmi ? `${profile.target_bmi}` : "—"} />
                   <ProfileRow icon={<Target className="w-4 h-4" />} label="Target Body Fat" value={profile?.target_body_fat_percent ? `${profile.target_body_fat_percent}%` : "—"} />
@@ -624,6 +654,24 @@ function ProfilePage() {
                     </div>
                   </div>
 
+                  {/* Phone */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Phone number</label>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value.slice(0, 20))}
+                      placeholder="+44 7700 900123"
+                      maxLength={20}
+                      className={`w-full px-4 py-3 rounded-xl bg-muted text-foreground border outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40 ${phoneError ? "border-destructive" : "border-transparent"}`}
+                    />
+                    {phoneError && (
+                      <p className="text-xs text-destructive mt-1.5">Enter a valid phone number (7–15 digits).</p>
+                    )}
+                  </div>
+
                   {/* Target Weight */}
                   <div>
                     <label className="text-xs text-muted-foreground mb-1.5 block">Target Weight (kg)</label>
@@ -670,7 +718,7 @@ function ProfilePage() {
                   </div>
                   <button
                     onClick={handleSaveProfile}
-                    disabled={saving || !editAge || !editWeight || !editGoal}
+                    disabled={saving || phoneError || !editAge || !editWeight || !editGoal}
                     className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 disabled:opacity-40"
                   >
                     {saving ? "Saving…" : "Save & Recalculate"}
