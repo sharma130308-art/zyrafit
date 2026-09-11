@@ -1,1 +1,0 @@
-const c=new Set;function r(){return[]}function f(n,o="info",e){const t=e?String(e).slice(0,800):void 0;(o==="error"?console.error:o==="ok"?console.info:console.log)(`[scan] ${n}`,t??"")}function i(){return r()}function s(){}function a(n){return c.add(n),n(r()),()=>{c.delete(n)}}export{s as clearScanDebug,i as getScanDebug,f as logScan,a as subscribeScanDebug};
