@@ -36,6 +36,11 @@ export function isPushSupported(): boolean {
 
 export function isPreviewEnvironment(): boolean {
   if (typeof window === "undefined") return true;
+  // Inside the native iOS/Android shell the page is served from
+  // capacitor://localhost — that is production, not the editor preview.
+  try {
+    if ((window as any).Capacitor?.isNativePlatform?.()) return false;
+  } catch {}
   const host = window.location.hostname;
   if (
     host.includes("id-preview--") ||
