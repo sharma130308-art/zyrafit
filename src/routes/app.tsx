@@ -33,6 +33,8 @@ import { ReminderPrompt } from "@/components/ReminderPrompt";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { FirstRunSetup, isFirstRunPending } from "@/components/FirstRunSetup";
+import { isNative } from "@/lib/native";
+import { pickNativePhoto } from "@/lib/native-camera";
 
 import { StreakBadge } from "@/components/StreakBadge";
 import { UndoToast } from "@/components/UndoToast";
@@ -414,6 +416,21 @@ function Dashboard() {
     }
   };
 
+  /**
+   * Open the camera for an AI food photo. On iOS/Android (Capacitor) this
+   * uses the native camera/photo picker; on the web it falls back to the
+   * hidden <input type="file" capture>.
+   */
+  const openCamera = () => {
+    if (isNative()) {
+      void pickNativePhoto("prompt", { header: "Scan your meal" }).then((file) => {
+        if (file) handlePhotoCapture(file);
+      });
+      return;
+    }
+    cameraInputRef.current?.click();
+  };
+
   const handleRetryAiPhoto = () => {
     const file = lastPhotoFileRef.current;
     setAiError(null);
@@ -587,7 +604,7 @@ function Dashboard() {
               setQuickAddMeal(null);
               if (meal) setDialogMealType(meal);
               // ref is always mounted now — click on next tick
-              requestAnimationFrame(() => cameraInputRef.current?.click());
+              requestAnimationFrame(() => openCamera());
             }}
             onBarcodeScan={() => {
               const meal = quickAddMeal;
@@ -616,7 +633,7 @@ function Dashboard() {
             }}
             onAiClick={() => {
               setDialogOpen(false);
-              requestAnimationFrame(() => cameraInputRef.current?.click());
+              requestAnimationFrame(() => openCamera());
             }}
           />
         </Suspense>
