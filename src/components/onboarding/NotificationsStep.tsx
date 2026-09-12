@@ -2,7 +2,11 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, Check, Clock, Flame, TrendingUp, ArrowRight } from "lucide-react";
 import { StepContainer } from "./StepContainer";
-import { subscribeToPush, isPushSupported, isPreviewEnvironment } from "@/lib/push";
+import {
+  enableReminders,
+  remindersBlockedByPreview,
+  remindersSupported,
+} from "@/lib/reminders";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
 
 type Status = "idle" | "loading" | "granted" | "denied";
@@ -29,8 +33,8 @@ export function NotificationsStep({ onDone }: { onDone: () => void }) {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const supported = isPushSupported();
-  const preview = isPreviewEnvironment();
+  const supported = remindersSupported();
+  const preview = remindersBlockedByPreview();
 
   const handleEnable = async () => {
     hapticMedium();
@@ -51,7 +55,7 @@ export function NotificationsStep({ onDone }: { onDone: () => void }) {
       return;
     }
 
-    const result = await subscribeToPush();
+    const result = await enableReminders();
     if (result.ok) {
       setStatus("granted");
       setTimeout(onDone, 600);

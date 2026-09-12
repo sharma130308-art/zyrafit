@@ -29,6 +29,9 @@ import { BottomNav } from "@/components/BottomNav";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { RemindersToggle } from "@/components/RemindersToggle";
 import { MealReminderTimes } from "@/components/MealReminderTimes";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
+import { isNative } from "@/lib/native";
+import { pickNativePhoto } from "@/lib/native-camera";
 
 // Lazy-load heavy chart (pulls in recharts) and the body-composition gauge card.
 // These are below-the-fold and only matter once the user has weight logs.
@@ -172,13 +175,26 @@ function ProfilePage() {
   };
 
   const handleScanPhoto = async () => {
+    // Native iOS/Android → system camera / photo picker via @capacitor/camera
+    if (isNative()) {
+      const file = await pickNativePhoto("prompt", { header: "Scan body stats" });
+      if (file) await processScanFile(file);
+      return;
+    }
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.capture = "environment";
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) await processScanFile(file);
+    };
+    input.click();
+  };
+
+  const processScanFile = async (file: File) => {
       if (!file || !user) return;
+
 
       // Downscale before sending — keeps text legible but cuts upload time.
       const { captureReceiptAsBase64 } = await import("@/lib/food-ai");
@@ -239,8 +255,6 @@ function ProfilePage() {
         alert("Failed to scan. Please try again.");
       }
       setScanning(false);
-    };
-    input.click();
   };
 
   // Hydrate from cache instantly
@@ -1212,13 +1226,16 @@ function ProfilePage() {
         {!authLoading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
             {user ? (
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
+              <div className="space-y-1">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+                <DeleteAccountButton />
+              </div>
             ) : (
               <button
                 onClick={() => navigate({ to: "/login" })}

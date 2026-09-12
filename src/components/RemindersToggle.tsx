@@ -2,19 +2,13 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getRemindersEnabled } from "@/lib/push";
 import {
-  getRemindersEnabled,
-  isPreviewEnvironment,
-  isPushSupported,
-  subscribeToPush,
-  unsubscribeFromPush,
-} from "@/lib/push";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  cancelMealReminders,
-  ensureLocalNotificationPermission,
-  scheduleMealReminders,
-} from "@/lib/local-notifications";
+  disableReminders,
+  enableReminders,
+  remindersBlockedByPreview,
+  remindersSupported,
+} from "@/lib/reminders";
 
 export function RemindersToggle() {
   const [enabled, setEnabled] = useState(false);
@@ -24,8 +18,8 @@ export function RemindersToggle() {
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
-    setSupported(isPushSupported());
-    setPreview(isPreviewEnvironment());
+    setSupported(remindersSupported());
+    setPreview(remindersBlockedByPreview());
     getRemindersEnabled()
       .then(setEnabled)
       .finally(() => setLoading(false));
@@ -35,51 +29,20 @@ export function RemindersToggle() {
     if (busy) return;
     setBusy(true);
     if (enabled) {
-      const { ok, error } = await unsubscribeFromPush();
+      const { ok, error } = await disableReminders();
       if (ok) {
         setEnabled(false);
-        await cancelMealReminders();
         toast.success("Reminders turned off");
       } else {
         toast.error(error || "Failed to disable");
       }
     } else {
-      // Try web push (works in browsers / installed PWA)
-      const webRes = preview ? { ok: false, error: "preview" } : await subscribeToPush();
-      // Try native local notifications (no-op on web)
-      const nativeGranted = await ensureLocalNotificationPermission();
-
-      if (nativeGranted) {
-        // Pull the user's saved meal times and schedule on-device
-        const { data: u } = await supabase.auth.getUser();
-        if (u.user) {
-          const { data } = await (supabase.from("user_settings") as any)
-            .select(
-              "breakfast_time, lunch_time, dinner_time, snack_time, snack_reminder_enabled, timezone",
-            )
-            .eq("user_id", u.user.id)
-            .maybeSingle();
-          await scheduleMealReminders({
-            breakfast: (data?.breakfast_time || "08:00:00").slice(0, 5),
-            lunch: (data?.lunch_time || "13:00:00").slice(0, 5),
-            dinner: (data?.dinner_time || "19:00:00").slice(0, 5),
-            snack: (data?.snack_time || "16:00:00").slice(0, 5),
-            snackEnabled: !!data?.snack_reminder_enabled,
-          });
-          // Also flip the DB flag if web push didn't already do it
-          if (!webRes.ok) {
-            await (supabase.from("user_settings") as any)
-              .update({ reminders_enabled: true })
-              .eq("user_id", u.user.id);
-          }
-        }
-      }
-
-      if (webRes.ok || nativeGranted) {
+      const { ok, error } = await enableReminders();
+      if (ok) {
         setEnabled(true);
         toast.success("Reminders enabled — you'll get a daily nudge");
       } else {
-        toast.error(webRes.error || "Failed to enable");
+        toast.error(error || "Failed to enable");
       }
     }
     setBusy(false);

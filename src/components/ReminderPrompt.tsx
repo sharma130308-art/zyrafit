@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, X } from "lucide-react";
 import { toast } from "sonner";
+import { hasShownPrompt, markPromptShown } from "@/lib/push";
 import {
-  hasShownPrompt,
-  isPreviewEnvironment,
-  isPushSupported,
-  markPromptShown,
-  subscribeToPush,
-} from "@/lib/push";
+  enableReminders,
+  remindersBlockedByPreview,
+  remindersSupported,
+} from "@/lib/reminders";
+import { isNative } from "@/lib/native";
 
 interface Props {
   isAuthenticated: boolean;
@@ -20,10 +20,14 @@ export function ReminderPrompt({ isAuthenticated }: Props) {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (!isPushSupported()) return;
-    if (isPreviewEnvironment()) return;
+    if (!remindersSupported()) return;
+    if (remindersBlockedByPreview()) return;
     if (hasShownPrompt()) return;
-    if (typeof Notification !== "undefined" && Notification.permission !== "default") {
+    if (
+      !isNative() &&
+      typeof Notification !== "undefined" &&
+      Notification.permission !== "default"
+    ) {
       // Already granted or denied — skip the prompt
       markPromptShown();
       return;
@@ -39,7 +43,7 @@ export function ReminderPrompt({ isAuthenticated }: Props) {
 
   const handleEnable = async () => {
     setBusy(true);
-    const { ok, error } = await subscribeToPush();
+    const { ok, error } = await enableReminders();
     setBusy(false);
     if (ok) {
       toast.success("Meal reminders enabled");
