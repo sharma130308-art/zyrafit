@@ -255,8 +255,6 @@ function ProfilePage() {
         alert("Failed to scan. Please try again.");
       }
       setScanning(false);
-    };
-    input.click();
   };
 
   // Hydrate from cache instantly
