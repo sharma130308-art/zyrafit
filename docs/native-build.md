@@ -111,6 +111,63 @@ web-based Service ID setup that isn't configured here.
 Android doesn't need extra manifest changes for this — the plugin talks to
 Google Play Services directly.
 
+## Security audit (Sept 2026)
+
+Went through the full codebase and Supabase schema looking for anything that
+would get the app rejected or leave user data exposed. Results:
+
+**Solid — no changes needed:**
+- All 9 database tables have Row Level Security enabled, and every policy is
+  scoped to `auth.uid() = user_id` (no `USING (true)` catch-alls found).
+- `delete_own_account()` is `SECURITY DEFINER` but pinned (`search_path =
+  public`, revoked from `PUBLIC`/`anon`, only `authenticated` can call it,
+  and it only ever deletes rows matching the caller's own `auth.uid()`).
+- No secrets committed — `SUPABASE_SERVICE_ROLE_KEY` and API keys are only
+  referenced via `process.env` / `Deno.env` server-side; `.env` only has the
+  public anon key, which is meant to be public.
+- No cleartext/HTTP traffic in store builds — `capacitor.config.ts` only
+  allows cleartext in the dev-only live-reload path; `allowMixedContent:
+  false` on Android.
+- Sign in with Apple is offered wherever Google sign-in is (web + iOS
+  native) — satisfies Apple's 4.8 parity requirement.
+- Account deletion is in place — satisfies 5.1.1(v).
+- No in-app purchases or paywalls in the code, so no Guideline 3.1.1 risk.
+- No `dangerouslySetInnerHTML`/`eval` on user-controlled input.
+
+**Fixed in this pass:**
+- `scripts/cap-configure.mjs` now also bumps `compileSdkVersion` /
+  `targetSdkVersion` to 36 (Android 16) if the generated project is lower —
+  Google Play has required new submissions to target API 36 since Aug 31
+  2026; an outdated target is an instant upload rejection.
+
+**Worth your attention (not code I can safely guess at):**
+- **No way to reset a forgotten password.** Accounts are keyed by phone
+  number under the hood (`<digits>@phone.zyrafit.app`), and there's no
+  "Forgot password" link or `resetPasswordForEmail` call anywhere — someone
+  who forgets their password is locked out permanently. Not an automatic
+  store rejection, but worth fixing before real users hit it. Say the word
+  if you want this built (SMS OTP via Supabase phone auth would be the
+  proper fix, or a support-driven manual reset in the meantime).
+- **App Review needs a way in.** Apple/Google reviewers can't easily create
+  an account through phone-number signup. Add a demo account's phone +
+  password to the "App Review Information" notes in App Store Connect /
+  Play Console, or the app can get rejected simply because reviewers
+  couldn't sign in.
+- `terms.tsx` has a "Subscriptions and pricing" section even though there's
+  no subscription feature — cosmetic, but inaccurate legal copy is worth
+  tidying before publishing.
+- `npm audit` flags ~20 advisories, but they're all in build/dev tooling
+  (vite, wrangler/miniflare, undici) that never ships inside the native
+  bundle — not a store-review risk, just worth an `npm audit fix` pass at
+  some point for hygiene.
+- Auth tokens are mirrored into `@capacitor/preferences` (app-sandboxed
+  storage) rather than the iOS Keychain / Android Keystore. Fine for store
+  approval, but Keychain-backed storage (e.g.
+  `@capacitor/preferences` doesn't do this; a plugin like
+  `capacitor-secure-storage-plugin` would) is the stronger option if you
+  want defense-in-depth against a jailbroken/rooted device reading the
+  sandbox directly.
+
 ## Things you still need to do outside the code
 
 - **Apple Developer** ($99/yr) and **Google Play Console** ($25 once) accounts.

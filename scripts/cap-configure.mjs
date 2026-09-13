@@ -144,6 +144,19 @@ if (existsSync(manifestPath)) {
       writeFileSync(varsPath, vars);
       changed++;
     }
+    // Google Play requires new submissions to target a recent API level
+    // (36 / Android 16 as of Aug 31 2026) — bump compile/target SDK to match
+    // so the app isn't rejected at upload for an outdated target.
+    const REQUIRED_SDK = 36;
+    for (const key of ["compileSdkVersion", "targetSdkVersion"]) {
+      const re = new RegExp(`${key}\\s*=\\s*(\\d+)`);
+      const match = vars.match(re);
+      if (match && Number(match[1]) < REQUIRED_SDK) {
+        vars = vars.replace(re, `${key} = ${REQUIRED_SDK}`);
+        writeFileSync(varsPath, vars);
+        changed++;
+      }
+    }
     console.log("✔ android/variables.gradle checked");
   }
 } else {
