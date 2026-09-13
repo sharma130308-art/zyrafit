@@ -1,29 +1,35 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, LogIn } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * "/welcome" is the app's logged-out entry point (see use-require-auth,
+ * app.tsx, profile.tsx, DeleteAccountButton). There's no landing/splash
+ * screen anymore — it just routes straight to the right place:
+ *   - signed in + onboarded  -> /app
+ *   - signed in, not onboarded -> /onboarding
+ *   - signed out             -> /login (which links to "Sign Up" for new users)
+ */
 export const Route = createFileRoute("/welcome")({
-  component: WelcomePage,
+  component: WelcomeRedirect,
   head: () => ({
     meta: [
-      { title: "ZyraFit — Welcome" },
-      { name: "description", content: "Track your calories and macros effortlessly. Get started or sign in." },
+      { title: "ZyraFit" },
+      { name: "description", content: "Track your calories and macros effortlessly." },
     ],
   }),
 });
 
-function WelcomePage() {
+function WelcomeRedirect() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      setChecking(false);
+      navigate({ to: "/login", replace: true });
       return;
     }
     let cancelled = false;
@@ -37,54 +43,19 @@ function WelcomePage() {
       if (data?.onboarding_completed) {
         navigate({ to: "/app", replace: true });
       } else {
-        setChecking(false);
+        navigate({ to: "/onboarding", replace: true });
       }
     })();
     return () => { cancelled = true; };
   }, [user, loading, navigate]);
 
-  if (loading || checking) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <motion.div
-        className="w-full max-w-sm text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-
-        <div className="space-y-3">
-          <Link to="/onboarding">
-            <motion.div
-              whileTap={{ scale: 0.97 }}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25"
-            >
-              Get Started
-              <ArrowRight className="w-4 h-4" />
-            </motion.div>
-          </Link>
-
-          <Link to="/login">
-            <motion.div
-              whileTap={{ scale: 0.97 }}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-card border border-border/50 text-foreground font-medium hover:bg-accent transition-colors mt-3"
-            >
-              <LogIn className="w-4 h-4" />
-              I already have an account
-            </motion.div>
-          </Link>
-        </div>
-      </motion.div>
+        className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      />
     </div>
   );
 }

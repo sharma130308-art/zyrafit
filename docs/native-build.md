@@ -74,6 +74,42 @@ bun run cap:android   # opens Android Studio
 | Haptics | `@capacitor/haptics` | `src/lib/haptics.ts` |
 | Account deletion (App Store 5.1.1(v)) | `delete_own_account()` RPC | Profile → **Delete account** |
 | Splash / status bar / keyboard | `@capacitor/splash-screen`, `status-bar`, `keyboard` | `capacitor.config.ts` |
+| Native Google / Apple sign-in | `@capgo/capacitor-social-login` | `src/lib/native-auth.ts`, wired into `src/routes/login.tsx` |
+
+The web OAuth redirect (`lovable.auth.signInWithOAuth`) can't complete inside
+the native WebView, so `login.tsx` now branches: on native it opens the
+OS-level Google/Apple sign-in sheet and hands the resulting ID token straight
+to Supabase (`signInWithIdToken`) — same session, same `user_profiles` row as
+the web flow. On web nothing changed. The Apple button is hidden on native
+Android — Sign in with Apple is an iOS thing; Android would need a separate
+web-based Service ID setup that isn't configured here.
+
+### One-time setup for native social login
+
+1. **Google Cloud Console** → APIs & Services → Credentials → Create OAuth
+   client ID:
+   - One **Web application** client → this is `VITE_GOOGLE_WEB_CLIENT_ID`
+     (used on Android and as the "audience" Supabase checks).
+   - One **iOS** client (bundle ID `com.zyrafit.app`) → this is
+     `VITE_GOOGLE_IOS_CLIENT_ID`.
+   Add both to `.env`:
+   ```
+   VITE_GOOGLE_WEB_CLIENT_ID="xxxxx.apps.googleusercontent.com"
+   VITE_GOOGLE_IOS_CLIENT_ID="xxxxx.apps.googleusercontent.com"
+   ```
+   Without these, the Google button is hidden with a clear "not configured" error rather than crashing.
+2. **Apple Developer** → Certificates, Identifiers & Profiles → your App ID
+   → enable **Sign In with Apple**.
+3. In Xcode (after `cap:ios`), select the App target → *Signing &
+   Capabilities* → **+ Capability** → **Sign in with Apple**, once. From then
+   on `scripts/cap-configure.mjs` keeps that entitlement in place on every
+   `cap:sync`.
+4. **Supabase Dashboard** → Authentication → Providers → enable **Google**
+   and **Apple**, using the same client IDs above (Apple also needs your
+   Team ID / Key ID / private key from the Apple Developer portal).
+
+Android doesn't need extra manifest changes for this — the plugin talks to
+Google Play Services directly.
 
 ## Things you still need to do outside the code
 
@@ -82,11 +118,6 @@ bun run cap:android   # opens Android Studio
   you also want server-sent pushes, upload an APNs key + Firebase
   `google-services.json` / `GoogleService-Info.plist`, then a sender that
   reads `device_push_tokens` is needed.
-- **Google / Apple sign-in inside the app**: the current web OAuth redirect
-  works in Safari/Chrome but not inside the native shell. Either ship with
-  phone + password only, or add `@capacitor-firebase/authentication` /
-  `@capgo/capacitor-social-login` in a follow-up. The `zyrafit://` scheme is
-  already registered for that.
 - Store listing: screenshots (6.7" and 6.1" iPhone, 12.9" iPad optional;
   phone + 7"/10" tablet for Play), privacy policy URL
   (`https://zyrafit.app/privacy-policy`), and the App Privacy / Data Safety

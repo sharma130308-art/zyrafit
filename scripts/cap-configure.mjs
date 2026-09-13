@@ -59,6 +59,26 @@ if (existsSync(plistPath)) {
 
   writeFileSync(plistPath, plist);
   console.log("✔ iOS Info.plist checked");
+
+  // Sign in with Apple entitlement (native social login)
+  const entitlementsPath = resolve(root, "ios/App/App/App.entitlements");
+  if (existsSync(entitlementsPath)) {
+    let ent = readFileSync(entitlementsPath, "utf8");
+    if (!ent.includes("com.apple.developer.applesignin")) {
+      ent = ent.replace(
+        /<dict>/,
+        `<dict>\n\t<key>com.apple.developer.applesignin</key>\n\t<array>\n\t\t<string>Default</string>\n\t</array>`,
+      );
+      writeFileSync(entitlementsPath, ent);
+      changed++;
+    }
+    console.log("✔ iOS entitlements checked (Sign in with Apple)");
+  } else {
+    console.log(
+      "• No ios/App/App/App.entitlements yet — add the \"Sign in with Apple\" capability once in Xcode " +
+        "(App target → Signing & Capabilities → + Capability), then re-run this script to keep it there on future syncs.",
+    );
+  }
 } else {
   console.log("• ios/ not present yet — run `npx cap add ios` first");
 }
