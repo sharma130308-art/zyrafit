@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      exercises: {
+        Row: {
+          created_at: string
+          id: string
+          muscle_group: string
+          name: string
+          sort_order: number
+          video_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          muscle_group: string
+          name: string
+          sort_order?: number
+          video_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          muscle_group?: string
+          name?: string
+          sort_order?: number
+          video_path?: string
+        }
+        Relationships: []
+      }
       food_entries: {
         Row: {
           barcode: string | null

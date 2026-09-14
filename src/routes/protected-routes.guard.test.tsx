@@ -190,6 +190,7 @@ vi.mock("sonner", () => ({
 
 import * as appRoute from "./app";
 import * as profileRoute from "./profile";
+import * as exercisesRoute from "./exercises";
 
 function getRouteComponent(mod: unknown): React.ComponentType {
   const route = (mod as { Route?: { options?: { component?: unknown } } }).Route;
@@ -208,6 +209,7 @@ function getRouteComponent(mod: unknown): React.ComponentType {
 const routes: Array<[label: string, Component: React.ComponentType]> = [
   ["/app", getRouteComponent(appRoute)],
   ["/profile", getRouteComponent(profileRoute)],
+  ["/exercises", getRouteComponent(exercisesRoute)],
 ];
 
 describe.each(routes)("protected route %s", (label, Component) => {

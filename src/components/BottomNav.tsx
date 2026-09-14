@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Home, PlusCircle, User } from "lucide-react";
+import { Dumbbell, Home, PlusCircle, User } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 
 interface BottomNavProps {
@@ -11,6 +11,7 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
   const location = useLocation();
   const path = location.pathname;
   const isHome = path === "/app" || path === "/";
+  const isExercises = path === "/exercises";
   const isProfile = path === "/profile";
 
   return (
@@ -27,6 +28,22 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
             <Home className="w-6 h-6" strokeWidth={isHome ? 2.5 : 1.5} />
             <span className="text-[10px] font-semibold">Home</span>
             {isHome && (
+              <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-nav-active" />
+            )}
+          </Link>
+        </motion.div>
+
+        <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}>
+          <Link
+            to="/exercises"
+            onClick={() => hapticLight()}
+            className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+              isExercises ? "text-nav-active" : "text-nav-foreground"
+            }`}
+          >
+            <Dumbbell className="w-6 h-6" strokeWidth={isExercises ? 2.5 : 1.5} />
+            <span className="text-[10px] font-semibold">Exercises</span>
+            {isExercises && (
               <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-nav-active" />
             )}
           </Link>
