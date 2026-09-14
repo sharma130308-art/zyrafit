@@ -112,6 +112,14 @@ function LoginPage() {
             </button>
           </div>
 
+          <div className="text-right -mt-2">
+            <a
+              href="mailto:hello@zyrafit.app?subject=Forgot%20my%20ZyraFit%20password"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Forgot password?
+            </a>
+          </div>
 
           {error && (
             <motion.p
