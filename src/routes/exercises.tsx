@@ -18,15 +18,16 @@ export const Route = createFileRoute("/exercises")({
   }),
 });
 
-const MUSCLE_GROUPS = [
-  { id: "shoulders", label: "Shoulders" },
-  { id: "arms", label: "Arms" },
-  { id: "back", label: "Back" },
-  { id: "core", label: "Core" },
-] as const;
+const KNOWN_GROUP_ORDER = [
+  "chest", "back", "shoulders", "biceps", "triceps", "forearms",
+  "trapezius", "abs", "hips", "calves", "cardio",
+];
 
-type MuscleGroup = (typeof MUSCLE_GROUPS)[number]["id"];
-type Filter = "all" | MuscleGroup;
+function titleCase(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+type Filter = "all" | string;
 
 interface Exercise {
   id: string;
@@ -60,6 +61,16 @@ function ExercisesPage() {
     })();
     return () => { cancelled = true; };
   }, [ready]);
+
+  // Category chips come from whatever's actually in the data, ordered to
+  // match the known set first (so it doesn't jump around as rows load),
+  // with any unexpected new group appended at the end.
+  const groups = useMemo(() => {
+    const present = new Set(exercises.map((ex) => ex.muscle_group));
+    const known = KNOWN_GROUP_ORDER.filter((g) => present.has(g));
+    const extra = [...present].filter((g) => !KNOWN_GROUP_ORDER.includes(g)).sort();
+    return [...known, ...extra];
+  }, [exercises]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -108,12 +119,12 @@ function ExercisesPage() {
             label="All"
             onClick={() => { hapticLight(); setFilter("all"); }}
           />
-          {MUSCLE_GROUPS.map((group) => (
+          {groups.map((group) => (
             <FilterChip
-              key={group.id}
-              active={filter === group.id}
-              label={group.label}
-              onClick={() => { hapticLight(); setFilter(group.id); }}
+              key={group}
+              active={filter === group}
+              label={titleCase(group)}
+              onClick={() => { hapticLight(); setFilter(group); }}
             />
           ))}
         </div>
